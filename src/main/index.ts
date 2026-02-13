@@ -127,10 +127,11 @@ app.whenReady().then(() => {
   createWindow()
 
   // Auto-updater setup
+  autoUpdater.logger = log
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
 
-  function sendUpdateStatus(status: string, info?: any): void {
+  function sendUpdateStatus(status: string, info?: Record<string, unknown>): void {
     const win = BrowserWindow.getAllWindows()[0]
     if (win && !win.isDestroyed()) {
       win.webContents.send('update-status', status, info)
@@ -139,20 +140,28 @@ app.whenReady().then(() => {
 
   autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'))
   autoUpdater.on('update-available', (info) =>
-    sendUpdateStatus('available', { version: info.version })
+    sendUpdateStatus('available', { version: info.version, releaseNotes: info.releaseNotes })
   )
   autoUpdater.on('update-not-available', () => sendUpdateStatus('up-to-date'))
   autoUpdater.on('download-progress', (progress) =>
-    sendUpdateStatus('downloading', { percent: Math.round(progress.percent) })
+    sendUpdateStatus('downloading', {
+      percent: Math.round(progress.percent),
+      transferred: progress.transferred,
+      total: progress.total,
+      bytesPerSecond: progress.bytesPerSecond
+    })
   )
-  autoUpdater.on('update-downloaded', () => sendUpdateStatus('downloaded'))
+  autoUpdater.on('update-downloaded', (info) =>
+    sendUpdateStatus('downloaded', { version: info.version })
+  )
   autoUpdater.on('error', (err) => sendUpdateStatus('error', { message: err.message }))
 
   ipcMain.handle('check-for-updates', async () => {
     try {
       await autoUpdater.checkForUpdates()
       return true
-    } catch {
+    } catch (err) {
+      log.error('[Updater] check failed:', err)
       return false
     }
   })
@@ -161,7 +170,8 @@ app.whenReady().then(() => {
     try {
       await autoUpdater.downloadUpdate()
       return true
-    } catch {
+    } catch (err) {
+      log.error('[Updater] download failed:', err)
       return false
     }
   })
