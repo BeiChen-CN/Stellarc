@@ -1,137 +1,202 @@
-# Stellarc - 课堂随机抽选与互动平台
+<p align="center">
+  <img src="build/icon.png" alt="Stellarc" width="120">
+</p>
 
-Stellarc 是一款离线优先的桌面端课堂随机抽选应用，基于 Electron + React + TypeScript 构建，支持班级管理、策略抽选、分组互动、历史追踪与统计分析。
+<h1 align="center">Stellarc</h1>
 
-## 亮点能力
+<p align="center">
+  隐私优先 · 算法公平 · 高度可定制的离线课堂随机点名工具
+</p>
 
-- 离线可用，本地数据存储（JSON + 本地图片）
-- 抽选策略引擎（权重、冷却、防重复、策略预设）
-- 多种动画（含转盘动画，现支持多人抽选场景）
-- 历史记录与可视化统计（含公平性指标）
-- 数据备份/恢复 + 启动迁移 + 失败回滚
-- 全局快捷键触发抽选（支持注册失败反馈）
-- 背景图片与动态取色
-- 课堂活动预设可一键套用推荐规则（同步调整动画与公平策略）
+<p align="center">
+  <img src="https://img.shields.io/badge/Electron-39-47848F?logo=electron&logoColor=white" alt="Electron">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platform">
+</p>
 
-## 技术栈
+---
 
-- Electron + Vite
-- React 19 + TypeScript
-- Zustand
-- Tailwind CSS
-- Framer Motion
-- Recharts
-- Zod
+## 功能概览
+
+**抽选核心**
+- 加权随机抽选引擎，内置 3 种策略预设（经典 / 均衡 / 动量）
+- 冷却机制防止连续抽中同一学生
+- 支持单人 / 多人抽选、随机分组
+- 7 种抽选动画风格（滚动、老虎机、翻转、转盘、弹跳、打字机、涟漪）
+
+**班级管理**
+- 多班级切换，学生增删改查
+- 学生照片管理，支持拖拽上传
+- 积分系统，权重手动调节
+- 操作可撤销（Undo）
+
+**数据与统计**
+- 完整的抽选历史记录
+- 可视化统计面板（Top 10、频率趋势、班级分布、积分排行）
+- 公平性均衡指数
+- CSV 导出
+
+**个性化**
+- 18 种颜色主题 + 9 种设计风格
+- Material Design 3 色调渗透模式
+- 深色 / 浅色模式
+- 自定义背景图片 + 动态取色
+- 课堂活动模板一键套用
+
+**安全与可靠**
+- 完全离线运行，数据存储在本地
+- 启动时自动数据迁移 + 自检修复
+- ZIP 备份 / 恢复，失败自动回滚
+- 路径遍历防护，文件操作限制在数据目录内
+
+---
 
 ## 快速开始
 
-### 安装依赖
+### 环境要求
+
+- Node.js >= 18
+- npm >= 9
+
+### 安装与运行
 
 ```bash
+# 克隆仓库
+git clone https://github.com/BeiChen-CN/Stellarc.git
+cd Stellarc
+
+# 安装依赖
 npm install
-```
 
-### 开发模式
-
-```bash
+# 启动开发模式
 npm run dev
 ```
 
-### 类型检查
+### 构建安装包
 
 ```bash
-npm run typecheck
+# Windows
+npm run build:win
+
+# macOS
+npm run build:mac
+
+# Linux
+npm run build:linux
 ```
 
-### 构建
+---
 
-```bash
-npm run build
+## 项目结构
+
 ```
-
-## 数据与安全
-
-- 数据目录位于 Electron `userData/data`
-- 文件路径通过主进程安全校验，避免越权访问
-- 启动时执行数据迁移，失败自动回滚到迁移前快照
-- 若数据 schema 已是最新版本，将自动跳过迁移，避免重复备份
-- 启动时执行数据自检（`health-report.json`），自动修复缺失/损坏基础文件
-
-## Q4 插件化（策略）
-
-- 插件文件：`strategy-plugins.json`（可参考 `strategy-plugins.example.json`）
-- 设置页可热重载插件并显示加载数量/错误信息
-
-插件字段说明：
-
-- `id`：策略唯一 ID（仅小写字母、数字、中划线）
-- `name`：显示名称
-- `baseMultiplier`：基础权重倍数
-- `scoreFactor`：积分加成系数（正分越高，权重越高）
-- `pickDecayFactor`：抽中次数衰减系数（抽中越多，权重越低）
-- `minWeight` / `maxWeight`：权重下限 / 上限
-
-## 多终端同步（可选）
-
-- 在设置页启用“目录同步”并选择一个共享文件夹
-- 支持“推送到目录”与“从目录拉取”两种手动同步方式
-- 同步目录内数据位置：`<你的目录>/stellarc-sync/data`
-
-## 操作可恢复（Undo）
-
-- 学生管理页支持撤销最近一次班级/学生编辑操作
-- 可撤销操作包括：新增/删除班级、增删学生、修改状态/权重/积分/头像
-
-## 可观测性与诊断
-
-- 设置页提供诊断面板：迁移状态 + 自检修复统计
-- 诊断源文件：
-  - `migration-state.json`
-  - `health-report.json`
-
-## 测试体系
-
-- 单元测试框架：Vitest
-- 运行测试：`npm test`
-- 监听模式：`npm run test:watch`
-- 已覆盖：
-  - 文件 URL 转换工具（路径兼容）
-  - 策略插件加载/重置
-
-## 发布与更新链路
-
-发布前建议执行：
-
-1. `npm run typecheck`
-2. `npm test`
-3. `npm run build`
-
-更新链路检查项：
-
-- 检查更新 -> 下载更新 -> 重启安装
-- 升级后查看 `migration-state.json` 与 `health-report.json`
-- 若升级异常可使用备份恢复能力回滚数据
-
-## 目录结构
-
-```text
 src/
-  main/
-    controllers/         # 主进程 IPC 控制器
-    migrations/          # 数据迁移与回滚
-  preload/               # IPC 桥接层
-  renderer/src/
-    components/          # UI 组件
-    engine/selection/    # 抽选策略引擎与策略注册表
-    store/               # Zustand 状态管理
-    views/               # 页面视图
+├── main/                        # 主进程 (Node.js)
+│   ├── controllers/             #   IPC 控制器
+│   │   ├── BaseController.ts    #     抽象基类 (Zod 验证 + 错误捕获)
+│   │   ├── FileController.ts    #     文件读写 + 照片管理
+│   │   ├── AppController.ts     #     快捷键 + 备份恢复 + 主题
+│   │   └── DialogController.ts  #     原生对话框
+│   ├── migrations/              #   数据迁移 (版本化 schema 升级)
+│   └── health/                  #   启动自检与修复
+│
+├── preload/                     # IPC 桥接层
+│   ├── index.ts                 #   contextBridge 实现
+│   └── index.d.ts               #   TypeScript 类型声明
+│
+└── renderer/src/                # 渲染进程 (React SPA)
+    ├── views/                   #   页面视图 (6 个)
+    ├── components/              #   UI 组件
+    ├── store/                   #   Zustand 状态管理 (7 个 store)
+    ├── engine/selection/        #   抽选策略引擎
+    ├── lib/                     #   工具函数 + 音效合成
+    └── assets/                  #   样式 + 静态资源
 ```
 
-## 常用脚本
+---
 
-- `npm run dev`：开发模式
-- `npm run start`：预览生产构建
-- `npm run typecheck`：全量类型检查
-- `npm run lint`：ESLint
-- `npm run build`：构建应用
-- `npm run build:win`：打包 Windows 安装包
+## 策略插件
+
+支持通过 JSON 文件扩展自定义抽选策略：
+
+1. 参考 `strategy-plugins.example.json` 创建 `strategy-plugins.json`
+2. 在设置页热重载插件
+
+```json
+{
+  "id": "my-strategy",
+  "name": "自定义策略",
+  "baseMultiplier": 1.0,
+  "scoreFactor": 0.5,
+  "pickDecayFactor": 0.3,
+  "minWeight": 0.1,
+  "maxWeight": 5.0
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `baseMultiplier` | 基础权重倍数 |
+| `scoreFactor` | 积分加成系数（正分越高权重越高） |
+| `pickDecayFactor` | 抽中衰减系数（抽中越多权重越低） |
+| `minWeight` / `maxWeight` | 权重下限 / 上限 |
+
+---
+
+## 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 框架 | Electron 39 + electron-vite |
+| 前端 | React 19 + TypeScript 5.9 |
+| 样式 | Tailwind CSS + CSS Variables (shadcn/ui 风格) |
+| 状态 | Zustand |
+| 动画 | Framer Motion |
+| 图表 | Recharts |
+| 验证 | Zod v4 |
+| 日志 | electron-log |
+| 更新 | electron-updater |
+| 测试 | Vitest |
+| 代码规范 | ESLint + Prettier |
+
+---
+
+## 常用命令
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发服务器 (HMR) |
+| `npm run build` | 类型检查 + 生产构建 |
+| `npm run typecheck` | TypeScript 全量类型检查 |
+| `npm run lint` | ESLint 检查 |
+| `npm run format` | Prettier 格式化 |
+| `npm test` | 运行测试 |
+| `npm run build:win` | 打包 Windows 安装包 |
+| `npm run build:mac` | 打包 macOS 应用 |
+| `npm run build:linux` | 打包 Linux 应用 |
+
+---
+
+## 数据存储
+
+运行时数据位于系统用户数据目录：
+
+| 文件 | 内容 |
+|------|------|
+| `data/classes.json` | 班级与学生数据 |
+| `data/history.json` | 抽选历史记录 |
+| `data/settings.json` | 应用设置 |
+| `data/photos/` | 学生照片 |
+| `migration-state.json` | 迁移状态 |
+| `health-report.json` | 自检报告 |
+
+所有文件操作通过路径安全校验，限制在 `data/` 目录内。
+
+---
+
+## 许可证
+
+[MIT](LICENSE)
