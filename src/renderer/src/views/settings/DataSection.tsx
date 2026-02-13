@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Database, Save, History, Trash2, Power, Stethoscope, CloudUpload, CloudDownload, ChevronDown, CalendarDays } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Database, Save, History, Trash2, Power, Stethoscope, ChevronDown, CalendarDays, X, ChevronLeft, ChevronRight, FolderOpen, RefreshCw, ArrowUpFromLine, ArrowDownToLine, CheckCircle2, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -8,6 +8,173 @@ import { useConfirmStore } from '../../store/confirmStore'
 import { useDiagnosticsStore } from '../../store/diagnosticsStore'
 import { MD3Switch } from './MD3Switch'
 import { UpdateChecker } from './UpdateChecker'
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+
+function DatePicker({
+  value,
+  onChange,
+  disabled,
+  placeholder
+}: {
+  value: string
+  onChange: (date: string) => void
+  disabled?: boolean
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({})
+
+  // Parse value or default to current month
+  const parsed = value ? new Date(value + 'T00:00:00') : null
+  const [viewYear, setViewYear] = useState(parsed?.getFullYear() || new Date().getFullYear())
+  const [viewMonth, setViewMonth] = useState(parsed?.getMonth() ?? new Date().getMonth())
+
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (ref.current && !ref.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)) {
+      setOpen(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      // Calculate position relative to viewport
+      if (btnRef.current) {
+        const rect = btnRef.current.getBoundingClientRect()
+        const spaceBelow = window.innerHeight - rect.bottom
+        const panelHeight = 340
+        if (spaceBelow < panelHeight) {
+          // Open upward
+          setPopupStyle({ position: 'fixed', left: rect.left, bottom: window.innerHeight - rect.top + 4, zIndex: 9999 })
+        } else {
+          // Open downward
+          setPopupStyle({ position: 'fixed', left: rect.left, top: rect.bottom + 4, zIndex: 9999 })
+        }
+      }
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open, handleClickOutside])
+
+  // When value changes externally, sync the view
+  useEffect(() => {
+    if (parsed) {
+      setViewYear(parsed.getFullYear())
+      setViewMonth(parsed.getMonth())
+    }
+  }, [value])
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay()
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11) }
+    else setViewMonth(viewMonth - 1)
+  }
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0) }
+    else setViewMonth(viewMonth + 1)
+  }
+
+  const selectDay = (day: number) => {
+    const m = String(viewMonth + 1).padStart(2, '0')
+    const d = String(day).padStart(2, '0')
+    onChange(`${viewYear}-${m}-${d}`)
+    setOpen(false)
+  }
+
+  const formatDisplay = (v: string) => {
+    if (!v) return ''
+    const [y, m, d] = v.split('-')
+    return `${y} 年 ${parseInt(m)} 月 ${parseInt(d)} 日`
+  }
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(!open)}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-2 border border-outline-variant rounded-xl text-sm bg-surface-container-low transition-colors text-left',
+          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-surface-container-high/60 cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary'
+        )}
+      >
+        <CalendarDays className="w-4 h-4 text-on-surface-variant shrink-0" />
+        {value
+          ? <span className="text-on-surface">{formatDisplay(value)}</span>
+          : <span className="text-on-surface-variant">{placeholder || '选择日期'}</span>}
+      </button>
+
+      {open && (
+        <div ref={ref} style={popupStyle} className="bg-surface-container rounded-2xl elevation-3 border border-outline-variant/30 p-3 w-[280px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={prevMonth} className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-semibold text-on-surface">{viewYear} 年 {viewMonth + 1} 月</span>
+            <button onClick={nextMonth} className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {WEEKDAYS.map((w) => (
+              <div key={w} className="text-center text-[10px] text-on-surface-variant font-medium py-1">{w}</div>
+            ))}
+          </div>
+
+          {/* Days grid */}
+          <div className="grid grid-cols-7">
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <div key={`e-${i}`} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1
+              const m = String(viewMonth + 1).padStart(2, '0')
+              const d = String(day).padStart(2, '0')
+              const dateStr = `${viewYear}-${m}-${d}`
+              const isSelected = dateStr === value
+              const isToday = dateStr === new Date().toISOString().slice(0, 10)
+              return (
+                <button
+                  key={day}
+                  onClick={() => selectDay(day)}
+                  className={cn(
+                    'w-8 h-8 mx-auto rounded-full text-xs font-medium flex items-center justify-center transition-colors cursor-pointer',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : isToday
+                   ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        : 'text-on-surface hover:bg-surface-container-high'
+                  )}
+                >
+                  {day}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Clear */}
+          {value && (
+            <button
+              onClick={() => { onChange(''); setOpen(false) }}
+              className="mt-2 w-full text-center text-xs text-destructive hover:text-destructive/80 cursor-pointer py-1"
+            >
+              清除日期
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function DataSection() {
   const { maxHistoryRecords, setMaxHistoryRecords, syncEnabled, toggleSyncEnabled, syncFolder, setSyncFolder, semester, setSemester } =
@@ -19,6 +186,9 @@ export function DataSection() {
   const [autoLaunch, setAutoLaunchState] = useState(false)
   const [syncExpanded, setSyncExpanded] = useState(false)
   const [diagExpanded, setDiagExpanded] = useState(false)
+  const [syncing, setSyncing] = useState<'push' | 'pull' | null>(null)
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
+  const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'error' | null>(null)
 
   useEffect(() => {
     window.electronAPI.getAutoLaunch().then(setAutoLaunchState)
@@ -81,7 +251,11 @@ export function DataSection() {
       addToast('请先选择同步目录', 'error')
       return
     }
+    setSyncing('push')
     const ok = await window.electronAPI.syncDataToFolder(syncFolder)
+    setSyncing(null)
+    setLastSyncStatus(ok ? 'success' : 'error')
+    if (ok) setLastSyncTime(new Date().toLocaleString())
     addToast(ok ? '已同步到共享目录' : '同步失败', ok ? 'success' : 'error')
   }
 
@@ -90,13 +264,19 @@ export function DataSection() {
       addToast('请先选择同步目录', 'error')
       return
     }
-    const ok = await window.electronAPI.syncDataFromFolder(syncFolder)
-    if (ok) {
-      addToast('已从共享目录拉取，应用将重新加载', 'success')
-      setTimeout(() => window.location.reload(), 1200)
-    } else {
-      addToast('拉取失败', 'error')
-    }
+    showConfirm('拉取数据', '从共享目录拉取将覆盖本地数据，确定继续吗？', async () => {
+      setSyncing('pull')
+      const ok = await window.electronAPI.syncDataFromFolder(syncFolder)
+      setSyncing(null)
+      setLastSyncStatus(ok ? 'success' : 'error')
+      if (ok) {
+        setLastSyncTime(new Date().toLocaleString())
+        addToast('已从共享目录拉取，应用将重新加载', 'success')
+        setTimeout(() => window.location.reload(), 1200)
+      } else {
+        addToast('拉取失败，请检查同步目录是否包含有效数据', 'error')
+      }
+    })
   }
 
   const handleToggleAutoLaunch = async () => {
@@ -181,35 +361,70 @@ export function DataSection() {
           学期设置
         </h3>
         <div className="bg-surface-container rounded-[28px] overflow-hidden">
-          <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
+          <div className="p-5 space-y-4">
             <div className="flex items-center space-x-4">
               <div className="p-2 bg-primary/10 text-primary rounded-full">
                 <CalendarDays className="w-5 h-5" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h4 className="font-medium text-on-surface">当前学期</h4>
-                <p className="text-xs text-on-surface-variant mt-0.5">用于统计页面的「本学期」时间范围筛选</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  {semester
+                    ? `${semester.name}（${semester.startDate} 至 ${semester.endDate || '至今'}）`
+                    : '未设置，统计页将自动按月份推断学期范围'}
+                </p>
+              </div>
+              {semester && (
+                <button
+                  onClick={() => setSemester(null)}
+                  className="p-1.5 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive transition-colors cursor-pointer"
+                  title="清除学期设置"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="pl-14 space-y-3">
+              <div>
+                <label className="text-xs text-on-surface-variant block mb-1">学期名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：2025 年春季学期"
+                  value={semester?.name || ''}
+                  onChange={(e) => {
+                    const name = e.target.value
+                    setSemester(name ? { name, startDate: semester?.startDate || '', endDate: semester?.endDate || '' } : null)
+                  }}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-on-surface-variant block mb-1">开始日期</label>
+                  <DatePicker
+                    value={semester?.startDate || ''}
+                    onChange={(date) => {
+                      if (!semester?.name) return
+                      setSemester({ ...semester, startDate: date })
+                    }}
+                    disabled={!semester?.name}
+                    placeholder="选择开始日期"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-on-surface-variant block mb-1">结束日期</label>
+                  <DatePicker
+                    value={semester?.endDate || ''}
+                    onChange={(date) => {
+                      if (!semester?.name) return
+                      setSemester({ ...semester, endDate: date })
+                    }}
+                    disabled={!semester?.name}
+                    placeholder="选择结束日期"
+                  />
+                </div>
               </div>
             </div>
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface cursor-pointer"
-            >
-              <option value="">自动检测</option>
-              {(() => {
-                const now = new Date()
-                const y = now.getFullYear()
-                const options: { value: string; label: string }[] = []
-                for (let year = y + 1; year >= y - 2; year--) {
-                  options.push({ value: `${year}-spring`, label: `${year} 年春季学期` })
-                  options.push({ value: `${year}-fall`, label: `${year} 年秋季学期` })
-                }
-                return options.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))
-              })()}
-            </select>
           </div>
         </div>
       </section>
@@ -221,8 +436,8 @@ export function DataSection() {
           onClick={() => setSyncExpanded(!syncExpanded)}
         >
           <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
-            <CloudUpload className="w-5 h-5 text-primary" />
-            多终端同步（可选）
+            <RefreshCw className="w-5 h-5 text-primary" />
+            多终端同步
           </h3>
           <button className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer">
             <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', syncExpanded && 'rotate-180')} />
@@ -238,51 +453,81 @@ export function DataSection() {
               className="overflow-hidden"
             >
               <div className="bg-surface-container rounded-[28px] overflow-hidden">
+                {/* Enable toggle */}
                 <div
                   className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors cursor-pointer select-none"
                   onClick={toggleSyncEnabled}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="p-2 bg-primary/10 text-primary rounded-full">
-                      <CloudUpload className="w-5 h-5" />
+                      <RefreshCw className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="font-medium text-on-surface">启用目录同步</h4>
-                      <p className="text-xs text-on-surface-variant mt-0.5">通过共享文件夹在多台设备间同步数据</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">通过共享文件夹（如网盘、NAS）在多台设备间同步数据</p>
                     </div>
                   </div>
                   <MD3Switch checked={syncEnabled} onClick={toggleSyncEnabled} label="目录同步" />
                 </div>
-                <div className="p-5 border-t border-outline-variant/20">
-                  <div className="flex items-center gap-2 mb-3">
+
+                {/* Sync folder */}
+                <div className="px-5 pb-4 border-t border-outline-variant/20 pt-4">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={handleChooseSyncFolder}
-                      className="px-4 py-1.5 border border-outline-variant rounded-full text-sm font-medium text-on-surface cursor-pointer hover:bg-surface-container-high transition-colors"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 border border-outline-variant rounded-full text-sm font-medium text-on-surface cursor-pointer hover:bg-surface-container-high transition-colors shrink-0"
                     >
-                      选择同步目录
+                      <FolderOpen className="w-4 h-4" />
+                      选择目录
                     </button>
-                    <span className="text-xs text-on-surface-variant truncate">{syncFolder || '未选择目录'}</span>
+                    <div className="flex-1 min-w-0">
+                      {syncFolder ? (
+                        <p className="text-xs text-on-surface truncate" title={syncFolder}>{syncFolder}</p>
+                      ) : (
+                        <p className="text-xs text-on-surface-variant">未选择同步目录</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={!syncEnabled || !syncFolder}
-                      onClick={handleSyncToFolder}
-                      className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        <CloudUpload className="w-4 h-4" /> 推送到目录
-                      </span>
-                    </button>
-                    <button
-                      disabled={!syncEnabled || !syncFolder}
-                      onClick={handleSyncFromFolder}
-                      className="px-4 py-1.5 rounded-full text-sm font-medium bg-secondary-container text-secondary-container-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        <CloudDownload className="w-4 h-4" /> 从目录拉取
-                      </span>
-                    </button>
+                </div>
+
+                {/* Sync status bar */}
+                {lastSyncTime && (
+                  <div className="px-5 pb-3 flex items-center gap-2 text-xs">
+                    {lastSyncStatus === 'success'
+                      ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                      : <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                    <span className="text-on-surface-variant">上次同步：{lastSyncTime}</span>
                   </div>
+                )}
+
+                {/* Push / Pull buttons */}
+                <div className="grid grid-cols-2 gap-3 px-5 pb-5">
+                  <button
+                    disabled={!syncEnabled || !syncFolder || syncing !== null}
+                    onClick={handleSyncToFolder}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-outline-variant/50 hover:bg-primary/5 hover:border-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer group"
+                  >
+                    {syncing === 'push' ? (
+                      <RefreshCw className="w-5 h-5 text-primary animate-spin" />
+                    ) : (
+                      <ArrowUpFromLine className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                    )}
+                    <span className="text-sm font-medium text-on-surface">推送到目录</span>
+                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">将本地数据上传到共享目录</span>
+                  </button>
+                  <button
+                    disabled={!syncEnabled || !syncFolder || syncing !== null}
+                    onClick={handleSyncFromFolder}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl border bordariant/50 hover:bg-primary/5 hover:border-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer group"
+                  >
+                    {syncing === 'pull' ? (
+                      <RefreshCw className="w-5 h-5 text-primary animate-spin" />
+                    ) : (
+                      <ArrowDownToLine className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                    )}
+                    <span className="text-sm font-medium text-on-surface">从目录拉取</span>
+                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">从共享目录覆盖本地数据</span>
+                  </button>
                 </div>
               </div>
             </motion.div>

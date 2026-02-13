@@ -3,7 +3,7 @@ import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shuffle, LayoutGrid } from 'lucide-react'
+import { Shuffle, LayoutGrid, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import { Student } from '../types'
 import { cn, toFileUrl } from '../lib/utils'
 import { useToastStore } from '../store/toastStore'
@@ -28,6 +28,7 @@ import { TopControls } from './home/TopControls'
 import { GroupResults } from './home/GroupResults'
 import { WinnerDisplay } from './home/WinnerDisplay'
 import { PickIdleState } from './home/PickIdleState'
+import { ClassTimer } from '../components/ClassTimer'
 
 const ANIMATION_DURATION_MAP = { elegant: 4800, balanced: 3200, fast: 1600 } as const
 const ANIMATION_DURATION_REDUCED_MS = 300
@@ -120,10 +121,7 @@ export function Home({
     }
 
     setMode('pick')
-    if (activityPreset === 'quick-pick' || activityPreset === 'deep-focus') {
-      setPickCount(1)
-    }
-  }, [activityPreset, setPickCount])
+  }, [activityPreset])
 
   const getPickPlan = useCallback(() => {
     if (!currentClass) return null
@@ -378,14 +376,16 @@ export function Home({
 
       <TopControls
         mode={mode}
-        pickCount={pickCount}
         groupCount={groupCount}
-        isSpinning={isSpinning}
         projectorMode={projectorMode}
         onModeChange={handleModeChange}
-        onPickCountChange={setPickCount}
         onGroupCountChange={setGroupCount}
       />
+
+      {/* Timer — top center */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
+        <ClassTimer />
+      </div>
 
       {/* Main Card */}
       <div className="absolute inset-0 top-14 flex flex-col items-center justify-center p-4 z-10">
@@ -498,19 +498,21 @@ export function Home({
                 )}
 
                 {phase === 'reveal' && winners.length > 0 && currentClass && (
-                  <WinnerDisplay
-                    winners={winners}
-                    currentClass={currentClass}
-                    showStudentId={showStudentId}
-                    photoMode={photoMode}
-                  />
+                  <div className="w-full overflow-y-auto overflow-x-hidden max-h-full pb-4 scrollbar-hide">
+                    <WinnerDisplay
+                      winners={winners}
+                      currentClass={currentClass}
+                      showStudentId={showStudentId}
+                      photoMode={photoMode}
+                    />
+                  </div>
                 )}
               </AnimatePresence>
             </>
           )}
 
           {/* Action Button */}
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+          <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center z-20">
             {mode === 'pick' ? (
               <motion.button
                 whileHover={{ scale: 1.05, boxShadow: '0 8px 24px -4px hsl(var(--primary) / 0.3)' }}
@@ -558,6 +560,29 @@ export function Home({
             )}
           </div>
         </div>
+
+        {/* Pick Count — below card */}
+        {mode === 'pick' && !isSpinning && (
+          <div className="mt-3 shrink-0 flex items-center bg-surface-container-high/80 rounded-full px-2.5 py-1 border border-outline-variant/40">
+            <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              人数
+            </span>
+            <button
+              onClick={() => setPickCount(Math.max(1, pickCount - 1))}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-5 text-center text-sm font-bold text-primary">{pickCount}</span>
+            <button
+              onClick={() => setPickCount(Math.min(10, pickCount + 1))}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

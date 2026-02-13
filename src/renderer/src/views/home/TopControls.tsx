@@ -1,26 +1,19 @@
-import { Shuffle, LayoutGrid, Users, ChevronDown, ChevronUp } from 'lucide-react'
+import { Shuffle, LayoutGrid, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { ClassTimer } from '../../components/ClassTimer'
 
 interface TopControlsProps {
   mode: 'pick' | 'group'
-  pickCount: number
   groupCount: number
-  isSpinning: boolean
   projectorMode: boolean
   onModeChange: (mode: 'pick' | 'group') => void
-  onPickCountChange: (count: number) => void
   onGroupCountChange: (count: number) => void
 }
 
 export function TopControls({
   mode,
-  pickCount,
   groupCount,
-  isSpinning,
   projectorMode,
   onModeChange,
-  onPickCountChange,
   onGroupCountChange
 }: TopControlsProps) {
   return (
@@ -30,10 +23,6 @@ export function TopControls({
         projectorMode && 'top-6 right-6 gap-4'
       )}
     >
-      <div className="relative">
-        <ClassTimer />
-      </div>
-
       <div className="flex rounded-full border border-outline-variant overflow-hidden elevation-1">
         <button
           onClick={() => onModeChange('pick')}
@@ -61,29 +50,7 @@ export function TopControls({
         </button>
       </div>
 
-      {mode === 'pick' ? (
-        <div className="flex items-center bg-surface-container-high rounded-full px-3 py-1.5 elevation-1">
-          <span className="text-sm font-medium mr-2 text-on-surface-variant flex items-center gap-1">
-            <Users className="w-4 h-4" />
-            人数
-          </span>
-          <button
-            onClick={() => onPickCountChange(Math.max(1, pickCount - 1))}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-            disabled={isSpinning}
-          >
-            <ChevronDown className="w-4 h-4" />
-          </button>
-          <span className="w-6 text-center font-bold text-primary">{pickCount}</span>
-          <button
-            onClick={() => onPickCountChange(Math.min(10, pickCount + 1))}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-            disabled={isSpinning}
-          >
-            <ChevronUp className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
+      {mode === 'group' && (
         <div className="flex items-center bg-surface-container-high rounded-full px-3 py-1.5 elevation-1">
           <span className="text-sm font-medium mr-2 text-on-surface-variant flex items-center gap-1">
             <LayoutGrid className="w-4 h-4" />

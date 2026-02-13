@@ -5,8 +5,6 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
 import { getStrategyDescriptor } from '../engine/selection/strategies'
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -41,31 +39,30 @@ const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: 'all', label: '全部' }
 ]
 
-function getTimeRangeStart(range: TimeRange, semesterSetting: string): Date | null {
+function getTimeRangeStart(range: TimeRange, semesterSetting: { name: string; startDate: string; endDate: string } | null): { start: Date | null; end: Date | null } {
   const now = new Date()
   switch (range) {
     case '7d':
-      return new Date(now.getTime() - 7 * 86400000)
+      return { start: new Date(now.getTime() - 7 * 86400000), end: null }
     case '14d':
-      return new Date(now.getTime() - 14 * 86400000)
+      return { start: new Date(now.getTime() - 14 * 86400000), end: null }
     case '30d':
-      return new Date(now.getTime() - 30 * 86400000)
+      return { start: new Date(now.getTime() - 30 * 86400000), end: null }
     case 'semester': {
-      if (semesterSetting) {
-        const [yearStr, term] = semesterSetting.split('-')
-        const year = parseInt(yearStr)
-        // Spring: Feb 1 - Jul 31, Fall: Aug 1 - Jan 31 next year
-        return term === 'spring' ? new Date(year, 1, 1) : new Date(year, 7, 1)
+      if (semesterSetting && semesterSetting.startDate) {
+        const start = new Date(semesterSetting.startDate)
+        const end = semesterSetting.endDate ? new Date(semesterSetting.endDate + 'T23:59:59') : null
+        return { start, end }
       }
+      // Fallback: auto-detect current semester
       const month = now.getMonth()
       const year = now.getFullYear()
-      // Spring semester: Feb-Jul, Fall semester: Aug-Jan
       return month >= 1 && month <= 6
-        ? new Date(year, 1, 1)
-        : new Date(month >= 7 ? year : year - 1, 7, 1)
+        ? { start: new Date(year, 1, 1), end: null }
+        : { start: new Date(month >= 7 ? year : year - 1, 7, 1), end: null }
     }
     case 'all':
-      return null
+      return { start: null, end: null }
   }
 }
 
@@ -236,9 +233,14 @@ export function Statistics() {
   const [selectedStudent, setSelectedStudent] = useState<string>('')
 
   const filteredHistory = useMemo(() => {
-    const start = getTimeRangeStart(timeRange, semester)
+    const { start, end } = getTimeRangeStart(timeRange, semester)
     if (!start) return history
-    return history.filter((r) => new Date(r.timestamp) >= start)
+    return history.filter((r) => {
+      const t = new Date(r.timestamp)
+      if (t < start) return false
+      if (end && t > end) return false
+      return true
+    })
   }, [history, timeRange, semester])
 
   const dailyDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 14
@@ -593,19 +595,34 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
           </h3>
           <div className="flex-1 min-h-[240px]">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal vertical={false} strokeOpacity={0.3} />
-                  <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} />
-                  <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} />
-                  <Tooltip content={<ChartTooltip valueLabel="被抽中" />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.15 }} />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} barSize={20} animationDuration={1000} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-2">
+                {(() => {
+                  const maxCount = Math.max(...chartData.map((d) => d.count), 1)
+                  return chartData.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-2.5 group">
+                      <span className={`w-5 text-right text-xs font-bold shrink-0 tabular-nums ${
+                        i < 3 ? 'text-primary' : 'text-on-surface-variant/60'
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <span className="w-16 text-sm text-on-surface truncate shrink-0" title={d.name}>
+                        {d.name}
+                      </span>
+                      <div className="flex-1 h-6 rounded-full bg-surface-container-high/60 overflow-hidden relative">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ease-out ${
+                            i === 0 ? 'bg-primary' : i < 3 ? 'bg-primary/70' : 'bg-primary/40'
+                          }`}
+                          style={{ width: `${Math.max((d.count / maxCount) * 100, 8)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-primary tabular-nums shrink-0 w-8 text-right">
+                        {d.count}
+                      </span>
+                    </div>
+                  ))
+                })()}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-on-surface-variant space-y-4">
                 <TrendingUp className="w-8 h-8 opacity-30" />

@@ -108,9 +108,9 @@ export function PickIdleState({
           <span>{currentClass.students.length} 人总计</span>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 text-xs text-on-surface-variant/60 pt-2">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-on-surface-variant/60 pt-2">
         <Keyboard className="w-3.5 h-3.5" />
-        <span>按空格键或点击下方按钮开始抽选</span>
+        <span>点击下方按钮开始抽选</span>
       </div>
     </motion.div>
   )

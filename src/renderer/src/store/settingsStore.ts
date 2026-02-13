@@ -134,7 +134,7 @@ interface SettingsData {
   pickCount: number
   maxHistoryRecords: number
   shortcutKey: string
-  semester: string
+  semester: { name: string; startDate: string; endDate: string } | null
 }
 
 export interface DynamicColorPalette {
@@ -174,7 +174,7 @@ interface SettingsState extends SettingsData {
   toggleDynamicColor: () => void
   setDynamicColorPalette: (palette: DynamicColorPalette | null) => void
   extractAndApplyDynamicColor: () => Promise<void>
-  setSemester: (semester: string) => void
+  setSemester: (semester: { name: string; startDate: string; endDate: string } | null) => void
   loadSettings: () => Promise<void>
 }
 
@@ -196,7 +196,7 @@ const defaults: SettingsData = {
   pickCount: 1,
   maxHistoryRecords: 1000,
   shortcutKey: '',
-  semester: '',
+  semester: null,
   fairness: {
     weightedRandom: false,
     preventRepeat: false,

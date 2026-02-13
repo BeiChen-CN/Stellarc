@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Scale, Target, XOctagon, ChevronDown, Shuffle, BarChart3, TrendingUp, Puzzle } from 'lucide-react'
+import { Scale, Target, XOctagon, ChevronDown, Shuffle, BarChart3, TrendingUp, Puzzle, SlidersHorizontal } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -58,12 +58,17 @@ export function FairnessSection() {
 
         {/* Strategy Presets */}
         <div className="p-5 hover:bg-surface-container-high/50 transition-colors bg-surface-container-high/30">
-          <div className="flex items-center justify-between pl-14">
-            <div>
-              <h4 className="font-medium text-sm text-on-surface">策略预设</h4>
-              <p className="text-xs text-on-surface-variant mt-0.5">
-                经典: 按权重抽取；均衡: 降低高频学生权重；激励: 提高高分学生权重
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <SlidersHorizontal className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-on-surface">策略预设</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  经典: 按权重抽取；均衡: 降低高频学生权重；激励: 提高高分学生权重
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setStrategyExpanded(!strategyExpanded)}
@@ -81,27 +86,39 @@ export function FairnessSection() {
                 transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                 className="overflow-hidden"
               >
-                <div className="pl-14 mt-3 grid grid-cols-3 gap-2">
+                <div className="pl-14 mt-3 grid grid-cols-3 gap-3">
                   {getStrategyDisplayList().map((item) => {
                     const iconMap: Record<string, typeof Shuffle> = {
                       classic: Shuffle,
                       balanced: BarChart3,
                       momentum: TrendingUp
                     }
+                    const descMap: Record<string, string> = {
+                      classic: '按权重随机抽取',
+                      balanced: '降低高频学生权重',
+                      momentum: '提高高分学生权重'
+                    }
                     const Icon = iconMap[item.id] || Puzzle
+                    const isActive = fairness.strategyPreset === item.id
                     return (
                     <button
                       key={item.id}
                       onClick={() => setFairness({ ...fairness, strategyPreset: item.id })}
                       className={cn(
-                        'flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-colors cursor-pointer',
-                        fairness.strategyPreset === item.id
-                          ? 'bg-secondary-container text-secondary-container-foreground'
-                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
+                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
+                        isActive
+                          ? 'bg-secondary-container border-2 border-outline'
+                          : 'border-2 border-transparent hover:bg-surface-container-high'
                       )}
                     >
-                      <Icon className="w-3.5 h-3.5" />
-                      {item.name}
+                      <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center',
+                        isActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+                      )}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-medium text-on-surface">{item.name}</span>
+                      <span className="text-[10px] text-on-surface-variant text-center leading-tight">{descMap[item.id] || '插件策略'}</span>
                     </button>
                     )
                   })}
