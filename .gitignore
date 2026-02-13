@@ -5,6 +5,9 @@ node_modules
 dist
 out
 
+# Build cache
+*.tsbuildinfo
+
 # Runtime data
 data
 
@@ -15,29 +18,26 @@ nul
 
 # Editor / IDE
 .eslintcache
+.vscode
+.idea
 *.swp
 *.swo
 *~
-.vscode
-.idea
 
 # Logs
 *.log*
 
-# TypeScript build cache
-*.tsbuildinfo
-
-# AI tools config & context
+# Local config
 .claude
 .cursor
 .skills
 .github/skills
 __pycache__
-CLAUDE.md
-AGENTS.md
 
-# Temp / scratch files
+# Misc
 _sw_logic.txt
 _sw_part1.txt
 _write.js
+CLAUDE.md
+AGENTS.md
 产品诊断与演进规划书.md
