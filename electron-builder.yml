@@ -18,9 +18,11 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
-  oneClick: true
+  oneClick: false
+  allowToChangeInstallationDirectory: true
   installerHeaderIcon: build/icon.ico
   include: build/installer.nsh
+  license: LICENSE
   language: 2052
   runAfterFinish: true
   unicode: true
