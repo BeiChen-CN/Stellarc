@@ -18,6 +18,12 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  oneClick: true
+  installerHeaderIcon: build/icon.ico
+  include: build/installer.nsh
+  language: 2052
+  runAfterFinish: true
+  unicode: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -29,7 +35,6 @@ dmg:
 linux:
   target:
     - AppImage
-    - snap
     - deb
   maintainer: Stellarc Team
   category: Utility

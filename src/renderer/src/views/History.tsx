@@ -1,18 +1,43 @@
-import { useRef } from 'react'
+import { useRef, useState, useMemo, useEffect } from 'react'
 import { useHistoryStore } from '../store/historyStore'
 import { useConfirmStore } from '../store/confirmStore'
 import { useToastStore } from '../store/toastStore'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Trash2, History as HistoryIcon, Download } from 'lucide-react'
+import { Trash2, History as HistoryIcon, Download, Search, X, ChevronDown, Check } from 'lucide-react'
+import { cn } from '../lib/utils'
 
 export function History() {
-  const { history, clearHistory } = useHistoryStore()
+  const { history, clearHistory, removeHistoryRecord } = useHistoryStore()
   const showConfirm = useConfirmStore((state) => state.show)
   const addToast = useToastStore((state) => state.addToast)
   const parentRef = useRef<HTMLDivElement>(null)
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [classFilter, setClassFilter] = useState<string>('all')
+
+  const classNames = useMemo(() => {
+    const names = new Set(history.map((r) => r.className))
+    return Array.from(names).sort()
+  }, [history])
+
+  const filteredHistory = useMemo(() => {
+    let result = history
+    if (classFilter !== 'all') {
+      result = result.filter((r) => r.className === classFilter)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      result = result.filter(
+        (r) =>
+          r.pickedStudents.some((s) => s.name.toLowerCase().includes(q)) ||
+          r.className.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [history, classFilter, searchQuery])
+
   const virtualizer = useVirtualizer({
-    count: history.length,
+    count: filteredHistory.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 72,
     overscan: 10
@@ -38,20 +63,25 @@ export function History() {
       })
       const csv = '\uFEFF' + [header, ...rows].join('\n')
       const success = await window.electronAPI.writeExportFile(filePath, csv)
-      if (success) {
-        addToast('历史记录已导出！', 'success')
-      } else {
-        addToast('导出失败。', 'error')
-      }
+      addToast(success ? '历史记录已导出！' : '导出失败。', success ? 'success' : 'error')
     }
   }
 
+  const handleDeleteRecord = (id: string) => {
+    showConfirm('删除记录', '确定要删除这条历史记录吗？', () => {
+      removeHistoryRecord(id)
+    })
+  }
+
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col p-5">
       <header className="flex justify-between items-center pb-4 shrink-0">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">历史记录</h2>
-          <p className="text-sm text-on-surface-variant mt-1">共 {history.length} 条记录</p>
+          <p className="text-sm text-on-surface-variant mt-1">
+            共 {history.length} 条记录
+            {filteredHistory.length !== history.length && `，已筛选 ${filteredHistory.length} 条`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -73,20 +103,49 @@ export function History() {
         </div>
       </header>
 
+      {history.length > 0 && (
+        <div className="flex items-center gap-3 pb-4 shrink-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/60" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索学生或班级..."
+              className="w-full pl-9 pr-8 py-2 border border-outline-variant rounded-full text-sm bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-on-surface"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <ClassFilterDropdown
+            value={classFilter}
+            options={classNames}
+            onChange={setClassFilter}
+          />
+        </div>
+      )}
+
       <div
         ref={parentRef}
         className="flex-1 overflow-auto custom-scrollbar bg-surface-container rounded-xl"
       >
-        {history.length === 0 ? (
+        {filteredHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-on-surface-variant py-20 opacity-70">
             <HistoryIcon className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-lg">暂无历史记录</p>
-            <p className="text-sm mt-1">开始抽选后，记录将显示在这里</p>
+            <p className="text-lg">{history.length === 0 ? '暂无历史记录' : '没有匹配的记录'}</p>
+            <p className="text-sm mt-1">
+              {history.length === 0 ? '开始抽选后，记录将显示在这里' : '尝试调整搜索条件'}
+            </p>
           </div>
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
-              const record = history[virtualRow.index]
+              const record = filteredHistory[virtualRow.index]
               return (
                 <div
                   key={record.id}
@@ -131,8 +190,17 @@ export function History() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs text-on-surface-variant whitespace-nowrap font-mono shrink-0 ml-4">
-                      {new Date(record.timestamp).toLocaleString()}
+                    <div className="flex items-center gap-3 shrink-0 ml-4">
+                      <div className="text-xs text-on-surface-variant whitespace-nowrap font-mono">
+                        {new Date(record.timestamp).toLocaleString()}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteRecord(record.id)}
+                        className="p-1.5 rounded-full text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                        title="删除此记录"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -141,6 +209,65 @@ export function History() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ClassFilterDropdown({
+  value,
+  options,
+  onChange
+}: {
+  value: string
+  options: string[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const allOptions = [{ value: 'all', label: '全部班级' }, ...options.map((o) => ({ value: o, label: o }))]
+  const current = allOptions.find((o) => o.value === value)
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-full text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
+      >
+        <span>{current?.label || '全部班级'}</span>
+        <ChevronDown className={cn('w-3.5 h-3.5 text-on-surface-variant transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto">
+          {allOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors cursor-pointer text-left',
+                value === opt.value
+                  ? 'bg-secondary-container text-secondary-container-foreground'
+                  : 'text-on-surface hover:bg-surface-container-high'
+              )}
+            >
+              {value === opt.value && <Check className="w-3.5 h-3.5 shrink-0" />}
+              <span className={value !== opt.value ? 'pl-[22px]' : ''}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useSettingsStore } from './settingsStore'
 import { useToastStore } from './toastStore'
+import { logger } from '../lib/logger'
 import type { HistorySelectionMeta } from '../engine/selection/types'
 
 export interface HistoryRecord {
@@ -20,6 +21,7 @@ interface HistoryState {
   history: HistoryRecord[]
   loadHistory: () => Promise<void>
   addHistoryRecord: (record: Omit<HistoryRecord, 'id' | 'timestamp'>) => Promise<void>
+  removeHistoryRecord: (id: string) => Promise<void>
   clearHistory: () => Promise<void>
 }
 
@@ -37,7 +39,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
         set({ history: [] })
       }
     } catch (e) {
-      console.error('Failed to load history', e)
+      logger.error('HistoryStore', 'Failed to load history', e)
       set({ history: [] })
     }
   },
@@ -59,7 +61,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       // Save in legacy format { records: [] }
       await window.electronAPI.writeJson('history.json', { records: newHistory })
     } catch (e) {
-      console.error('Failed to save history', e)
+      logger.error('HistoryStore', 'Failed to save history', e)
       useToastStore.getState().addToast('历史记录保存失败，请检查磁盘空间', 'error')
     }
   },
@@ -69,8 +71,19 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     try {
       await window.electronAPI.writeJson('history.json', { records: [] })
     } catch (e) {
-      console.error('Failed to clear history', e)
+      logger.error('HistoryStore', 'Failed to clear history', e)
       useToastStore.getState().addToast('历史记录清除失败', 'error')
+    }
+  },
+
+  removeHistoryRecord: async (id) => {
+    const newHistory = get().history.filter((r) => r.id !== id)
+    set({ history: newHistory })
+    try {
+      await window.electronAPI.writeJson('history.json', { records: newHistory })
+    } catch (e) {
+      logger.error('HistoryStore', 'Failed to remove history record', e)
+      useToastStore.getState().addToast('删除记录失败', 'error')
     }
   }
 }))

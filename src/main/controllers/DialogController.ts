@@ -24,7 +24,7 @@ export class DialogController extends BaseController {
     FileController.authorizedPaths.add(path.normalize(filePath))
   }
 
-  private async selectFile(_event: any, options: OpenDialogOptions): Promise<string | null> {
+  private async selectFile(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
@@ -36,7 +36,7 @@ export class DialogController extends BaseController {
     return result.filePaths[0]
   }
 
-  private async selectFiles(_event: any, options: OpenDialogOptions): Promise<string[] | null> {
+  private async selectFiles(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string[] | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
@@ -48,7 +48,7 @@ export class DialogController extends BaseController {
     return result.filePaths
   }
 
-  private async selectFolder(_event: any): Promise<string | null> {
+  private async selectFolder(_event: Electron.IpcMainInvokeEvent): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
@@ -59,7 +59,7 @@ export class DialogController extends BaseController {
     return result.filePaths[0]
   }
 
-  private async saveFile(_event: any, options: SaveDialogOptions): Promise<string | null> {
+  private async saveFile(_event: Electron.IpcMainInvokeEvent, options: SaveDialogOptions): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await dialog.showSaveDialog(win, options)

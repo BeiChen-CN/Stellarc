@@ -44,7 +44,7 @@ export const historyRecordSchema = z.object({
       studentId: z.string().optional()
     })
   ),
-  selectionMeta: z.any().optional()
+  selectionMeta: z.unknown().optional()
 })
 
 export const historyV2Schema = z.object({

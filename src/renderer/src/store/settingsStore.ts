@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useToastStore } from './toastStore'
+import { logger } from '../lib/logger'
 
 export type ColorTheme =
   | 'blue'
@@ -15,11 +16,22 @@ export type ColorTheme =
   | 'kiwi'
   | 'spicy'
   | 'bright-teal'
-  | 'indigo'
   | 'sakura'
   | 'forest'
   | 'ocean'
   | 'mocha'
+  | 'klein-blue'
+  | 'tiffany'
+  | 'prussian'
+  | 'titian'
+  | 'china-red'
+  | 'burgundy'
+  | 'schonbrunn'
+  | 'vandyke'
+  | 'marrs'
+  | 'turquoise'
+  | 'morandi'
+  | 'hermes'
 
 export type DesignStyle =
   | 'material-design-3'
@@ -40,6 +52,9 @@ export type AnimationStyle =
   | 'bounce'
   | 'typewriter'
   | 'ripple'
+  | 'charByChar'
+
+export type AnimationSpeed = 'elegant' | 'balanced' | 'fast'
 
 export type ActivityPreset = 'quick-pick' | 'deep-focus' | 'group-battle'
 
@@ -95,6 +110,7 @@ const activityPresetDefaults: Record<
 interface SettingsData {
   theme: 'light' | 'dark' | 'system'
   colorTheme: ColorTheme
+  customColor?: string
   designStyle: DesignStyle
   showStudentId: boolean
   photoMode: boolean
@@ -107,6 +123,7 @@ interface SettingsData {
   syncEnabled: boolean
   syncFolder?: string
   animationStyle: AnimationStyle
+  animationSpeed: AnimationSpeed
   dynamicColor: boolean
   fairness: {
     weightedRandom: boolean
@@ -117,6 +134,7 @@ interface SettingsData {
   pickCount: number
   maxHistoryRecords: number
   shortcutKey: string
+  semester: string
 }
 
 export interface DynamicColorPalette {
@@ -142,6 +160,8 @@ interface SettingsState extends SettingsData {
   toggleProjectorMode: () => void
   setActivityPreset: (preset: ActivityPreset) => void
   setAnimationStyle: (style: AnimationStyle) => void
+  setAnimationSpeed: (speed: AnimationSpeed) => void
+  setCustomColor: (color: string | undefined) => void
   setFairness: (fairness: {
     weightedRandom: boolean
     preventRepeat: boolean
@@ -149,11 +169,12 @@ interface SettingsState extends SettingsData {
     strategyPreset: StrategyPreset
   }) => void
   setPickCount: (count: number) => void
-  setMaxHistoryRecords: (max: number) => void
+  setMaxHistoryRecords: (max: number) => Promise<void>
   setShortcutKey: (key: string) => Promise<boolean>
   toggleDynamicColor: () => void
   setDynamicColorPalette: (palette: DynamicColorPalette | null) => void
   extractAndApplyDynamicColor: () => Promise<void>
+  setSemester: (semester: string) => void
   loadSettings: () => Promise<void>
 }
 
@@ -170,10 +191,12 @@ const defaults: SettingsData = {
   activityPreset: 'quick-pick',
   syncEnabled: false,
   animationStyle: 'slot',
+  animationSpeed: 'balanced',
   dynamicColor: false,
   pickCount: 1,
   maxHistoryRecords: 1000,
   shortcutKey: '',
+  semester: '',
   fairness: {
     weightedRandom: false,
     preventRepeat: false,
@@ -187,6 +210,7 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
     const {
       theme,
       colorTheme,
+      customColor,
       designStyle,
       showStudentId,
       photoMode,
@@ -199,15 +223,18 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       syncEnabled,
       syncFolder,
       animationStyle,
+      animationSpeed,
       dynamicColor,
       fairness,
       pickCount,
       maxHistoryRecords,
-      shortcutKey
+      shortcutKey,
+      semester
     } = state
     await window.electronAPI.writeJson('settings.json', {
       theme,
       colorTheme,
+      customColor,
       designStyle,
       showStudentId,
       photoMode,
@@ -220,14 +247,16 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       syncEnabled,
       syncFolder,
       animationStyle,
+      animationSpeed,
       dynamicColor,
       fairness,
       pickCount,
       maxHistoryRecords,
-      shortcutKey
+      shortcutKey,
+      semester
     })
   } catch (e) {
-    console.error('Failed to save settings', e)
+    logger.error('SettingsStore', 'Failed to save settings', e)
     useToastStore.getState().addToast('设置保存失败，请检查磁盘空间', 'error')
   }
 }
@@ -252,7 +281,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const raw = data as Record<string, unknown>
         // Migrate old m3-* color themes to new names
         const m3Migration: Record<string, ColorTheme> = {
-          'm3-indigo': 'indigo',
+          'm3-indigo': 'blue',
           'm3-sakura': 'sakura',
           'm3-forest': 'forest',
           'm3-ocean': 'ocean',
@@ -288,7 +317,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         }
       }
     } catch (e) {
-      console.error('Failed to load settings', e)
+      logger.error('SettingsStore', 'Failed to load settings', e)
     }
   },
 
@@ -325,17 +354,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleSyncEnabled: () => updateAndSave({ syncEnabled: !get().syncEnabled }, set, get),
   setSyncFolder: (syncFolder) => updateAndSave({ syncFolder }, set, get),
   setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
+  setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
+  setCustomColor: (color) => updateAndSave({ customColor: color }, set, get),
   setFairness: (fairness) => updateAndSave({ fairness }, set, get),
   setPickCount: (count) => updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
-  setMaxHistoryRecords: (max) => {
+  setMaxHistoryRecords: async (max) => {
     updateAndSave({ maxHistoryRecords: max }, set, get)
     // Trigger immediate truncation in historyStore
-    const { useHistoryStore } = require('./historyStore')
-    const historyState = useHistoryStore.getState()
-    if (historyState.history.length > max) {
-      const trimmed = historyState.history.slice(0, max)
-      useHistoryStore.setState({ history: trimmed })
-      window.electronAPI.writeJson('history.json', { records: trimmed })
+    try {
+      const { useHistoryStore } = await import('./historyStore')
+      const historyState = useHistoryStore.getState()
+      if (historyState.history.length > max) {
+        const trimmed = historyState.history.slice(0, max)
+        useHistoryStore.setState({ history: trimmed })
+        await window.electronAPI.writeJson('history.json', { records: trimmed })
+      }
+    } catch (e) {
+      logger.error('SettingsStore', 'Failed to truncate history', e)
     }
   },
   setShortcutKey: async (key) => {
@@ -361,6 +396,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
   setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
+  setSemester: (semester) => updateAndSave({ semester }, set, get),
   extractAndApplyDynamicColor: async () => {
     const { backgroundImage } = get()
     if (!backgroundImage) return
@@ -368,7 +404,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const result = await window.electronAPI.extractWallpaperColors(backgroundImage)
       set({ dynamicColorPalette: result })
     } catch (e) {
-      console.error('Failed to extract wallpaper colors', e)
+      logger.error('SettingsStore', 'Failed to extract wallpaper colors', e)
       set({ dynamicColorPalette: null })
     }
   }

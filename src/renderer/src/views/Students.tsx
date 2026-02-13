@@ -2,20 +2,12 @@ import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
 import { useConfirmStore } from '../store/confirmStore'
-import {
-  Plus,
-  Trash2,
-  UserX,
-  CheckCircle,
-  Upload,
-  Minus,
-  Users,
-  Camera,
-  RotateCcw
-} from 'lucide-react'
-import { useState } from 'react'
-import { cn, toFileUrl } from '../lib/utils'
+import { Plus, Trash2, UserX, Upload, Download, Users, RotateCcw, Copy, RotateCw } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { cn } from '../lib/utils'
 import { Student } from '../types'
+import { logger } from '../lib/logger'
+import { StudentRow } from './students/StudentRow'
 
 function parseStudentImportRows(
   content: string
@@ -25,9 +17,7 @@ function parseStudentImportRows(
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
 
-  if (lines.length === 0) {
-    return []
-  }
+  if (lines.length === 0) return []
 
   const detectDelimiter = (line: string) => {
     if (line.includes('\t')) return '\t'
@@ -44,18 +34,7 @@ function parseStudentImportRows(
   const split = (line: string) => line.split(delimiter).map((cell) => cell.trim())
   const first = split(lines[0]).map((h) => h.toLowerCase())
   const hasHeader = first.some((h) =>
-    [
-      'name',
-      '姓名',
-      'studentid',
-      '学号',
-      'weight',
-      '权重',
-      'score',
-      '积分',
-      'status',
-      '状态'
-    ].includes(h)
+    ['name', '姓名', 'studentid', '学号', 'weight', '权重', 'score', '积分', 'status', '状态'].includes(h)
   )
 
   const rows = hasHeader ? lines.slice(1) : lines
@@ -71,8 +50,10 @@ function parseStudentImportRows(
   return rows
     .map((line) => split(line))
     .map((cells) => {
-      const name = (nameIdx >= 0 ? cells[nameIdx] : cells[0]) || ''
-      const studentId = studentIdIdx >= 0 ? cells[studentIdIdx] : undefined
+      const rawName = ((nameIdx >= 0 ? cells[nameIdx] : cells[0]) || '').slice(0, 50)
+      const name = rawName.replace(/[<>"'&]/g, '')
+      const rawStudentId = studentIdIdx >= 0 ? cells[studentIdIdx] : undefined
+      const studentId = rawStudentId?.slice(0, 30)
       const weightRaw = weightIdx >= 0 ? Number(cells[weightIdx]) : 1
       const scoreRaw = scoreIdx >= 0 ? Number(cells[scoreIdx]) : 0
       const statusRaw = (statusIdx >= 0 ? cells[statusIdx] : 'active') || 'active'
@@ -101,6 +82,8 @@ export function Students() {
     currentClassId,
     addClass,
     removeClass,
+    renameClass,
+    duplicateClass,
     addStudent,
     addStudents,
     removeStudent,
@@ -108,25 +91,31 @@ export function Students() {
     updateStudentWeight,
     updateStudentScore,
     updateStudentPhoto,
+    updateStudentName,
+    updateStudentId,
+    resetClassScores,
     undoLastChange,
     canUndo
   } = useClassesStore()
-  const { fairness } = useSettingsStore()
+  const { fairness, showStudentId } = useSettingsStore()
   const addToast = useToastStore((state) => state.addToast)
   const showConfirm = useConfirmStore((state) => state.show)
   const [newStudentName, setNewStudentName] = useState('')
   const [newClassName, setNewClassName] = useState('')
+  const [editingClassId, setEditingClassId] = useState<string | null>(null)
+  const [editingClassName, setEditingClassName] = useState('')
+  const classNameInputRef = useRef<HTMLInputElement>(null)
 
   const currentClass = classes.find((c) => c.id === currentClassId)
 
-  const handleAddClass = () => {
+  const handleAddClass = useCallback(() => {
     if (newClassName.trim()) {
       addClass(newClassName.trim())
       setNewClassName('')
     }
-  }
+  }, [newClassName, addClass])
 
-  const handleAddStudent = () => {
+  const handleAddStudent = useCallback(() => {
     if (newStudentName.trim() && currentClassId) {
       addStudent(currentClassId, {
         id: crypto.randomUUID(),
@@ -138,32 +127,44 @@ export function Students() {
       })
       setNewStudentName('')
     }
-  }
+  }, [newStudentName, currentClassId, addStudent])
 
-  const handleUploadPhoto = async (classId: string, studentId: string) => {
-    const filePath = await window.electronAPI.selectFile({
-      title: '选择学生照片',
-      filters: [{ name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] }]
-    })
-    if (filePath) {
-      try {
-        const fileData = await window.electronAPI.readFile(filePath)
-        const sizeMB = fileData.byteLength / (1024 * 1024)
-        if (sizeMB > 5) {
-          addToast(`照片过大（${sizeMB.toFixed(1)}MB），请选择 5MB 以内的图片`, 'error')
-          return
+  const handleUploadPhoto = useCallback(
+    async (classId: string, studentId: string) => {
+      const filePath = await window.electronAPI.selectFile({
+        title: '选择学生照片',
+        filters: [{ name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] }]
+      })
+      if (filePath) {
+        try {
+          const fileData = await window.electronAPI.readFile(filePath)
+          const sizeMB = fileData.byteLength / (1024 * 1024)
+          if (sizeMB > 5) {
+            addToast(`照片过大（${sizeMB.toFixed(1)}MB），请选择 5MB 以内的图片`, 'error')
+            return
+          }
+          const targetName = `${studentId}.jpg`
+          const photoPath = await window.electronAPI.copyPhoto(filePath, targetName)
+          updateStudentPhoto(classId, studentId, photoPath)
+          addToast('照片上传成功！', 'success')
+        } catch {
+          addToast('照片上传失败。', 'error')
         }
-        const targetName = `${studentId}.jpg`
-        const photoPath = await window.electronAPI.copyPhoto(filePath, targetName)
-        updateStudentPhoto(classId, studentId, photoPath)
-        addToast('照片上传成功！', 'success')
-      } catch {
-        addToast('照片上传失败。', 'error')
       }
-    }
-  }
+    },
+    [addToast, updateStudentPhoto]
+  )
 
-  const handleImportStudents = async () => {
+  const handleRemoveStudent = useCallback(
+    (classId: string, studentId: string) => {
+      showConfirm('删除学生', '确定要删除这位学生吗？此操作不可撤销。', () =>
+        removeStudent(classId, studentId)
+      )
+    },
+    [showConfirm, removeStudent]
+  )
+
+  const handleImportStudents = useCallback(async () => {
     if (!currentClassId) return
 
     const filePath = await window.electronAPI.selectFile({
@@ -190,9 +191,7 @@ export function Students() {
         const newStudents = parsedRows
           .filter((row) => {
             const key = `${row.name}::${row.studentId || ''}`.toLowerCase()
-            if (existingSet.has(key)) {
-              return false
-            }
+            if (existingSet.has(key)) return false
             existingSet.add(key)
             return true
           })
@@ -214,14 +213,61 @@ export function Students() {
         addStudents(currentClassId, newStudents)
         addToast(`成功导入 ${newStudents.length} 名学生（已去重）。`, 'success')
       } catch (error) {
-        console.error('Import failed:', error)
+        logger.error('Students', 'Import failed:', error)
         addToast('导入失败，请检查文件格式。', 'error')
       }
     }
-  }
+  }, [currentClassId, currentClass?.students, addStudents, addToast])
+
+  const handleExportStudents = useCallback(async () => {
+    if (!currentClass || currentClass.students.length === 0) return
+    const filePath = await window.electronAPI.saveFile({
+      title: '导出学生名单',
+      defaultPath: `${currentClass.name}-学生名单.csv`,
+      filters: [{ name: 'CSV 文件', extensions: ['csv'] }]
+    })
+    if (filePath) {
+      const header = '姓名,学号,权重,积分,状态'
+      const statusMap = { active: '正常', absent: '缺席', excluded: '排除' }
+      const rows = currentClass.students.map(
+        (s) => `${s.name},${s.studentId || ''},${s.weight},${s.score},${statusMap[s.status] || s.status}`
+      )
+      const ok = await window.electronAPI.writeExportFile(filePath, [header, ...rows].join('\n'))
+      addToast(ok ? '导出成功' : '导出失败', ok ? 'success' : 'error')
+    }
+  }, [currentClass, addToast])
+
+  const handleResetScores = useCallback(() => {
+    if (!currentClassId) return
+    showConfirm('重置积分', '确定要将当前班级所有学生的积分归零吗？', () => {
+      resetClassScores(currentClassId)
+      addToast('积分已重置', 'success')
+    })
+  }, [currentClassId, showConfirm, resetClassScores, addToast])
+
+  const handleDuplicateClass = useCallback(
+    (classId: string) => {
+      duplicateClass(classId)
+      addToast('班级已复制', 'success')
+    },
+    [duplicateClass, addToast]
+  )
+
+  const startRenameClass = useCallback((classId: string, currentName: string) => {
+    setEditingClassId(classId)
+    setEditingClassName(currentName)
+    setTimeout(() => classNameInputRef.current?.select(), 0)
+  }, [])
+
+  const commitRenameClass = useCallback(() => {
+    if (editingClassId && editingClassName.trim()) {
+      renameClass(editingClassId, editingClassName.trim())
+    }
+    setEditingClassId(null)
+  }, [editingClassId, editingClassName, renameClass])
 
   return (
-    <div className="min-h-full flex flex-col space-y-4 p-6">
+    <div className="h-full overflow-y-auto flex flex-col space-y-3 p-5">
       <header className="flex justify-between items-center pb-4">
         <h2 className="text-2xl font-bold text-on-surface">学生管理</h2>
         <div className="flex items-center space-x-2">
@@ -258,9 +304,8 @@ export function Students() {
             <p>暂无班级。请在上方输入名称并点击添加。</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-full">
-            {/* Class List */}
-            <div className="col-span-1 pr-4 space-y-2 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full">
+            <div className="col-span-1 pr-2 space-y-2 overflow-y-auto">
               <h3 className="font-semibold text-lg mb-4 flex items-center gap-2 text-on-surface">
                 <span className="w-1 h-6 bg-primary rounded-full"></span>
                 班级列表
@@ -292,7 +337,32 @@ export function Students() {
                         {c.name.slice(0, 1)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate text-sm">{c.name}</div>
+                        {editingClassId === c.id ? (
+                          <input
+                            ref={classNameInputRef}
+                            value={editingClassName}
+                            onChange={(e) => setEditingClassName(e.target.value)}
+                            onBlur={commitRenameClass}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') commitRenameClass()
+                              if (e.key === 'Escape') setEditingClassId(null)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full px-1.5 py-0.5 border border-primary rounded text-sm bg-surface-container-low outline-none text-on-surface"
+                            autoFocus
+                          />
+                        ) : (
+                          <div
+                            className="font-medium text-sm break-all line-clamp-2"
+                            onDoubleClick={(e) => {
+                              e.stopPropagation()
+                              startRenameClass(c.id, c.name)
+                            }}
+                            title={c.name}
+                          >
+                            {c.name}
+                          </div>
+                        )}
                         <div className="flex items-center gap-1 mt-0.5">
                           <Users className="w-3 h-3 text-on-surface-variant/60" />
                           <span className="text-[11px] text-on-surface-variant/70">
@@ -300,6 +370,16 @@ export function Students() {
                           </span>
                         </div>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDuplicateClass(c.id)
+                        }}
+                        className="text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-primary transition-all duration-200 p-1.5 hover:bg-primary/10 rounded-full shrink-0"
+                        title="复制班级"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -318,7 +398,7 @@ export function Students() {
               </div>
             </div>
 
-            <div className="col-span-3 flex flex-col h-full overflow-hidden">
+            <div className="col-span-4 flex flex-col h-full overflow-hidden">
               {currentClass ? (
                 <>
                   <div className="mb-4 flex space-x-2 shrink-0">
@@ -342,6 +422,23 @@ export function Students() {
                     >
                       <Upload className="w-4 h-4" />
                       导入
+                    </button>
+                    <button
+                      onClick={handleExportStudents}
+                      disabled={!currentClass || currentClass.students.length === 0}
+                      className="px-5 py-2 bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 rounded-full flex items-center gap-2 whitespace-nowrap transition-colors font-medium h-10 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="导出学生名单为 CSV"
+                    >
+                      <Download className="w-4 h-4" />
+                      导出
+                    </button>
+                    <button
+                      onClick={handleResetScores}
+                      disabled={!currentClass || currentClass.students.length === 0}
+                      className="p-2.5 bg-surface-container-high text-on-surface rounded-full hover:bg-surface-container-low transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="重置当前班级所有积分"
+                    >
+                      <RotateCw className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -374,165 +471,25 @@ export function Students() {
                         </thead>
                         <tbody>
                           {currentClass.students.map((student) => (
-                            <tr
+                            <StudentRow
                               key={student.id}
-                              className="border-b border-outline-variant/30 last:border-0 hover:bg-surface-container-high/50 transition-colors"
-                            >
-                              <td className="px-4 py-3 font-medium text-on-surface">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleUploadPhoto(currentClass.id, student.id)}
-                                    className="relative w-8 h-8 rounded-full shrink-0 group/avatar cursor-pointer overflow-hidden"
-                                    title="点击上传照片"
-                                  >
-                                    {student.photo ? (
-                                      <img
-                                        src={toFileUrl(student.photo)}
-                                        alt={student.name}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                                        {student.name.slice(0, 1)}
-                                      </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                                      <Camera className="w-3.5 h-3.5 text-white" />
-                                    </div>
-                                  </button>
-                                  {student.name}
-                                </div>
-                              </td>
-
-                              {fairness.weightedRandom && (
-                                <td className="px-4 py-3 text-center">
-                                  <div className="flex items-center justify-center space-x-1">
-                                    <button
-                                      onClick={() =>
-                                        updateStudentWeight(
-                                          currentClass.id,
-                                          student.id,
-                                          Math.max(0, (student.weight || 1) - 1)
-                                        )
-                                      }
-                                      className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
-                                    >
-                                      <Minus className="w-3.5 h-3.5" />
-                                    </button>
-                                    <span className="w-6 text-center text-on-surface">
-                                      {student.weight || 1}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        updateStudentWeight(
-                                          currentClass.id,
-                                          student.id,
-                                          (student.weight || 1) + 1
-                                        )
-                                      }
-                                      className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              )}
-
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center space-x-1">
-                                  <button
-                                    onClick={() =>
-                                      updateStudentScore(
-                                        currentClass.id,
-                                        student.id,
-                                        (student.score || 0) - 1
-                                      )
-                                    }
-                                    className="p-1.5 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive cursor-pointer transition-colors"
-                                  >
-                                    <Minus className="w-3.5 h-3.5" />
-                                  </button>
-                                  <span
-                                    className={`w-10 text-center font-bold tabular-nums text-sm ${(student.score || 0) > 0 ? 'text-green-600 dark:text-green-400' : (student.score || 0) < 0 ? 'text-destructive' : 'text-on-surface-variant'}`}
-                                  >
-                                    {student.score || 0}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      updateStudentScore(
-                                        currentClass.id,
-                                        student.id,
-                                        (student.score || 0) + 1
-                                      )
-                                    }
-                                    className="p-1.5 rounded-full hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer transition-colors"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-
-                              <td className="px-4 py-3 text-center">
-                                <span className="inline-flex items-center justify-center min-w-[1.5rem] px-2.5 py-0.5 rounded-full bg-secondary-container text-secondary-container-foreground text-xs font-medium">
-                                  {student.pickCount}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span
-                                  className={cn(
-                                    'px-2.5 py-1 rounded-full text-xs font-medium',
-                                    student.status === 'active'
-                                      ? 'bg-secondary-container text-secondary-container-foreground'
-                                      : student.status === 'absent'
-                                        ? 'bg-tertiary-container text-tertiary'
-                                        : 'bg-destructive/10 text-destructive'
-                                  )}
-                                >
-                                  {student.status === 'active'
-                                    ? '正常'
-                                    : student.status === 'absent'
-                                      ? '缺席'
-                                      : '排除'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right space-x-1">
-                                <button
-                                  title={student.status === 'active' ? '设为缺席' : '设为正常'}
-                                  onClick={() =>
-                                    updateStudentStatus(
-                                      currentClass.id,
-                                      student.id,
-                                      student.status === 'active' ? 'absent' : 'active'
-                                    )
-                                  }
-                                  className="p-2 hover:bg-surface-container-high rounded-full text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-                                >
-                                  {student.status === 'active' ? (
-                                    <UserX className="w-4 h-4" />
-                                  ) : (
-                                    <CheckCircle className="w-4 h-4" />
-                                  )}
-                                </button>
-                                <button
-                                  title="删除学生"
-                                  onClick={() =>
-                                    showConfirm(
-                                      '删除学生',
-                                      '确定要删除这位学生吗？此操作不可撤销。',
-                                      () => removeStudent(currentClass.id, student.id)
-                                    )
-                                  }
-                                  className="p-2 hover:bg-destructive/10 rounded-full text-on-surface-variant hover:text-destructive transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
+                              student={student}
+                              classId={currentClass.id}
+                              showWeight={fairness.weightedRandom}
+                              showStudentId={showStudentId}
+                              onUploadPhoto={handleUploadPhoto}
+                              onUpdateWeight={updateStudentWeight}
+                              onUpdateScore={updateStudentScore}
+                              onUpdateStatus={updateStudentStatus}
+                              onUpdateName={updateStudentName}
+                              onUpdateStudentId={updateStudentId}
+                              onRemove={handleRemoveStudent}
+                            />
                           ))}
                           {currentClass.students.length === 0 && (
                             <tr>
                               <td
-                                colSpan={6 + (fairness.weightedRandom ? 1 : 0)}
+                                colSpan={5 + (fairness.weightedRandom ? 1 : 0)}
                                 className="p-10 text-center text-on-surface-variant"
                               >
                                 <p>该班级暂无学生。</p>

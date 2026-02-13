@@ -78,7 +78,13 @@ const api = {
       callback(status, info)
     ipcRenderer.on('update-status', subscription)
     return () => ipcRenderer.removeListener('update-status', subscription)
-  }
+  },
+
+  // Window Controls
+  windowMinimize: () => ipcRenderer.invoke('window-minimize'),
+  windowMaximize: () => ipcRenderer.invoke('window-maximize'),
+  windowClose: () => ipcRenderer.invoke('window-close'),
+  windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -9,6 +9,7 @@ export abstract class BaseController {
 
   protected abstract init(): void
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected handle(channel: string, handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>): void {
     ipcMain.handle(channel, async (event, ...args) => {
       try {
@@ -23,6 +24,7 @@ export abstract class BaseController {
   protected handleValidated<T extends z.ZodTuple>(
     channel: string,
     schema: T,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handler: (event: IpcMainInvokeEvent, ...args: z.infer<T>) => Promise<any>
   ): void {
     ipcMain.handle(channel, async (event, ...args) => {

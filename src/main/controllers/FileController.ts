@@ -8,9 +8,11 @@ import log from 'electron-log'
 import { BaseController } from './BaseController'
 
 const filenameSchema = z.tuple([z.string().min(1)])
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC payload is untyped JSON
 const filenameDataSchema = z.tuple([z.string().min(1), z.any()])
 const filePathSchema = z.tuple([z.string().min(1)])
 const filePathContentSchema = z.tuple([z.string().min(1), z.string()])
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC binary payload
 const filePathBufferSchema = z.tuple([z.string().min(1), z.any()])
 const copyPhotoSchema = z.tuple([z.string().min(1), z.string().min(1)])
 
@@ -68,14 +70,14 @@ export class FileController extends BaseController {
     }
   }
 
-  private async readJson(_event: IpcMainInvokeEvent, filename: string): Promise<any> {
+  private async readJson(_event: IpcMainInvokeEvent, filename: string): Promise<unknown> {
     try {
       const filePath = this.getSafePath(filename)
       try {
         const data = await fsp.readFile(filePath, 'utf-8')
         return JSON.parse(data)
-      } catch (e: any) {
-        if (e.code === 'ENOENT') return null
+      } catch (e: unknown) {
+        if (e instanceof Error && 'code' in e && e.code === 'ENOENT') return null
         throw e
       }
     } catch (error) {
@@ -87,7 +89,7 @@ export class FileController extends BaseController {
   private async writeJson(
     _event: IpcMainInvokeEvent,
     filename: string,
-    data: any
+    data: unknown
   ): Promise<boolean> {
     try {
       const filePath = this.getSafePath(filename)
@@ -101,7 +103,7 @@ export class FileController extends BaseController {
         typeof data === 'object' &&
         !Array.isArray(data)
       ) {
-        const existing = await this.readJson(_event, filename)
+        const existing = await this.readJson(_event, filename) as Record<string, unknown> | null
         if (
           existing &&
           typeof existing === 'object' &&
@@ -152,8 +154,8 @@ export class FileController extends BaseController {
     const fullPath = this.getSafePath(photoPath)
     try {
       await fsp.unlink(fullPath)
-    } catch (e: any) {
-      if (e.code !== 'ENOENT') throw e
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && e.code !== 'ENOENT') throw e
     }
     return true
   }

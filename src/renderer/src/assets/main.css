@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global animation speed */
+:root {
+  --speed-factor: 1;
+}
+
+.speed-elegant {
+  --speed-factor: 1.5;
+}
+
+.speed-fast {
+  --speed-factor: 0.5;
+}
+
 @layer base {
   /* ===== Default: Blue ===== */
   :root {
@@ -75,33 +88,6 @@
     --secondary-container-foreground: 210 40% 90%;
     --tertiary: 280 50% 70%;
     --tertiary-container: 280 25% 20%;
-  }
-
-/* ===== Indigo ===== */
-  .theme-indigo {
-    --primary: 231 45% 53%;
-    --primary-foreground: 228 50% 98%;
-    --ring: 231 45% 53%;
-    --accent: 228 22% 92%;
-    --accent-foreground: 228 15% 18%;
-
-    --surface-tint: 231 45% 53%;
-    --secondary-container: 228 30% 88%;
-    --secondary-container-foreground: 228 15% 18%;
-    --tertiary: 340 40% 52%;
-    --tertiary-container: 340 30% 90%;
-  }
-  .dark.theme-indigo {
-    --primary: 231 55% 72%;
-    --ring: 231 55% 72%;
-    --accent: 228 14% 20%;
-    --accent-foreground: 228 12% 88%;
-
-    --surface-tint: 231 55% 72%;
-    --secondary-container: 228 18% 22%;
-    --secondary-container-foreground: 228 12% 88%;
-    --tertiary: 340 35% 68%;
-    --tertiary-container: 340 20% 22%;
   }
 
   /* ===== Sakura ===== */
@@ -554,6 +540,330 @@
     --secondary-container-foreground: 25 10% 88%;
     --tertiary: 180 30% 58%;
     --tertiary-container: 180 16% 20%;
+  }
+
+  /* ===== Klein Blue (克莱因蓝) #002FA7 ===== */
+  .theme-klein-blue {
+    --primary: 223 100% 33%;
+    --primary-foreground: 220 100% 98%;
+    --ring: 223 100% 33%;
+    --accent: 223 30% 93%;
+    --accent-foreground: 223 40% 15%;
+
+    --surface-tint: 223 100% 33%;
+    --secondary-container: 223 35% 88%;
+    --secondary-container-foreground: 223 30% 15%;
+    --tertiary: 43 60% 50%;
+    --tertiary-container: 43 35% 90%;
+  }
+  .dark.theme-klein-blue {
+    --primary: 223 80% 62%;
+    --ring: 223 80% 62%;
+    --accent: 223 20% 18%;
+    --accent-foreground: 223 15% 90%;
+
+    --surface-tint: 223 80% 62%;
+    --secondary-container: 223 22% 20%;
+    --secondary-container-foreground: 223 15% 88%;
+    --tertiary: 43 50% 62%;
+    --tertiary-container: 43 20% 20%;
+  }
+
+  /* ===== Tiffany Blue (蒂芙尼蓝) #81D8CF ===== */
+  .theme-tiffany {
+    --primary: 174 46% 48%;
+    --primary-foreground: 174 40% 98%;
+    --ring: 174 46% 48%;
+    --accent: 174 25% 93%;
+    --accent-foreground: 174 30% 15%;
+
+    --surface-tint: 174 46% 48%;
+    --secondary-container: 174 28% 88%;
+    --secondary-container-foreground: 174 25% 15%;
+    --tertiary: 340 40% 52%;
+    --tertiary-container: 340 25% 90%;
+  }
+  .dark.theme-tiffany {
+    --primary: 174 50% 62%;
+    --ring: 174 50% 62%;
+    --accent: 174 18% 18%;
+    --accent-foreground: 174 14% 90%;
+
+    --surface-tint: 174 50% 62%;
+    --secondary-container: 174 16% 20%;
+    --secondary-container-foreground: 174 12% 88%;
+    --tertiary: 340 35% 65%;
+    --tertiary-container: 340 18% 20%;
+  }
+
+  /* ===== Prussian Blue (普鲁士蓝) #003152 ===== */
+  .theme-prussian {
+    --primary: 204 100% 16%;
+    --primary-foreground: 204 40% 98%;
+    --ring: 204 100% 16%;
+    --accent: 204 20% 93%;
+    --accent-foreground: 204 30% 12%;
+
+    --surface-tint: 204 100% 16%;
+    --secondary-container: 204 25% 88%;
+    --secondary-container-foreground: 204 20% 12%;
+    --tertiary: 30 45% 50%;
+    --tertiary-container: 30 28% 90%;
+  }
+  .dark.theme-prussian {
+    --primary: 204 60% 55%;
+    --ring: 204 60% 55%;
+    --accent: 204 18% 16%;
+    --accent-foreground: 204 12% 88%;
+
+    --surface-tint: 204 60% 55%;
+    --secondary-container: 204 16% 18%;
+    --secondary-container-foreground: 204 10% 88%;
+    --tertiary: 30 38% 60%;
+    --tertiary-container: 30 16% 20%;
+  }
+
+  /* ===== Titian Red (提香红) #B05923 ===== */
+  .theme-titian {
+    --primary: 23 67% 41%;
+    --primary-foreground: 23 40% 98%;
+    --ring: 23 67% 41%;
+    --accent: 23 28% 93%;
+    --accent-foreground: 23 40% 15%;
+
+    --surface-tint: 23 67% 41%;
+    --secondary-container: 23 32% 88%;
+    --secondary-container-foreground: 23 30% 15%;
+    --tertiary: 200 45% 45%;
+    --tertiary-container: 200 28% 90%;
+  }
+  .dark.theme-titian {
+    --primary: 23 58% 58%;
+    --ring: 23 58% 58%;
+    --accent: 23 22% 18%;
+    --accent-foreground: 23 15% 90%;
+
+    --surface-tint: 23 58% 58%;
+    --secondary-container: 23 18% 20%;
+    --secondary-container-foreground: 23 12% 88%;
+    --tertiary: 200 38% 60%;
+    --tertiary-container: 200 18% 20%;
+  }
+
+  /* ===== China Red (中国红) #E60000 ===== */
+  .theme-china-red {
+    --primary: 0 100% 45%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 0 100% 45%;
+    --accent: 0 28% 93%;
+    --accent-foreground: 0 40% 15%;
+
+    --surface-tint: 0 100% 45%;
+    --secondary-container: 0 35% 90%;
+    --secondary-container-foreground: 0 30% 15%;
+    --tertiary: 200 50% 42%;
+    --tertiary-container: 200 30% 90%;
+  }
+  .dark.theme-china-red {
+    --primary: 0 75% 58%;
+    --ring: 0 75% 58%;
+    --accent: 0 22% 18%;
+    --accent-foreground: 0 15% 90%;
+
+    --surface-tint: 0 75% 58%;
+    --secondary-container: 0 20% 20%;
+    --secondary-container-foreground: 0 12% 88%;
+    --tertiary: 200 40% 58%;
+    --tertiary-container: 200 18% 20%;
+  }
+
+  /* ===== Burgundy Red (勃艮第红) #900021 ===== */
+  .theme-burgundy {
+    --primary: 346 100% 28%;
+    --primary-foreground: 346 30% 98%;
+    --ring: 346 100% 28%;
+    --accent: 346 22% 93%;
+    --accent-foreground: 346 35% 12%;
+
+    --surface-tint: 346 100% 28%;
+    --secondary-container: 346 28% 88%;
+    --secondary-container-foreground: 346 25% 12%;
+    --tertiary: 43 50% 48%;
+    --tertiary-container: 43 30% 90%;
+  }
+  .dark.theme-burgundy {
+    --primary: 346 65% 55%;
+    --ring: 346 65% 55%;
+    --accent: 346 18% 16%;
+    --accent-foreground: 346 12% 88%;
+
+    --surface-tint: 346 65% 55%;
+    --secondary-container: 346 16% 18%;
+    --secondary-container-foreground: 346 10% 88%;
+    --tertiary: 43 42% 60%;
+    --tertiary-container: 43 18% 20%;
+  }
+
+  /* ===== Schönbrunn Yellow (申布伦黄) #FBD26A ===== */
+  .theme-schonbrunn {
+    --primary: 43 95% 52%;
+    --primary-foreground: 43 80% 10%;
+    --ring: 43 95% 52%;
+    --accent: 43 30% 93%;
+    --accent-foreground: 43 50% 15%;
+
+    --surface-tint: 43 95% 52%;
+    --secondary-container: 43 40% 88%;
+    --secondary-container-foreground: 43 45% 15%;
+    --tertiary: 220 50% 48%;
+    --tertiary-container: 220 30% 90%;
+  }
+  .dark.theme-schonbrunn {
+    --primary: 43 90% 62%;
+    --ring: 43 90% 62%;
+    --accent: 43 25% 18%;
+    --accent-foreground: 43 18% 90%;
+
+    --surface-tint: 43 90% 62%;
+    --secondary-container: 43 20% 18%;
+    --secondary-container-foreground: 43 15% 88%;
+    --tertiary: 220 42% 62%;
+    --tertiary-container: 220 18% 20%;
+  }
+
+  /* ===== Vandyke Brown (凡戴克棕) #8F4B28 ===== */
+  .theme-vandyke {
+    --primary: 20 56% 36%;
+    --primary-foreground: 20 30% 98%;
+    --ring: 20 56% 36%;
+    --accent: 20 22% 93%;
+    --accent-foreground: 20 35% 15%;
+
+    --surface-tint: 20 56% 36%;
+    --secondary-container: 20 25% 88%;
+    --secondary-container-foreground: 20 22% 15%;
+    --tertiary: 180 40% 42%;
+    --tertiary-container: 180 25% 90%;
+  }
+  .dark.theme-vandyke {
+    --primary: 20 48% 58%;
+    --ring: 20 48% 58%;
+    --accent: 20 18% 18%;
+    --accent-foreground: 20 12% 90%;
+
+    --surface-tint: 20 48% 58%;
+    --secondary-container: 20 14% 20%;
+    --secondary-container-foreground: 20 10% 88%;
+    --tertiary: 180 32% 58%;
+    --tertiary-container: 180 16% 20%;
+  }
+
+  /* ===== Marrs Green (马尔斯绿) #01847F ===== */
+  .theme-marrs {
+    --primary: 178 98% 26%;
+    --primary-foreground: 178 40% 98%;
+    --ring: 178 98% 26%;
+    --accent: 178 22% 93%;
+    --accent-foreground: 178 35% 12%;
+
+    --surface-tint: 178 98% 26%;
+    --secondary-container: 178 28% 88%;
+    --secondary-container-foreground: 178 22% 12%;
+    --tertiary: 340 40% 50%;
+    --tertiary-container: 340 25% 90%;
+  }
+  .dark.theme-marrs {
+    --primary: 178 60% 52%;
+    --ring: 178 60% 52%;
+    --accent: 178 18% 16%;
+    --accent-foreground: 178 12% 88%;
+
+    --surface-tint: 178 60% 52%;
+    --secondary-container: 178 16% 18%;
+    --secondary-container-foreground: 178 10% 88%;
+    --tertiary: 340 32% 62%;
+    --tertiary-container: 340 16% 20%;
+  }
+
+  /* ===== Turquoise (只此青绿) #40E0D0 ===== */
+  .theme-turquoise {
+    --primary: 174 72% 42%;
+    --primary-foreground: 174 50% 98%;
+    --ring: 174 72% 42%;
+    --accent: 174 28% 93%;
+    --accent-foreground: 174 35% 15%;
+
+    --surface-tint: 174 72% 42%;
+    --secondary-container: 174 32% 88%;
+    --secondary-container-foreground: 174 28% 15%;
+    --tertiary: 330 45% 52%;
+    --tertiary-container: 330 28% 90%;
+  }
+  .dark.theme-turquoise {
+    --primary: 174 65% 55%;
+    --ring: 174 65% 55%;
+    --accent: 174 20% 18%;
+    --accent-foreground: 174 14% 90%;
+
+    --surface-tint: 174 65% 55%;
+    --secondary-container: 174 18% 20%;
+    --secondary-container-foreground: 174 12% 88%;
+    --tertiary: 330 38% 65%;
+    --tertiary-container: 330 18% 20%;
+  }
+
+  /* ===== Morandi Green (莫兰迪绿) ===== */
+  .theme-morandi {
+    --primary: 150 15% 52%;
+    --primary-foreground: 150 20% 98%;
+    --ring: 150 15% 52%;
+    --accent: 150 10% 93%;
+    --accent-foreground: 150 12% 18%;
+
+    --surface-tint: 150 15% 52%;
+    --secondary-container: 150 12% 89%;
+    --secondary-container-foreground: 150 10% 18%;
+    --tertiary: 340 18% 52%;
+    --tertiary-container: 340 12% 90%;
+  }
+  .dark.theme-morandi {
+    --primary: 150 18% 65%;
+    --ring: 150 18% 65%;
+    --accent: 150 10% 18%;
+    --accent-foreground: 150 8% 88%;
+
+    --surface-tint: 150 18% 65%;
+    --secondary-container: 150 10% 20%;
+    --secondary-container-foreground: 150 8% 88%;
+    --tertiary: 340 15% 62%;
+    --tertiary-container: 340 10% 20%;
+  }
+
+  /* ===== Hermès Orange (爱马仕橙) ===== */
+  .theme-hermes {
+    --primary: 24 95% 48%;
+    --primary-foreground: 24 50% 98%;
+    --ring: 24 95% 48%;
+    --accent: 24 30% 93%;
+    --accent-foreground: 24 45% 15%;
+
+    --surface-tint: 24 95% 48%;
+    --secondary-container: 24 38% 88%;
+    --secondary-container-foreground: 24 35% 15%;
+    --tertiary: 200 50% 45%;
+    --tertiary-container: 200 30% 90%;
+  }
+  .dark.theme-hermes {
+    --primary: 24 85% 55%;
+    --ring: 24 85% 55%;
+    --accent: 24 25% 18%;
+    --accent-foreground: 24 15% 90%;
+
+    --surface-tint: 24 85% 55%;
+    --secondary-container: 24 22% 20%;
+    --secondary-container-foreground: 24 14% 88%;
+    --tertiary: 200 40% 58%;
+    --tertiary-container: 200 18% 20%;
   }
 }
 
@@ -1184,54 +1494,6 @@
   --on-surface-variant: 180 8% 65%;
 }
 
-/* M3 Mode: indigo hue=228 */
-.m3-mode.theme-indigo {
-  --background: 228 30% 98%;
-  --foreground: 228 15% 12%;
-  --card: 228 25% 96%;
-  --card-foreground: 228 15% 12%;
-  --popover: 228 25% 96%;
-  --popover-foreground: 228 15% 12%;
-  --secondary: 228 20% 90%;
-  --secondary-foreground: 228 15% 20%;
-  --muted: 228 18% 93%;
-  --muted-foreground: 228 10% 42%;
-  --destructive: 0 65% 52%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 228 15% 88%;
-  --input: 228 15% 88%;
-  --surface-container: 228 22% 95%;
-  --surface-container-high: 228 18% 92%;
-  --surface-container-low: 228 26% 97%;
-  --outline: 228 10% 72%;
-  --outline-variant: 228 14% 86%;
-  --on-surface: 228 15% 12%;
-  --on-surface-variant: 228 8% 38%;
-}
-.dark.m3-mode.theme-indigo {
-  --background: 228 20% 8%;
-  --foreground: 228 15% 92%;
-  --card: 228 18% 12%;
-  --card-foreground: 228 15% 92%;
-  --popover: 228 18% 12%;
-  --popover-foreground: 228 15% 92%;
-  --secondary: 228 15% 20%;
-  --secondary-foreground: 228 15% 88%;
-  --muted: 228 12% 18%;
-  --muted-foreground: 228 10% 62%;
-  --destructive: 0 55% 42%;
-  --destructive-foreground: 0 0% 95%;
-  --border: 228 12% 20%;
-  --input: 228 12% 20%;
-  --surface-container: 228 16% 12%;
-  --surface-container-high: 228 14% 16%;
-  --surface-container-low: 228 18% 9%;
-  --outline: 228 8% 38%;
-  --outline-variant: 228 10% 22%;
-  --on-surface: 228 15% 92%;
-  --on-surface-variant: 228 8% 65%;
-}
-
 /* M3 Mode: sakura hue=340 */
 .m3-mode.theme-sakura {
   --background: 340 30% 98%;
@@ -1422,6 +1684,582 @@
   --outline-variant: 25 10% 22%;
   --on-surface: 25 15% 92%;
   --on-surface-variant: 25 8% 65%;
+}
+
+/* M3 Mode: klein-blue hue=223 */
+.m3-mode.theme-klein-blue {
+  --background: 223 30% 98%;
+  --foreground: 223 15% 12%;
+  --card: 223 25% 96%;
+  --card-foreground: 223 15% 12%;
+  --popover: 223 25% 96%;
+  --popover-foreground: 223 15% 12%;
+  --secondary: 223 20% 90%;
+  --secondary-foreground: 223 15% 20%;
+  --muted: 223 18% 93%;
+  --muted-foreground: 223 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 223 15% 88%;
+  --input: 223 15% 88%;
+  --surface-container: 223 22% 95%;
+  --surface-container-high: 223 18% 92%;
+  --surface-container-low: 223 26% 97%;
+  --outline: 223 10% 72%;
+  --outline-variant: 223 14% 86%;
+  --on-surface: 223 15% 12%;
+  --on-surface-variant: 223 8% 38%;
+}
+.dark.m3-mode.theme-klein-blue {
+  --background: 223 20% 8%;
+  --foreground: 223 15% 92%;
+  --card: 223 18% 12%;
+  --card-foreground: 223 15% 92%;
+  --popover: 223 18% 12%;
+  --popover-foreground: 223 15% 92%;
+  --secondary: 223 15% 20%;
+  --secondary-foreground: 223 15% 88%;
+  --muted: 223 12% 18%;
+  --muted-foreground: 223 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 223 12% 20%;
+  --input: 223 12% 20%;
+  --surface-container: 223 16% 12%;
+  --surface-container-high: 223 14% 16%;
+  --surface-container-low: 223 18% 9%;
+  --outline: 223 8% 38%;
+  --outline-variant: 223 10% 22%;
+  --on-surface: 223 15% 92%;
+  --on-surface-variant: 223 8% 65%;
+}
+
+/* M3 Mode: tiy hue=174 */
+.m3-mode.theme-tiffany {
+  --background: 174 30% 98%;
+  --foreground: 174 15% 12%;
+  --card: 174 25% 96%;
+  --card-foreground: 174 15% 12%;
+  --popover: 174 25% 96%;
+  --popover-foreground: 174 15% 12%;
+  --secondary: 174 20% 90%;
+  --secondary-foreground: 174 15% 20%;
+  --muted: 174 18% 93%;
+  --muted-foreground: 174 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 174 15% 88%;
+  --input: 174 15% 88%;
+  --surface-container: 174 22% 95%;
+  --surface-container-high: 174 18% 92%;
+  --surface-container-low: 174 26% 97%;
+  --outline: 174 10% 72%;
+  --outline-variant: 174 14% 86%;
+  --on-surface: 174 15% 12%;
+  --on-surface-variant: 174 8% 38%;
+}
+.dark.m3-mode.theme-tiffany {
+  --background: 174 20% 8%;
+  --foreground: 174 15% 92%;
+  --card: 174 18% 12%;
+  --card-foreground: 174 15% 92%;
+  --popover: 174 18% 12%;
+  --popover-foreground: 174 15% 92%;
+  --secondary: 174 15% 20%;
+  --secondary-foreground: 174 15% 88%;
+  --muted: 174 12% 18%;
+  --muted-foreground: 174 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 174 12% 20%;
+  --input: 174 12% 20%;
+  --surface-container: 174 16% 12%;
+  --surface-container-high: 174 14% 16%;
+  --surface-container-low: 174 18% 9%;
+  --outline: 174 8% 38%;
+  --outline-variant: 174 10% 22%;
+  --on-surface: 174 15% 92%;
+  --on-surface-variant: 174 8% 65%;
+}
+
+/* M3 Mode: prussian hue=204 */
+.m3-mode.theme-prussian {
+  --background: 204 30% 98%;
+  --foreground: 204 15% 12%;
+  --card: 204 25% 96%;
+  --card-foreground: 204 15% 12%;
+  --popover: 204 25% 96%;
+  --popover-foreground: 204 15% 12%;
+  --secondary: 204 20% 90%;
+  --secondary-foreground: 204 15% 20%;
+  --muted: 204 18% 93%;
+  --muted-foreground: 204 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 204 15% 88%;
+  --input: 204 15% 88%;
+  --surface-container: 204 22% 95%;
+  --surface-container-high: 204 18% 92%;
+  --surface-container-low: 204 26% 97%;
+  --outline: 204 10% 72%;
+  --outline-variant: 204 14% 86%;
+  --on-surface: 204 15% 12%;
+  --on-surface-variant: 204 8% 38%;
+}
+.dark.m3-mode.theme-prussian {
+  --background: 204 20% 8%;
+  --foreground: 204 15% 92%;
+  --card: 204 18% 12%;
+  --card-foreground: 204 15% 92%;
+  --popover: 204 18% 12%;
+  --popover-foreground: 204 15% 92%;
+  --secondary: 204 15% 20%;
+  --secondary-foreground: 204 15% 88%;
+  --muted: 204 12% 18%;
+  --muted-foreground: 204 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 204 12% 20%;
+  --input: 204 12% 20%;
+  --surface-container: 204 16% 12%;
+  --surface-container-high: 204 14% 16%;
+  --surface-container-low: 204 18% 9%;
+  --outline: 204 8% 38%;
+  --outline-variant: 204 10% 22%;
+  --on-surface: 204 15% 92%;
+  --on-surface-variant: 204 8% 65%;
+}
+
+/* M3 Mode: titian hue=23 */
+.m3-mode.theme-titian {
+  --background: 23 30% 98%;
+  --foreground: 23 15% 12%;
+  --card: 23 25% 96%;
+  --card-foreground: 23 15% 12%;
+  --popover: 23 25% 96%;
+  --popover-foreground: 23 15% 12%;
+  --secondary: 23 20% 90%;
+  --secondary-foreground: 23 15% 20%;
+  --muted: 23 18% 93%;
+  --muted-foreground: 23 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 23 15% 88%;
+  --input: 23 15% 88%;
+  --surface-container: 23 22% 95%;
+  --surface-container-high: 23 18% 92%;
+  --surface-container-low: 23 26% 97%;
+  --outline: 23 10% 72%;
+  --outline-variant: 23 14% 86%;
+  --on-surface: 23 15% 12%;
+  --on-surface-variant: 23 8% 38%;
+}
+.dark.m3-mode.theme-titian {
+  --background: 23 20% 8%;
+  --foreground: 23 15% 92%;
+  --card: 23 18% 12%;
+  --card-foreground: 23 15% 92%;
+  --popover: 23 18% 12%;
+  --popover-foreground: 23 15% 92%;
+  --secondary: 23 15% 20%;
+  --secondary-foreground: 23 15% 88%;
+  --muted: 23 12% 18%;
+  --muted-foreground: 23 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 23 12% 20%;
+  --input: 23 12% 20%;
+  --surface-container: 23 16% 12%;
+  --surface-container-high: 23 14% 16%;
+  --surface-container-low: 23 18% 9%;
+  --outline: 23 8% 38%;
+  --outline-variant: 23 10% 22%;
+  --on-surface: 23 15% 92%;
+  --on-surface-variant: 23 8% 65%;
+}
+
+/* M3 Mode: china-red hue=0 */
+.m3-mode.theme-china-red {
+  --background: 0 30% 98%;
+  --foreground: 0 15% 12%;
+  --card: 0 25% 96%;
+  --card-foreground: 0 15% 12%;
+  --popover: 0 25% 96%;
+  --popover-foreground: 0 15% 12%;
+  --secondary: 0 20% 90%;
+  --secondary-foreground: 0 15% 20%;
+  --muted: 0 18% 93%;
+  --muted-foreground: 0 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 15% 88%;
+  --input: 0 15% 88%;
+  --surface-container: 0 22% 95%;
+  --surface-container-high: 0 18% 92%;
+  --surface-container-low: 0 26% 97%;
+  --outline: 0 10% 72%;
+  --outline-variant: 0 14% 86%;
+  --on-surface: 0 15% 12%;
+  --on-surface-variant: 0 8% 38%;
+}
+.dark.m3-mode.theme-china-red {
+  --background: 0 20% 8%;
+  --foreground: 0 15% 92%;
+  --card: 0 18% 12%;
+  --card-foreground: 0 15% 92%;
+  --popover: 0 18% 12%;
+  --popover-foreground: 0 15% 92%;
+  --secondary: 0 15% 20%;
+  --secondary-foreground: 0 15% 88%;
+  --muted: 0 12% 18%;
+  --muted-foreground: 0 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 12% 20%;
+  --input: 0 12% 20%;
+  --surface-container: 0 16% 12%;
+  --surface-container-high: 0 14% 16%;
+  --surface-container-low: 0 18% 9%;
+  --outline: 0 8% 38%;
+  --outline-variant: 0 10% 22%;
+  --on-surface: 0 15% 92%;
+  --on-surface-variant: 0 8% 65%;
+}
+
+/* M3 Mode: burgundy hue=346 */
+.m3-mode.theme-burgundy {
+  --background: 346 30% 98%;
+  --foreground: 346 15% 12%;
+  --card: 346 25% 96%;
+  --card-foreground: 346 15% 12%;
+  --popover: 346 25% 96%;
+  --popover-foreground: 346 15% 12%;
+  --secondary: 346 20% 90%;
+  --secondary-foreground: 346 15% 20%;
+  --muted: 346 18% 93%;
+  --muted-foreground: 346 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 346 15% 88%;
+  --input: 346 15% 88%;
+  --surface-container: 346 22% 95%;
+  --surface-container-high: 346 18% 92%;
+  --surface-container-low: 346 26% 97%;
+  --outline: 346 10% 72%;
+  --outline-variant: 346 14% 86%;
+  --on-surface: 346 15% 12%;
+  --on-surface-variant: 346 8% 38%;
+}
+.dark.m3-mode.theme-burgundy {
+  --background: 346 20% 8%;
+  --foreground: 346 15% 92%;
+  --card: 346 18% 12%;
+  --card-foreground: 346 15% 92%;
+  --popover: 346 18% 12%;
+  --popover-foreground: 346 15% 92%;
+  --secondary: 346 15% 20%;
+  --secondary-foreground: 346 15% 88%;
+  --muted: 346 12% 18%;
+  --muted-foreground: 346 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 346 12% 20%;
+  --input: 346 12% 20%;
+  --surface-container: 346 16% 12%;
+  --surface-container-high: 346 14% 16%;
+  --surface-container-low: 346 18% 9%;
+  --outline: 346 8% 38%;
+  --outline-variant: 346 10% 22%;
+  --on-surface: 346 15% 92%;
+  --on-surface-variant: 346 8% 65%;
+}
+
+/* M3 Mode: schonbrunn hue=43 */
+.m3-mode.theme-schonbrunn {
+  --background: 43 30% 98%;
+  --foreground: 43 15% 12%;
+  --card: 43 25% 96%;
+  --card-foreground: 43 15% 12%;
+  --popover: 43 25% 96%;
+  --popover-foreground: 43 15% 12%;
+  --secondary: 43 20% 90%;
+  --secondary-foreground: 43 15% 20%;
+  --muted: 43 18% 93%;
+  --muted-foreground: 43 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 43 15% 88%;
+  --input: 43 15% 88%;
+  --surface-container: 43 22% 95%;
+  --surface-container-high: 43 18% 92%;
+  --surface-container-low: 43 26% 97%;
+  --outline: 43 10% 72%;
+  --outline-variant: 43 14% 86%;
+  --on-surface: 43 15% 12%;
+  --on-surface-variant: 43 8% 38%;
+}
+.dark.m3-mode.theme-schonbrunn {
+  --background: 43 20% 8%;
+  --foreground: 43 15% 92%;
+  --card: 43 18% 12%;
+  --card-foreground: 43 15% 92%;
+  --popover: 43 18% 12%;
+  --popover-foreground: 43 15% 92%;
+  --secondary: 43 15% 20%;
+  --secondary-foreground: 43 15% 88%;
+  --muted: 43 12% 18%;
+  --muted-foreground: 43 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 43 12% 20%;
+  --input: 43 12% 20%;
+  --surface-container: 43 16% 12%;
+  --surface-container-high: 43 14% 16%;
+  --surface-container-low: 43 18% 9%;
+  --outline: 43 8% 38%;
+  --outline-variant: 43 10% 22%;
+  --on-surface: 43 15% 92%;
+  --on-surface-variant: 43 8% 65%;
+}
+
+/* M3 Mode: vandyke hue=20 */
+.m3-mode.theme-vandyke {
+  --background: 20 30% 98%;
+  --foreground: 20 15% 12%;
+  --card: 20 25% 96%;
+  --card-foreground: 20 15% 12%;
+  --popover: 20 25% 96%;
+  --popover-foreground: 20 15% 12%;
+  --secondary: 20 20% 90%;
+  --secondary-foreground: 20 15% 20%;
+  --muted: 20 18% 93%;
+  --muted-foreground: 20 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 20 15% 88%;
+  --input: 20 15% 88%;
+  --surface-container: 20 22% 95%;
+  --surface-container-high: 20 18% 92%;
+  --surface-container-low: 20 26% 97%;
+  --outline: 20 10% 72%;
+  --outline-variant: 20 14% 86%;
+  --on-surface: 20 15% 12%;
+  --on-surface-variant: 20 8% 38%;
+}
+.dark.m3-mode.theme-vandyke {
+  --background: 20 20% 8%;
+  --foreground: 20 15% 92%;
+  --card: 20 18% 12%;
+  --card-foreground: 20 15% 92%;
+  --popover: 20 18% 12%;
+  --popover-foreground: 20 15% 92%;
+  --secondary: 20 15% 20%;
+  --secondary-foreground: 20 15% 88%;
+  --muted: 20 12% 18%;
+  --muted-foreground: 20 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 20 12% 20%;
+  --input: 20 12% 20%;
+  --surface-container: 20 16% 12%;
+  --surface-container-high: 20 14% 16%;
+  --surface-container-low: 20 18% 9%;
+  --outline: 20 8% 38%;
+  --outline-variant: 20 10% 22%;
+  --on-surface: 20 15% 92%;
+  --on-surface-variant: 20 8% 65%;
+}
+
+/* M3 Mode: marrs hue=178 */
+.m3-mode.theme-marrs {
+  --background: 178 30% 98%;
+  --foreground: 178 15% 12%;
+  --card: 178 25% 96%;
+  --card-foreground: 178 15% 12%;
+  --popover: 178 25% 96%;
+  --popover-foreground: 178 15% 12%;
+  --secondary: 178 20% 90%;
+  --secondary-foreground: 178 15% 20%;
+  --muted: 178 18% 93%;
+  --muted-foreground: 178 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 178 15% 88%;
+  --input: 178 15% 88%;
+  --surface-container: 178 22% 95%;
+  --surface-container-high: 178 18% 92%;
+  --surface-container-low: 178 26% 97%;
+  --outline: 178 10% 72%;
+  --outline-variant: 178 14% 86%;
+  --on-surface: 178 15% 12%;
+  --on-surface-variant: 178 8% 38%;
+}
+.dark.m3-mode.theme-marrs {
+  --background: 178 20% 8%;
+  --foreground: 178 15% 92%;
+  --card: 178 18% 12%;
+  --card-foreground: 178 15% 92%;
+  --popover: 178 18% 12%;
+  --popover-foreground: 178 15% 92%;
+  --secondary: 178 15% 20%;
+  --secondary-foreground: 178 15% 88%;
+  --muted: 178 12% 18%;
+  --muted-foreground: 178 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 178 12% 20%;
+  --input: 178 12% 20%;
+  --surface-container: 178 16% 12%;
+  --surface-container-high: 178 14% 16%;
+  --surface-container-low: 178 18% 9%;
+  --outline: 178 8% 38%;
+  --outline-variant: 178 10% 22%;
+  --on-surface: 178 15% 92%;
+  --on-surface-variant: 178 8% 65%;
+}
+
+/* M3 Mode: turquoise hue=174 */
+.m3-mode.theme-turquoise {
+  --background: 174 30% 98%;
+  --foreground: 174 15% 12%;
+  --card: 174 25% 96%;
+  --card-foreground: 174 15% 12%;
+  --popover: 174 25% 96%;
+  --popover-foreground: 174 15% 12%;
+  --secondary: 174 20% 90%;
+  --secondary-foreground: 174 15% 20%;
+  --muted: 174 18% 93%;
+  --muted-foreground: 174 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 174 15% 88%;
+  --input: 174 15% 88%;
+  --surface-container: 174 22% 95%;
+  --surface-container-high: 174 18% 92%;
+  --surface-container-low: 174 26% 97%;
+  --outline: 174 10% 72%;
+  --outline-variant: 174 14% 86%;
+  --on-surface: 174 15% 12%;
+  --on-surface-variant: 174 8% 38%;
+}
+.dark.m3-mode.theme-turquoise {
+  --background: 174 20% 8%;
+  --foreground: 174 15% 92%;
+  --card: 174 18% 12%;
+  --card-foreground: 174 15% 92%;
+  --popover: 174 18% 12%;
+  --popover-foreground: 174 15% 92%;
+  --secondary: 174 15% 20%;
+  --secondary-foreground: 174 15% 88%;
+  --muted: 174 12% 18%;
+  --muted-foreground: 174 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 174 12% 20%;
+  --input: 174 12% 20%;
+  --surface-container: 174 16% 12%;
+  --surface-container-high: 174 14% 16%;
+  --surface-container-low: 174 18% 9%;
+  --outline: 174 8% 38%;
+  --outline-variant: 174 10% 22%;
+  --on-surface: 174 15% 92%;
+  --on-surface-variant: 174 8% 65%;
+}
+
+/* M3 Mode: morandi hue=150 */
+.m3-mode.theme-morandi {
+  --background: 150 30% 98%;
+  --foreground: 150 15% 12%;
+  --card: 150 25% 96%;
+  --card-foreground: 150 15% 12%;
+  --popover: 150 25% 96%;
+  --popover-foreground: 150 15% 12%;
+  --secondary: 150 20% 90%;
+  --secondary-foreground: 150 15% 20%;
+  --muted: 150 18% 93%;
+  --muted-foreground: 150 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 150 15% 88%;
+  --input: 150 15% 88%;
+  --surface-container: 150 22% 95%;
+  --surface-container-high: 150 18% 92%;
+  --surface-container-low: 150 26% 97%;
+  --outline: 150 10% 72%;
+  --outline-variant: 150 14% 86%;
+  --on-surface: 150 15% 12%;
+  --on-surface-variant: 150 8% 38%;
+}
+.dark.m3-mode.theme-morandi {
+  --background: 150 20% 8%;
+  --foreground: 150 15% 92%;
+  --card: 150 18% 12%;
+  --card-foreground: 150 15% 92%;
+  --popover: 150 18% 12%;
+  --popover-foreground: 150 15% 92%;
+  --secondary: 150 15% 20%;
+  --secondary-foreground: 150 15% 88%;
+  --muted: 150 12% 18%;
+  --muted-foreground: 150 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 150 12% 20%;
+  --input: 150 12% 20%;
+  --surface-container: 150 16% 12%;
+  --surface-container-high: 150 14% 16%;
+  --surface-container-low: 150 18% 9%;
+  --outline: 150 8% 38%;
+  --outline-variant: 150 10% 22%;
+  --on-surface: 150 15% 92%;
+  --on-surface-variant: 150 8% 65%;
+}
+
+/* M3 Mode: hermes hue=24 */
+.m3-mode.theme-hermes {
+  --background: 24 30% 98%;
+  --foreground: 24 15% 12%;
+  --card: 24 25% 96%;
+  --card-foreground: 24 15% 12%;
+  --popover: 24 25% 96%;
+  --popover-foreground: 24 15% 12%;
+  --secondary: 24 20% 90%;
+  --secondary-foreground: 24 15% 20%;
+  --muted: 24 18% 93%;
+  --muted-foreground: 24 10% 42%;
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 24 15% 88%;
+  --input: 24 15% 88%;
+  --surface-container: 24 22% 95%;
+  --surface-container-high: 24 18% 92%;
+  --surface-container-low: 24 26% 97%;
+  --outline: 24 10% 72%;
+  --outline-variant: 24 14% 86%;
+  --on-surface: 24 15% 12%;
+  --on-surface-variant: 24 8% 38%;
+}
+.dark.m3-mode.theme-hermes {
+  --background: 24 20% 8%;
+  --foreground: 24 15% 92%;
+  --card: 24 18% 12%;
+  --card-foreground: 24 15% 92%;
+  --popover: 24 18% 12%;
+  --popover-foreground: 24 15% 92%;
+  --secondary: 24 15% 20%;
+  --secondary-foreground: 24 15% 88%;
+  --muted: 24 12% 18%;
+  --muted-foreground: 24 10% 62%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 24 12% 20%;
+  --input: 24 12% 20%;
+  --surface-container: 24 16% 12%;
+  --surface-container-high: 24 14% 16%;
+  --surface-container-low: 24 18% 9%;
+  --outline: 24 8% 38%;
+  --outline-variant: 24 10% 22%;
+  --on-surface: 24 15% 92%;
+  --on-surface-variant: 24 8% 65%;
 }
 
 @layer base {

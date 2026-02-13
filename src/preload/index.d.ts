@@ -41,6 +41,10 @@ declare global {
       downloadUpdate: () => Promise<boolean>
       installUpdate: () => Promise<void>
       onUpdateStatus: (callback: (status: string, info?: Record<string, unknown>) => void) => () => void
+      windowMinimize: () => Promise<void>
+      windowMaximize: () => Promise<void>
+      windowClose: () => Promise<void>
+      windowIsMaximized: () => Promise<boolean>
     }
   }
 }

@@ -54,7 +54,7 @@ export class AppController extends BaseController {
     return normalized
   }
 
-  private async syncDataToFolder(_event: any, folderPath: string): Promise<boolean> {
+  private async syncDataToFolder(_event: Electron.IpcMainInvokeEvent, folderPath: string): Promise<boolean> {
     try {
       const authorizedFolder = this.ensureAuthorizedFolder(folderPath)
       const targetDir = path.join(authorizedFolder, 'stellarc-sync')
@@ -76,7 +76,7 @@ export class AppController extends BaseController {
     }
   }
 
-  private async syncDataFromFolder(_event: any, folderPath: string): Promise<boolean> {
+  private async syncDataFromFolder(_event: Electron.IpcMainInvokeEvent, folderPath: string): Promise<boolean> {
     const backupDataPath = path.join(path.dirname(this.dataPath), 'data_sync_backup_' + Date.now())
     try {
       const authorizedFolder = this.ensureAuthorizedFolder(folderPath)
@@ -91,6 +91,18 @@ export class AppController extends BaseController {
         fs.renameSync(this.dataPath, backupDataPath)
       }
       fs.cpSync(sourceDataPath, this.dataPath, { recursive: true })
+
+      // Validate critical data files exist after sync
+      const classesFile = path.join(this.dataPath, 'classes.json')
+      const settingsFile = path.join(this.dataPath, 'settings.json')
+      if (!fs.existsSync(classesFile) && !fs.existsSync(settingsFile)) {
+        log.error('Sync source missing critical data files, rolling back')
+        fs.rmSync(this.dataPath, { recursive: true, force: true })
+        if (fs.existsSync(backupDataPath)) {
+          fs.renameSync(backupDataPath, this.dataPath)
+        }
+        return false
+      }
 
       if (fs.existsSync(backupDataPath)) {
         fs.rmSync(backupDataPath, { recursive: true, force: true })
@@ -114,7 +126,7 @@ export class AppController extends BaseController {
   }
 
   private async registerShortcut(
-    _event: any,
+    _event: Electron.IpcMainInvokeEvent,
     accelerator: string,
     action: string
   ): Promise<boolean> {
@@ -145,7 +157,7 @@ export class AppController extends BaseController {
     }
   }
 
-  private async backupData(_event: any, targetPath: string): Promise<boolean> {
+  private async backupData(_event: Electron.IpcMainInvokeEvent, targetPath: string): Promise<boolean> {
     return new Promise((resolve) => {
       try {
         const output = fs.createWriteStream(targetPath)
@@ -167,7 +179,7 @@ export class AppController extends BaseController {
     })
   }
 
-  private async restoreData(_event: any, sourcePath: string): Promise<boolean> {
+  private async restoreData(_event: Electron.IpcMainInvokeEvent, sourcePath: string): Promise<boolean> {
     const parentDir = path.dirname(this.dataPath)
     const tempExtractPath = path.join(parentDir, 'temp_restore_' + Date.now())
     const backupDataPath = path.join(parentDir, 'data_backup_' + Date.now())
@@ -202,15 +214,22 @@ export class AppController extends BaseController {
         fs.renameSync(backupDataPath, this.dataPath)
       }
 
-      if (fs.existsSync(tempExtractPath)) {
-        fs.rmSync(tempExtractPath, { recursive: true, force: true })
+      try {
+        if (fs.existsSync(tempExtractPath)) {
+          fs.rmSync(tempExtractPath, { recursive: true, force: true })
+        }
+        if (fs.existsSync(backupDataPath)) {
+          fs.rmSync(backupDataPath, { recursive: true, force: true })
+        }
+      } catch (cleanupErr) {
+        log.warn('Failed to clean up temp directories after restore failure:', cleanupErr)
       }
 
       return false
     }
   }
 
-  private async openExternal(_event: any, url: string): Promise<boolean> {
+  private async openExternal(_event: Electron.IpcMainInvokeEvent, url: string): Promise<boolean> {
     try {
       await shell.openExternal(url)
       return true
@@ -220,7 +239,7 @@ export class AppController extends BaseController {
     }
   }
 
-  private async setAutoLaunch(_event: any, enabled: boolean): Promise<boolean> {
+  private async setAutoLaunch(_event: Electron.IpcMainInvokeEvent, enabled: boolean): Promise<boolean> {
     try {
       app.setLoginItemSettings({
         openAtLogin: enabled,

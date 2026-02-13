@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import { Student, ClassGroup } from '../types'
 import { useToastStore } from './toastStore'
+import { logger } from '../lib/logger'
 
 interface ClassesState {
   classes: ClassGroup[]
@@ -24,7 +25,12 @@ interface ClassesState {
   updateStudentWeight: (classId: string, studentId: string, weight: number) => void
   updateStudentScore: (classId: string, studentId: string, score: number) => void
   updateStudentPhoto: (classId: string, studentId: string, photo: string | undefined) => void
+  updateStudentName: (classId: string, studentId: string, name: string) => void
+  updateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
   incrementPickCount: (classId: string, studentId: string) => void
+  renameClass: (classId: string, name: string) => void
+  duplicateClass: (classId: string) => void
+  resetClassScores: (classId: string) => void
   undoLastChange: () => void
 }
 
@@ -70,7 +76,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         })
       }
     } catch (e) {
-      console.error('Failed to load classes', e)
+      logger.error('ClassesStore', 'Failed to load classes', e)
     }
   },
 
@@ -80,7 +86,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       // Save in legacy format to maintain compatibility and persist selection
       await window.electronAPI.writeJson('classes.json', { classes, currentClassId })
     } catch (e) {
-      console.error('Failed to save classes', e)
+      logger.error('ClassesStore', 'Failed to save classes', e)
       useToastStore.getState().addToast('班级数据保存失败，请检查磁盘空间', 'error')
     }
   },
@@ -259,6 +265,94 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
               ...c,
               students: c.students.map((s) => (s.id === studentId ? { ...s, photo } : s))
             }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  updateStudentName: (classId, studentId, name) => {
+    if (!name.trim()) return
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? { ...c, students: c.students.map((s) => (s.id === studentId ? { ...s, name: name.trim() } : s)) }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  updateStudentId: (classId, studentId, newStudentId) => {
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? { ...c, students: c.students.map((s) => (s.id === studentId ? { ...s, studentId: newStudentId?.trim() || undefined } : s)) }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  renameClass: (classId, name) => {
+    if (!name.trim()) return
+    set((state) => ({
+      classes: state.classes.map((c) => (c.id === classId ? { ...c, name: name.trim() } : c)),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  duplicateClass: (classId) => {
+    const source = get().classes.find((c) => c.id === classId)
+    if (!source) return
+    const newClass: ClassGroup = {
+      id: crypto.randomUUID(),
+      name: source.name + '（副本）',
+      students: source.students.map((s) => ({
+        ...s,
+        id: crypto.randomUUID(),
+        pickCount: 0,
+        score: 0,
+        lastPickedAt: undefined
+      }))
+    }
+    set((state) => ({
+      classes: [...state.classes, newClass],
+      currentClassId: newClass.id,
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  resetClassScores: (classId) => {
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? { ...c, students: c.students.map((s) => ({ ...s, score: 0 })) }
           : c
       ),
       undoStack: [

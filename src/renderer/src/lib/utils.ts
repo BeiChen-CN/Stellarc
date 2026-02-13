@@ -10,17 +10,10 @@ export function toFileUrl(input: string): string {
     return input
   }
 
-  if (input.startsWith('file://')) {
+  if (input.startsWith('local-file://') || input.startsWith('file://')) {
     return input
   }
 
   const normalized = input.replace(/\\/g, '/')
-  const isWindowsAbs = /^[a-zA-Z]:\//.test(normalized)
-  const isUnixAbs = normalized.startsWith('/')
-
-  if (isWindowsAbs || isUnixAbs) {
-    return encodeURI(`file://${normalized}`)
-  }
-
-  return input
+  return `local-file://${encodeURIComponent(normalized)}`
 }

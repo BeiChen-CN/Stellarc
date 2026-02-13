@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, session, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, session, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -40,7 +41,7 @@ function createWindow(): void {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self' file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data:; font-src 'self' file: data:; connect-src 'self' https:"
+            "default-src 'self' file: local-file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: local-file: data:; font-src 'self' file: data:; connect-src 'self' https:"
           ]
         }
       })
@@ -48,13 +49,17 @@ function createWindow(): void {
   }
 
   // Create the browser window.
+  const isMac = process.platform === 'darwin'
+
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1100,
+    height: 750,
     minWidth: 800,
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    frame: isMac,
+    titleBarStyle: isMac ? 'hiddenInset' : 'default',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -91,6 +96,12 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // Register local-file protocol for loading local images in renderer
+  protocol.handle('local-file', (request) => {
+    const filePath = decodeURIComponent(request.url.replace('local-file://', ''))
+    return net.fetch(pathToFileURL(filePath).href)
+  })
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.spotlight.classroom')
 
@@ -125,6 +136,23 @@ app.whenReady().then(() => {
   new DialogController()
 
   createWindow()
+
+  // Window control IPC
+  ipcMain.handle('window-minimize', () => {
+    BrowserWindow.getFocusedWindow()?.minimize()
+  })
+  ipcMain.handle('window-maximize', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) {
+      win.isMaximized() ? win.unmaximize() : win.maximize()
+    }
+  })
+  ipcMain.handle('window-close', () => {
+    BrowserWindow.getFocusedWindow()?.close()
+  })
+  ipcMain.handle('window-is-maximized', () => {
+    return BrowserWindow.getFocusedWindow()?.isMaximized() ?? false
+  })
 
   // Auto-updater setup
   autoUpdater.logger = log

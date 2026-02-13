@@ -9,11 +9,13 @@ import { About } from './views/About'
 import { Statistics } from './views/Statistics'
 import { ToastContainer } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { TitleBar } from './components/TitleBar'
 import { useClassesStore } from './store/classesStore'
 import { useSettingsStore } from './store/settingsStore'
 import type { DynamicColorPalette } from './store/settingsStore'
 import { useHistoryStore } from './store/historyStore'
 import { useStrategyStore } from './store/strategyStore'
+import { useSpeedFactor } from './lib/useSpeedFactor'
 
 function App() {
   const [currentView, setCurrentView] = useState<
@@ -24,12 +26,15 @@ function App() {
   const loadSettings = useSettingsStore((state) => state.loadSettings)
   const loadHistory = useHistoryStore((state) => state.loadHistory)
   const loadPlugins = useStrategyStore((state) => state.loadPlugins)
+  const sf = useSpeedFactor()
   const {
     theme,
     colorTheme,
+    customColor,
     designStyle,
     shortcutKey,
     m3Mode,
+    animationSpeed,
     dynamicColor,
     dynamicColorPalette,
     backgroundImage,
@@ -79,11 +84,22 @@ function App() {
       'theme-kiwi',
       'theme-spicy',
       'theme-bright-teal',
-      'theme-indigo',
       'theme-sakura',
       'theme-forest',
       'theme-ocean',
-      'theme-mocha'
+      'theme-mocha',
+      'theme-klein-blue',
+      'theme-tiffany',
+      'theme-prussian',
+      'theme-titian',
+      'theme-china-red',
+      'theme-burgundy',
+      'theme-schonbrunn',
+      'theme-vandyke',
+      'theme-marrs',
+      'theme-turquoise',
+      'theme-morandi',
+      'theme-hermes'
     ]
     root.classList.remove(...colorClasses)
     if (colorTheme && colorTheme !== 'blue') {
@@ -97,6 +113,49 @@ function App() {
       root.classList.remove('m3-mode')
     }
   }, [theme, colorTheme, m3Mode])
+
+  // Apply custom color as CSS variable override
+  useEffect(() => {
+    const root = window.document.documentElement
+    if (customColor) {
+      // Parse hex to HSL
+      const r = parseInt(customColor.slice(1, 3), 16) / 255
+      const g = parseInt(customColor.slice(3, 5), 16) / 255
+      const b = parseInt(customColor.slice(5, 7), 16) / 255
+      const max = Math.max(r, g, b)
+      const min = Math.min(r, g, b)
+      const l = (max + min) / 2
+      let h = 0
+      let s = 0
+      if (max !== min) {
+        const d = max - min
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+        else if (max === g) h = ((b - r) / d + 2) / 6
+        else h = ((r - g) / d + 4) / 6
+      }
+      const hDeg = Math.round(h * 360)
+      const sPct = Math.round(s * 100)
+      const lPct = Math.round(l * 100)
+      root.style.setProperty('--primary', `${hDeg} ${sPct}% ${lPct}%`)
+      root.style.setProperty('--primary-foreground', `${hDeg} ${sPct}% ${lPct > 50 ? 10 : 98}%`)
+      root.style.setProperty('--ring', `${hDeg} ${sPct}% ${lPct}%`)
+    } else {
+      root.style.removeProperty('--primary')
+      root.style.removeProperty('--primary-foreground')
+      root.style.removeProperty('--ring')
+    }
+  }, [customColor])
+
+  // Apply global animation speed factor
+  useEffect(() => {
+    const root = window.document.documentElement
+    const factor = animationSpeed === 'elegant' ? 1.5 : animationSpeed === 'fast' ? 0.5 : 1
+    root.style.setProperty('--speed-factor', String(factor))
+    root.classList.remove('speed-elegant', 'speed-fast')
+    if (animationSpeed === 'elegant') root.classList.add('speed-elegant')
+    else if (animationSpeed === 'fast') root.classList.add('speed-fast')
+  }, [animationSpeed])
 
   // Apply design style
   useEffect(() => {
@@ -306,22 +365,25 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground transition-colors duration-500">
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="min-h-full"
-          >
-            {renderView()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+    <div className="flex flex-col h-screen bg-background text-foreground transition-colors duration-500">
+      <TitleBar />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+        <main className="flex-1 min-h-0 overflow-hidden bg-background relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 * sf, ease: 'easeOut' }}
+              className="h-full"
+            >
+              {renderView()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
       <ToastContainer />
       <ConfirmDialog />
     </div>

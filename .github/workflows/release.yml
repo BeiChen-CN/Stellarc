@@ -35,10 +35,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build & Package
+      - name: Build app
+        run: npm run build
+
+      - name: Package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:${{ matrix.platform }}
+        run: npx electron-builder --${{ matrix.platform }} --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,7 +52,6 @@ jobs:
             dist/*.dmg
             dist/*.AppImage
             dist/*.deb
-            dist/*.snap
           if-no-files-found: ignore
 
   release:
