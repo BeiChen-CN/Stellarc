@@ -38,5 +38,5 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
-  owner: stellarc-app
-  repo: stellarc
+  owner: BeiChen-CN
+  repo: Stellarc
