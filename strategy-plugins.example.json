@@ -1,0 +1,23 @@
+{
+  "plugins": [
+    {
+      "id": "participation-priority",
+      "name": "参与优先",
+      "description": "降低高频学生权重，鼓励更多学生参与",
+      "baseMultiplier": 1,
+      "pickDecayFactor": 0.3,
+      "scoreFactor": 0,
+      "minWeight": 0.15
+    },
+    {
+      "id": "high-score-focus",
+      "name": "高分激励",
+      "description": "按积分提升权重，适合挑战型课堂",
+      "baseMultiplier": 1,
+      "scoreFactor": 0.08,
+      "pickDecayFactor": 0.05,
+      "minWeight": 0.1,
+      "maxWeight": 8
+    }
+  ]
+}

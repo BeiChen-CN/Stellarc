@@ -1,0 +1,375 @@
+import { create } from 'zustand'
+import { useToastStore } from './toastStore'
+
+export type ColorTheme =
+  | 'blue'
+  | 'violet'
+  | 'rose'
+  | 'green'
+  | 'orange'
+  | 'amber'
+  | 'teal'
+  | 'slate'
+  | 'cloud'
+  | 'corundum'
+  | 'kiwi'
+  | 'spicy'
+  | 'bright-teal'
+  | 'indigo'
+  | 'sakura'
+  | 'forest'
+  | 'ocean'
+  | 'mocha'
+
+export type DesignStyle =
+  | 'material-design-3'
+  | 'flat'
+  | 'minimalism'
+  | 'glassmorphism'
+  | 'claymorphism'
+  | 'neumorphism'
+  | 'skeuomorphism'
+  | 'microinteractions'
+  | 'apple-hig'
+
+export type AnimationStyle =
+  | 'scroll'
+  | 'slot'
+  | 'flip'
+  | 'wheel'
+  | 'bounce'
+  | 'typewriter'
+  | 'ripple'
+
+export type ActivityPreset = 'quick-pick' | 'deep-focus' | 'group-battle'
+
+export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
+
+export type StrategyPreset = string
+
+const activityPresetDefaults: Record<
+  ActivityPreset,
+  {
+    pickCount: number
+    animationStyle: AnimationStyle
+    fairness: {
+      weightedRandom: boolean
+      preventRepeat: boolean
+      cooldownRounds: number
+      strategyPreset: StrategyPreset
+    }
+  }
+> = {
+  'quick-pick': {
+    pickCount: 1,
+    animationStyle: 'slot',
+    fairness: {
+      weightedRandom: false,
+      preventRepeat: false,
+      cooldownRounds: 0,
+      strategyPreset: 'classic'
+    }
+  },
+  'deep-focus': {
+    pickCount: 1,
+    animationStyle: 'flip',
+    fairness: {
+      weightedRandom: true,
+      preventRepeat: true,
+      cooldownRounds: 2,
+      strategyPreset: 'balanced'
+    }
+  },
+  'group-battle': {
+    pickCount: 2,
+    animationStyle: 'wheel',
+    fairness: {
+      weightedRandom: true,
+      preventRepeat: false,
+      cooldownRounds: 0,
+      strategyPreset: 'momentum'
+    }
+  }
+}
+
+interface SettingsData {
+  theme: 'light' | 'dark' | 'system'
+  colorTheme: ColorTheme
+  designStyle: DesignStyle
+  showStudentId: boolean
+  photoMode: boolean
+  soundEnabled: boolean
+  confettiEnabled: boolean
+  m3Mode: boolean
+  backgroundImage?: string
+  projectorMode: boolean
+  activityPreset: ActivityPreset
+  syncEnabled: boolean
+  syncFolder?: string
+  animationStyle: AnimationStyle
+  dynamicColor: boolean
+  fairness: {
+    weightedRandom: boolean
+    preventRepeat: boolean
+    cooldownRounds: number
+    strategyPreset: StrategyPreset
+  }
+  pickCount: number
+  maxHistoryRecords: number
+  shortcutKey: string
+}
+
+export interface DynamicColorPalette {
+  hue: number
+  saturation: number
+  lightness: number
+  tertiaryHue: number
+}
+
+interface SettingsState extends SettingsData {
+  dynamicColorPalette: DynamicColorPalette | null
+  setTheme: (theme: 'light' | 'dark' | 'system') => void
+  setColorTheme: (colorTheme: ColorTheme) => void
+  setDesignStyle: (designStyle: DesignStyle) => void
+  toggleShowStudentId: () => void
+  togglePhotoMode: () => void
+  toggleSoundEnabled: () => void
+  toggleConfettiEnabled: () => void
+  toggleM3Mode: () => void
+  setBackgroundImage: (path: string | undefined) => void
+  toggleSyncEnabled: () => void
+  setSyncFolder: (path: string | undefined) => void
+  toggleProjectorMode: () => void
+  setActivityPreset: (preset: ActivityPreset) => void
+  setAnimationStyle: (style: AnimationStyle) => void
+  setFairness: (fairness: {
+    weightedRandom: boolean
+    preventRepeat: boolean
+    cooldownRounds: number
+    strategyPreset: StrategyPreset
+  }) => void
+  setPickCount: (count: number) => void
+  setMaxHistoryRecords: (max: number) => void
+  setShortcutKey: (key: string) => Promise<boolean>
+  toggleDynamicColor: () => void
+  setDynamicColorPalette: (palette: DynamicColorPalette | null) => void
+  extractAndApplyDynamicColor: () => Promise<void>
+  loadSettings: () => Promise<void>
+}
+
+const defaults: SettingsData = {
+  theme: 'system',
+  colorTheme: 'blue',
+  designStyle: 'material-design-3',
+  showStudentId: true,
+  photoMode: true,
+  soundEnabled: true,
+  confettiEnabled: true,
+  m3Mode: false,
+  projectorMode: false,
+  activityPreset: 'quick-pick',
+  syncEnabled: false,
+  animationStyle: 'slot',
+  dynamicColor: false,
+  pickCount: 1,
+  maxHistoryRecords: 1000,
+  shortcutKey: '',
+  fairness: {
+    weightedRandom: false,
+    preventRepeat: false,
+    cooldownRounds: 0,
+    strategyPreset: 'classic'
+  }
+}
+
+const saveSettings = async (state: SettingsData): Promise<void> => {
+  try {
+    const {
+      theme,
+      colorTheme,
+      designStyle,
+      showStudentId,
+      photoMode,
+      soundEnabled,
+      confettiEnabled,
+      m3Mode,
+      backgroundImage,
+      projectorMode,
+      activityPreset,
+      syncEnabled,
+      syncFolder,
+      animationStyle,
+      dynamicColor,
+      fairness,
+      pickCount,
+      maxHistoryRecords,
+      shortcutKey
+    } = state
+    await window.electronAPI.writeJson('settings.json', {
+      theme,
+      colorTheme,
+      designStyle,
+      showStudentId,
+      photoMode,
+      soundEnabled,
+      confettiEnabled,
+      m3Mode,
+      backgroundImage,
+      projectorMode,
+      activityPreset,
+      syncEnabled,
+      syncFolder,
+      animationStyle,
+      dynamicColor,
+      fairness,
+      pickCount,
+      maxHistoryRecords,
+      shortcutKey
+    })
+  } catch (e) {
+    console.error('Failed to save settings', e)
+    useToastStore.getState().addToast('设置保存失败，请检查磁盘空间', 'error')
+  }
+}
+
+const updateAndSave = (
+  partial: Partial<SettingsData>,
+  set: (p: Partial<SettingsData>) => void,
+  get: () => SettingsState
+): void => {
+  set(partial)
+  saveSettings(get())
+}
+
+export const useSettingsStore = create<SettingsState>((set, get) => ({
+  ...defaults,
+  dynamicColorPalette: null,
+
+  loadSettings: async () => {
+    try {
+      const data = await window.electronAPI.readJson('settings.json')
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const raw = data as Record<string, unknown>
+        // Migrate old m3-* color themes to new names
+        const m3Migration: Record<string, ColorTheme> = {
+          'm3-indigo': 'indigo',
+          'm3-sakura': 'sakura',
+          'm3-forest': 'forest',
+          'm3-ocean': 'ocean',
+          'm3-mocha': 'mocha'
+        }
+        if (typeof raw.colorTheme === 'string' && raw.colorTheme in m3Migration) {
+          raw.colorTheme = m3Migration[raw.colorTheme]
+          // Auto-enable m3Mode when migrating from old m3 themes
+          if (raw.m3Mode === undefined) {
+            raw.m3Mode = true
+          }
+        }
+        const next = {
+          ...defaults,
+          ...raw,
+          fairness: {
+            ...defaults.fairness,
+            ...(typeof raw.fairness === 'object' && raw.fairness ? raw.fairness : {})
+          }
+        }
+        set(next)
+        const key = (raw as Partial<SettingsData>).shortcutKey
+        if (key) {
+          const success = await window.electronAPI.registerShortcut(key, 'pick')
+          if (!success) {
+            set({ shortcutKey: '' })
+            saveSettings({ ...get(), shortcutKey: '' })
+            useToastStore.getState().addToast(
+              `快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`,
+              'error'
+            )
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load settings', e)
+    }
+  },
+
+  setTheme: (theme) => updateAndSave({ theme }, set, get),
+  setColorTheme: (colorTheme) => updateAndSave({ colorTheme }, set, get),
+  setDesignStyle: (designStyle) => updateAndSave({ designStyle }, set, get),
+  toggleShowStudentId: () => updateAndSave({ showStudentId: !get().showStudentId }, set, get),
+  togglePhotoMode: () => updateAndSave({ photoMode: !get().photoMode }, set, get),
+  toggleSoundEnabled: () => updateAndSave({ soundEnabled: !get().soundEnabled }, set, get),
+  toggleConfettiEnabled: () => updateAndSave({ confettiEnabled: !get().confettiEnabled }, set, get),
+  toggleM3Mode: () => updateAndSave({ m3Mode: !get().m3Mode }, set, get),
+  toggleProjectorMode: () => updateAndSave({ projectorMode: !get().projectorMode }, set, get),
+  setActivityPreset: (activityPreset) => {
+    const preset = activityPresetDefaults[activityPreset]
+    updateAndSave(
+      {
+        activityPreset,
+        pickCount: preset.pickCount,
+        animationStyle: preset.animationStyle,
+        fairness: preset.fairness
+      },
+      set,
+      get
+    )
+  },
+  setBackgroundImage: (path) => {
+    updateAndSave({ backgroundImage: path }, set, get)
+    if (get().dynamicColor && path) {
+      get().extractAndApplyDynamicColor()
+    } else if (!path) {
+      set({ dynamicColorPalette: null })
+    }
+  },
+  toggleSyncEnabled: () => updateAndSave({ syncEnabled: !get().syncEnabled }, set, get),
+  setSyncFolder: (syncFolder) => updateAndSave({ syncFolder }, set, get),
+  setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
+  setFairness: (fairness) => updateAndSave({ fairness }, set, get),
+  setPickCount: (count) => updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
+  setMaxHistoryRecords: (max) => {
+    updateAndSave({ maxHistoryRecords: max }, set, get)
+    // Trigger immediate truncation in historyStore
+    const { useHistoryStore } = require('./historyStore')
+    const historyState = useHistoryStore.getState()
+    if (historyState.history.length > max) {
+      const trimmed = historyState.history.slice(0, max)
+      useHistoryStore.setState({ history: trimmed })
+      window.electronAPI.writeJson('history.json', { records: trimmed })
+    }
+  },
+  setShortcutKey: async (key) => {
+    const prev = get().shortcutKey
+    const success = await window.electronAPI.registerShortcut(key, 'pick')
+    if (!success) {
+      return false
+    }
+    set({ shortcutKey: key })
+    await saveSettings(get())
+    if (!key && prev) {
+      set({ shortcutKey: '' })
+    }
+    return true
+  },
+  toggleDynamicColor: () => {
+    const next = !get().dynamicColor
+    updateAndSave({ dynamicColor: next }, set, get)
+    if (next && get().backgroundImage) {
+      get().extractAndApplyDynamicColor()
+    } else if (!next) {
+      set({ dynamicColorPalette: null })
+    }
+  },
+  setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
+  extractAndApplyDynamicColor: async () => {
+    const { backgroundImage } = get()
+    if (!backgroundImage) return
+    try {
+      const result = await window.electronAPI.extractWallpaperColors(backgroundImage)
+      set({ dynamicColorPalette: result })
+    } catch (e) {
+      console.error('Failed to extract wallpaper colors', e)
+      set({ dynamicColorPalette: null })
+    }
+  }
+}))
