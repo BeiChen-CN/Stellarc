@@ -3,8 +3,8 @@ import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shuffle, LayoutGrid, ChevronDown, ChevronUp, Users } from 'lucide-react'
-import { Student } from '../types'
+import { Shuffle, LayoutGrid, ChevronDown, ChevronUp, Users, Check } from 'lucide-react'
+import { Student, ClassTaskTemplate } from '../types'
 import { cn, toFileUrl } from '../lib/utils'
 import { useToastStore } from '../store/toastStore'
 import { useConfirmStore } from '../store/confirmStore'
@@ -29,6 +29,7 @@ import { GroupResults } from './home/GroupResults'
 import { WinnerDisplay } from './home/WinnerDisplay'
 import { PickIdleState } from './home/PickIdleState'
 import { ClassTimer } from '../components/ClassTimer'
+import { useFlowStore } from '../store/flowStore'
 
 const ANIMATION_DURATION_MAP = { elegant: 4800, balanced: 3200, fast: 1600 } as const
 const ANIMATION_DURATION_REDUCED_MS = 300
@@ -43,12 +44,47 @@ const ACTIVITY_TEMPLATES = [
   { id: 'group-battle' as const, label: '小组对抗', hint: '分组模式' }
 ]
 
+const REASON_LABELS: Record<string, string> = {
+  eligible: '可抽取',
+  excluded_by_status: '状态排除',
+  excluded_by_manual: '手动禁选',
+  excluded_by_cooldown: '冷却排除',
+  weighted: '权重抽取',
+  strategy_adjusted: '策略修正',
+  balance_target_boost: '学期均衡',
+  stage_fairness_boost: '阶段公平',
+  priority_unpicked: '优先未抽中',
+  fallback_relaxed_constraints: '自动放宽',
+  fallback_random: '随机兜底'
+}
+
+const REASON_TOOLTIPS: Record<string, string> = {
+  eligible: '该学生满足当前抽选条件，可参与本轮抽选。',
+  excluded_by_status: '学生状态不是“可参与”（如缺席/排除），因此不参与本轮。',
+  excluded_by_manual: '你在“临时禁选”中手动排除了该学生。',
+  excluded_by_cooldown: '该学生命中防重复冷却规则，暂时不参与本轮。',
+  weighted: '本轮使用权重抽取，学生基础权重会影响被抽中概率。',
+  strategy_adjusted: '策略预设对基础权重进行了额外修正。',
+  balance_target_boost: '学期均衡策略会降低高频学生权重，提升整体公平性。',
+  stage_fairness_boost: '最近多次被抽中的学生会在阶段公平中被适度降权。',
+  priority_unpicked: '该学生属于“本学期未抽中优先”名额。',
+  fallback_relaxed_constraints: '因约束冲突导致无可选人，系统自动放宽了部分限制。',
+  fallback_random: '当前使用随机兜底逻辑，按候选集合随机抽取。'
+}
+
+const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
+  { id: 'task-observe', name: '观察记录', scoreDelta: 1 },
+  { id: 'task-quiz', name: '快问快答', scoreDelta: 2 },
+  { id: 'task-present', name: '上台展示', scoreDelta: 3 },
+  { id: 'task-review', name: '同伴互评', scoreDelta: 1 }
+]
+
 export function Home({
   onNavigate
 }: {
   onNavigate: (view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about') => void
 }) {
-  const { classes, currentClassId, setCurrentClass, incrementPickCount, addClass } =
+  const { classes, currentClassId, setCurrentClass, incrementPickCount, addClass, applyTaskScore } =
     useClassesStore()
   const { history, addHistoryRecord } = useHistoryStore()
   const addToast = useToastStore((state) => state.addToast)
@@ -64,13 +100,30 @@ export function Home({
   const [mode, setMode] = useState<'pick' | 'group'>('pick')
   const [groupCount, setGroupCount] = useState(2)
   const [groups, setGroups] = useState<Student[][]>([])
+  const [groupAssignments, setGroupAssignments] = useState<
+    Array<{ groupIndex: number; taskTemplateId: string; taskName: string; scoreDelta: number }>
+  >([])
   const [showGroups, setShowGroups] = useState(false)
+  const [flowMenuOpen, setFlowMenuOpen] = useState(false)
+  const [excludedMenuOpen, setExcludedMenuOpen] = useState(false)
+  const [manualExcludedIds, setManualExcludedIds] = useState<string[]>([])
+  const [excludedSearch, setExcludedSearch] = useState('')
+  const [excludedOnly, setExcludedOnly] = useState(false)
+  const [classExcludedMap, setClassExcludedMap] = useState<Record<string, string[]>>({})
+  const [autoDrawEnabled, setAutoDrawEnabled] = useState(false)
+  const [autoDrawRounds, setAutoDrawRounds] = useState(3)
+  const [autoDrawIntervalMs, setAutoDrawIntervalMs] = useState(3600)
+  const [autoDrawRemaining, setAutoDrawRemaining] = useState(0)
   const animationRef = useRef<number | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tickCountRef = useRef(0)
   const wheelWinnersRef = useRef<Student[]>([])
   const lastSelectionMetaRef = useRef<HistorySelectionMeta | null>(null)
   const [candidateKey, setCandidateKey] = useState(0)
+  const autoDrawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoDrawRemainingRef = useRef(0)
+  const excludedMenuRef = useRef<HTMLDivElement | null>(null)
+  const [lastGroupSnapshot, setLastGroupSnapshot] = useState<Student[][]>([])
 
   const prefersReducedMotion = useMemo(
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -78,6 +131,9 @@ export function Home({
   )
 
   const currentClass = classes.find((c) => c.id === currentClassId)
+  const { flows, activeFlowId, activeStepIndex, setActiveFlow, nextStep, resetFlow } =
+    useFlowStore()
+  const activeFlow = flows.find((flow) => flow.id === activeFlowId)
 
   const {
     fairness,
@@ -86,6 +142,12 @@ export function Home({
     projectorMode,
     activityPreset,
     setActivityPreset,
+    showClassroomFlow,
+    showClassroomTemplate,
+    showTemporaryExclusion,
+    showAutoDraw,
+    showSelectionExplanation,
+    revealSettleMs,
     showStudentId,
     photoMode,
     backgroundImage,
@@ -101,8 +163,71 @@ export function Home({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (autoDrawTimerRef.current) clearTimeout(autoDrawTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('home-temporary-exclusion-by-class')
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, string[]>
+        if (parsed && typeof parsed === 'object') {
+          setClassExcludedMap(parsed)
+        }
+      }
+    } catch {
+      // ignore localStorage parse errors
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('home-temporary-exclusion-by-class', JSON.stringify(classExcludedMap))
+    } catch {
+      // ignore localStorage write errors
+    }
+  }, [classExcludedMap])
+
+  useEffect(() => {
+    if (!currentClass) {
+      setManualExcludedIds([])
+      setExcludedMenuOpen(false)
+      return
+    }
+    const validIds = new Set(currentClass.students.map((student) => student.id))
+    const persisted = classExcludedMap[currentClass.id] || []
+    setManualExcludedIds(persisted.filter((id) => validIds.has(id)))
+  }, [currentClass, classExcludedMap])
+
+  useEffect(() => {
+    if (!currentClass) return
+    setClassExcludedMap((prev) => {
+      const prevList = prev[currentClass.id] || []
+      const same =
+        prevList.length === manualExcludedIds.length &&
+        prevList.every((id, index) => id === manualExcludedIds[index])
+      if (same) {
+        return prev
+      }
+      return {
+        ...prev,
+        [currentClass.id]: manualExcludedIds
+      }
+    })
+  }, [currentClass, manualExcludedIds])
+
+  useEffect(() => {
+    if (!excludedMenuOpen) return
+    const onMouseDown = (event: MouseEvent) => {
+      if (!excludedMenuRef.current) return
+      if (!excludedMenuRef.current.contains(event.target as Node)) {
+        setExcludedMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [excludedMenuOpen])
 
   useEffect(() => {
     const cleanup = window.electronAPI.onShortcutTriggered((action) => {
@@ -130,7 +255,10 @@ export function Home({
       buildPickRequest({
         currentClass,
         history,
-        policy: fairness,
+        policy: {
+          ...fairness,
+          manualExcludedIds
+        },
         count: pickCount
       })
     )
@@ -143,11 +271,48 @@ export function Home({
 
     const selectionMeta: HistorySelectionMeta = {
       ...result.meta,
-      cooldownExcludedIds: result.cooldownExcludedIds
+      cooldownExcludedIds: result.cooldownExcludedIds,
+      fallbackNotes: result.meta.fallbackNotes,
+      winnerExplanations: result.winners.map((winner) => {
+        const trace = result.traces.find((item) => item.studentId === winner.id)
+        const totalWeight = result.traces
+          .filter((item) => item.eligible)
+          .reduce((sum, item) => sum + (item.finalWeight || 1), 0)
+        const finalWeight = trace?.finalWeight || winner.weight || 1
+        return {
+          id: winner.id,
+          name: winner.name,
+          baseWeight: trace?.baseWeight || winner.weight || 1,
+          finalWeight,
+          estimatedProbability: totalWeight > 0 ? finalWeight / totalWeight : 0,
+          reasons: trace?.reasons || ['eligible']
+        }
+      }),
+      explanationSummary: (() => {
+        const parts: string[] = []
+        if (result.meta.policySnapshot.weightedRandom) {
+          parts.push('采用权重抽取')
+        } else {
+          parts.push('采用随机抽取')
+        }
+        if (result.meta.policySnapshot.balanceByTerm) {
+          parts.push('启用学期均衡')
+        }
+        if (result.meta.policySnapshot.stageFairnessRounds > 0) {
+          parts.push(`参考最近 ${result.meta.policySnapshot.stageFairnessRounds} 轮阶段公平`)
+        }
+        if (result.meta.policySnapshot.prioritizeUnpickedCount > 0) {
+          parts.push(`优先未抽中 ${result.meta.policySnapshot.prioritizeUnpickedCount} 人`)
+        }
+        if (result.meta.fallbackNotes.length > 0) {
+          parts.push('发生约束冲突并已自动放宽')
+        }
+        return parts.join('，')
+      })()
     }
 
     return { eligibleStudents, winners: result.winners, selectionMeta }
-  }, [currentClass, fairness, history, pickCount])
+  }, [currentClass, fairness, history, pickCount, manualExcludedIds])
 
   const finishDraw = useCallback(
     (preSelectedWinners: Student[]) => {
@@ -165,6 +330,7 @@ export function Home({
         addHistoryRecord({
           classId: currentClass.id,
           className: currentClass.name,
+          eventType: 'pick',
           pickedStudents: preSelectedWinners.map((w) => ({
             id: w.id,
             name: w.name,
@@ -172,12 +338,44 @@ export function Home({
           })),
           selectionMeta: lastSelectionMetaRef.current ?? undefined
         })
+
+        const fallbackNotes = lastSelectionMetaRef.current?.fallbackNotes || []
+        if (fallbackNotes.length > 0) {
+          addToast(fallbackNotes.join('；'), 'info')
+        }
+
+        const remaining = autoDrawRemainingRef.current
+        if (mode === 'pick' && remaining > 1) {
+          const nextRemaining = remaining - 1
+          autoDrawRemainingRef.current = nextRemaining
+          setAutoDrawRemaining(nextRemaining)
+          if (autoDrawTimerRef.current) clearTimeout(autoDrawTimerRef.current)
+          autoDrawTimerRef.current = setTimeout(
+            () => {
+              handleDrawRef.current()
+            },
+            Math.max(2500, autoDrawIntervalMs) + (prefersReducedMotion ? 120 : revealSettleMs)
+          )
+        } else if (remaining > 0) {
+          autoDrawRemainingRef.current = 0
+          setAutoDrawRemaining(0)
+        }
       } catch (err) {
         logger.error('Home', 'Failed to update stats or history', err)
         addToast('抽选结果记录失败，请重试', 'error')
       }
     },
-    [currentClass, soundEnabled, incrementPickCount, addHistoryRecord, addToast]
+    [
+      currentClass,
+      soundEnabled,
+      incrementPickCount,
+      addHistoryRecord,
+      addToast,
+      mode,
+      autoDrawIntervalMs,
+      prefersReducedMotion,
+      revealSettleMs
+    ]
   )
 
   const handleWheelComplete = useCallback(() => {
@@ -230,7 +428,9 @@ export function Home({
       return
     }
 
-    const duration = prefersReducedMotion ? ANIMATION_DURATION_REDUCED_MS : ANIMATION_DURATION_MAP[animationSpeed] * sf
+    const duration = prefersReducedMotion
+      ? ANIMATION_DURATION_REDUCED_MS
+      : ANIMATION_DURATION_MAP[animationSpeed] * sf
     const startTime = performance.now()
 
     const animate = (time: number) => {
@@ -286,41 +486,170 @@ export function Home({
   const handleGroup = () => {
     if (!currentClass) return
 
-    const activeStudents = currentClass.students.filter((s) => s.status === 'active')
-    if (activeStudents.length < 2) {
+    const activeCount = currentClass.students.filter((s) => s.status === 'active').length
+    if (activeCount < 2) {
       addToast('至少需要 2 名可用学生才能分组！', 'error')
       return
     }
 
-    const safeGroupCount = Math.min(groupCount, activeStudents.length)
+    const safeGroupCount = Math.min(groupCount, activeCount)
 
     const groupResult = selectionEngine.group(
       buildGroupRequest({
         currentClass,
         history,
-        policy: fairness,
+        policy: {
+          ...fairness,
+          manualExcludedIds
+        },
         groupCount: safeGroupCount
       })
     )
 
-    setGroups(groupResult.groups.filter((group) => group.length > 0))
+    const finalGroups = groupResult.groups.filter((group) => group.length > 0)
+    const taskTemplates =
+      currentClass.taskTemplates && currentClass.taskTemplates.length > 0
+        ? currentClass.taskTemplates
+        : DEFAULT_GROUP_TASK_TEMPLATES
+    const assignments = finalGroups.map((_, index) => {
+      const template = taskTemplates[index % taskTemplates.length]
+      return {
+        groupIndex: index + 1,
+        taskTemplateId: template.id,
+        taskName: template.name,
+        scoreDelta: template.scoreDelta
+      }
+    })
+
+    setGroups(finalGroups)
+    setGroupAssignments(assignments)
+    setLastGroupSnapshot(finalGroups)
     setShowGroups(true)
     setShowConfetti(true)
+
+    addHistoryRecord({
+      classId: currentClass.id,
+      className: currentClass.name,
+      eventType: 'group',
+      pickedStudents: finalGroups.flat().map((student) => ({
+        id: student.id,
+        name: student.name,
+        studentId: student.studentId
+      })),
+      groupSummary: {
+        groupCount: finalGroups.length,
+        groups: finalGroups.map((group, index) => ({
+          groupIndex: index + 1,
+          studentIds: group.map((student) => student.id),
+          studentNames: group.map((student) => student.name),
+          taskTemplateId: assignments[index]?.taskTemplateId,
+          taskName: assignments[index]?.taskName,
+          taskScoreDelta: assignments[index]?.scoreDelta
+        }))
+      }
+    })
+
     if (soundEnabled) playReveal()
   }
 
-  const handleModeChange = useCallback(
-    (newMode: 'pick' | 'group') => {
-      setMode(newMode)
-      if (newMode === 'pick') {
-        setShowGroups(false)
-      } else {
-        setPhase('idle')
-        setWinners([])
-      }
+  const handleApplyGroupTaskScores = useCallback(() => {
+    if (!currentClass || groupAssignments.length === 0 || groups.length === 0) return
+    let affectedTotal = 0
+    groupAssignments.forEach((assignment) => {
+      const group = groups[assignment.groupIndex - 1]
+      if (!group || group.length === 0) return
+      const result = applyTaskScore(
+        currentClass.id,
+        group.map((student) => student.id),
+        assignment.taskName,
+        assignment.scoreDelta,
+        'task-assignment'
+      )
+      affectedTotal += result.affected
+      addHistoryRecord({
+        classId: currentClass.id,
+        className: currentClass.name,
+        eventType: 'task',
+        pickedStudents: group.map((student) => ({
+          id: student.id,
+          name: student.name,
+          studentId: student.studentId
+        })),
+        taskSummary: {
+          taskName: assignment.taskName,
+          scoreDelta: assignment.scoreDelta,
+          studentIds: group.map((student) => student.id),
+          studentNames: group.map((student) => student.name),
+          source: 'task-assignment'
+        }
+      })
+    })
+    if (affectedTotal > 0) {
+      addToast(`已完成分组任务记分，共 ${affectedTotal} 人`, 'success')
+    }
+  }, [currentClass, groupAssignments, groups, applyTaskScore, addHistoryRecord, addToast])
+
+  const handleUpdateGroupAssignment = useCallback(
+    (groupIndex: number, patch: { taskName?: string; scoreDelta?: number }) => {
+      setGroupAssignments((prev) =>
+        prev.map((item) => {
+          if (item.groupIndex !== groupIndex) return item
+          return {
+            ...item,
+            ...(patch.taskName !== undefined
+              ? { taskName: patch.taskName.trim() || `第${groupIndex}组任务` }
+              : {}),
+            ...(patch.scoreDelta !== undefined ? { scoreDelta: patch.scoreDelta } : {})
+          }
+        })
+      )
     },
     []
   )
+
+  const groupTaskOptions = useMemo(() => {
+    if (!currentClass) return DEFAULT_GROUP_TASK_TEMPLATES
+    return currentClass.taskTemplates && currentClass.taskTemplates.length > 0
+      ? currentClass.taskTemplates
+      : DEFAULT_GROUP_TASK_TEMPLATES
+  }, [currentClass])
+
+  const handleApplyTemplateToGroup = useCallback(
+    (groupIndex: number, templateId: string) => {
+      const template = groupTaskOptions.find((item) => item.id === templateId)
+      if (!template) return
+      setGroupAssignments((prev) =>
+        prev.map((item) =>
+          item.groupIndex === groupIndex
+            ? {
+                ...item,
+                taskTemplateId: template.id,
+                taskName: template.name,
+                scoreDelta: template.scoreDelta
+              }
+            : item
+        )
+      )
+    },
+    [groupTaskOptions]
+  )
+
+  const handleModeChange = useCallback((newMode: 'pick' | 'group') => {
+    setMode(newMode)
+    if (newMode === 'pick') {
+      setShowGroups(false)
+      setGroupAssignments([])
+    } else {
+      setPhase('idle')
+      setWinners([])
+      autoDrawRemainingRef.current = 0
+      setAutoDrawRemaining(0)
+      if (autoDrawTimerRef.current) {
+        clearTimeout(autoDrawTimerRef.current)
+        autoDrawTimerRef.current = null
+      }
+    }
+  }, [])
 
   const handleCreateClass = useCallback(() => {
     showPrompt('创建班级', '请输入新班级的名称', '班级名称', (name) => {
@@ -328,6 +657,69 @@ export function Home({
       addToast(`班级「${name}」已创建`, 'success')
     })
   }, [addClass, addToast, showPrompt])
+
+  const filteredExcludedCandidates = useMemo(() => {
+    const list = (currentClass?.students || []).filter((student) => student.status === 'active')
+    const query = excludedSearch.trim().toLowerCase()
+    const excludedSet = new Set(manualExcludedIds)
+    return list.filter((student) => {
+      if (excludedOnly && !excludedSet.has(student.id)) {
+        return false
+      }
+      if (!query) {
+        return true
+      }
+      return (
+        student.name.toLowerCase().includes(query) ||
+        (student.studentId || '').toLowerCase().includes(query)
+      )
+    })
+  }, [currentClass, excludedOnly, excludedSearch, manualExcludedIds])
+
+  const manualExcludedSet = useMemo(() => new Set(manualExcludedIds), [manualExcludedIds])
+
+  const startAutoDraw = useCallback(() => {
+    if (mode !== 'pick') {
+      addToast('请先切换到抽选模式', 'error')
+      return
+    }
+    if (isSpinning) return
+    const rounds = Math.max(1, autoDrawRounds)
+    autoDrawRemainingRef.current = rounds
+    setAutoDrawRemaining(rounds)
+    setAutoDrawEnabled(true)
+    setTimeout(() => {
+      handleDrawRef.current()
+    }, 0)
+  }, [mode, isSpinning, autoDrawRounds, addToast])
+
+  const stopAutoDraw = useCallback(() => {
+    autoDrawRemainingRef.current = 0
+    setAutoDrawRemaining(0)
+    if (autoDrawTimerRef.current) {
+      clearTimeout(autoDrawTimerRef.current)
+      autoDrawTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExcludedMenuOpen(false)
+        setFlowMenuOpen(false)
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && mode === 'pick') {
+        event.preventDefault()
+        if (autoDrawRemainingRef.current > 0) {
+          stopAutoDraw()
+        } else {
+          startAutoDraw()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode, startAutoDraw, stopAutoDraw])
 
   return (
     <div
@@ -390,26 +782,287 @@ export function Home({
       {/* Main Card */}
       <div className="absolute inset-0 top-14 flex flex-col items-center justify-center p-4 z-10">
         {/* Activity template bar — above card */}
-        <div className="mb-3 shrink-0">
-          <div className="flex items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
-            <span className="text-xs text-on-surface-variant">课堂模板</span>
-            {ACTIVITY_TEMPLATES.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => setActivityPreset(template.id)}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[11px] transition-colors cursor-pointer',
-                  activityPreset === template.id
-                    ? 'bg-secondary-container text-secondary-container-foreground'
-                    : 'text-on-surface-variant hover:bg-surface-container'
-                )}
-                title={template.hint}
-              >
-                {template.label}
-              </button>
-            ))}
+        {(showClassroomFlow || showClassroomTemplate) && (
+          <div className="mb-3 shrink-0 w-full max-w-2xl">
+            {showClassroomFlow && (
+              <div className="mb-2 flex items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
+                <span className="text-xs text-on-surface-variant">课堂流程</span>
+                <div className="relative">
+                  <button
+                    onClick={() => setFlowMenuOpen((v) => !v)}
+                    className="text-xs bg-surface-container-low border border-outline-variant rounded-full pl-2.5 pr-7 py-1 text-on-surface hover:bg-surface-container transition-colors cursor-pointer min-w-[120px] text-left"
+                  >
+                    {activeFlow?.name || '未选择流程'}
+                  </button>
+                  <ChevronDown
+                    className={cn(
+                      'w-3 h-3 text-on-surface-variant absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-transform',
+                      flowMenuOpen && 'rotate-180'
+                    )}
+                  />
+
+                  {flowMenuOpen && (
+                    <div className="absolute left-0 mt-1 min-w-[180px] bg-surface-container border border-outline-variant rounded-2xl elevation-2 p-1 z-30">
+                      <button
+                        onClick={() => {
+                          setActiveFlow(null)
+                          setFlowMenuOpen(false)
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
+                      >
+                        未选择流程
+                      </button>
+                      {flows.map((flow) => (
+                        <button
+                          key={flow.id}
+                          onClick={() => {
+                            setActiveFlow(flow.id)
+                            setFlowMenuOpen(false)
+                          }}
+                          className={cn(
+                            'w-full text-left px-3 py-2 rounded-xl text-xs cursor-pointer',
+                            activeFlowId === flow.id
+                              ? 'bg-secondary-container text-secondary-container-foreground'
+                              : 'text-on-surface hover:bg-surface-container-high'
+                          )}
+                        >
+                          {flow.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    const step = nextStep()
+                    if (!step) {
+                      addToast('请先选择课堂流程', 'error')
+                      return
+                    }
+                    setActivityPreset(step.activityPreset)
+                    addToast(`已切换到步骤 ${activeStepIndex + 1}: ${step.title}`, 'success')
+                  }}
+                  className="px-2.5 py-1 rounded-full text-[11px] bg-primary text-primary-foreground cursor-pointer"
+                >
+                  下一步
+                </button>
+                <button
+                  onClick={() => {
+                    resetFlow()
+                    addToast('流程已重置', 'info')
+                  }}
+                  className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
+                >
+                  重置
+                </button>
+              </div>
+            )}
+
+            {showClassroomTemplate && (
+              <div className="flex items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
+                <span className="text-xs text-on-surface-variant">课堂模板</span>
+                {ACTIVITY_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => setActivityPreset(template.id)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full text-[11px] transition-colors cursor-pointer',
+                      activityPreset === template.id
+                        ? 'bg-secondary-container text-secondary-container-foreground'
+                        : 'text-on-surface-variant hover:bg-surface-container'
+                    )}
+                    title={template.hint}
+                  >
+                    {template.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {mode === 'pick' && (showTemporaryExclusion || showAutoDraw) && (
+          <div className="mb-3 shrink-0 w-full max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-container-high/80 px-3 py-2 border border-outline-variant/40">
+              {showTemporaryExclusion && (
+                <div className="relative" ref={excludedMenuRef}>
+                  <button
+                    onClick={() => setExcludedMenuOpen((v) => !v)}
+                    className="px-3 py-1.5 rounded-full text-xs bg-surface-container border border-outline-variant/40 text-on-surface cursor-pointer"
+                  >
+                    临时禁选 {manualExcludedIds.length}
+                  </button>
+                  {excludedMenuOpen && (
+                    <div className="absolute left-0 mt-1 w-[360px] max-h-[420px] overflow-hidden bg-surface-container rounded-2xl border border-outline-variant/40 elevation-2 z-40">
+                      <div className="px-3 py-2 border-b border-outline-variant/30 flex items-center justify-between">
+                        <span className="text-xs text-on-surface-variant">
+                          可选{' '}
+                          {currentClass?.students.filter((s) => s.status === 'active').length || 0}{' '}
+                          人
+                        </span>
+                        <span className="text-xs text-on-surface-variant">
+                          已禁选 {manualExcludedIds.length} 人
+                        </span>
+                      </div>
+
+                      <div className="px-3 py-2 border-b border-outline-variant/30 space-y-2">
+                        <input
+                          value={excludedSearch}
+                          onChange={(e) => setExcludedSearch(e.target.value)}
+                          placeholder="搜索姓名/学号"
+                          className="w-full px-3 py-1.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-on-surface outline-none"
+                        />
+                        <button
+                          onClick={() => setExcludedOnly((v) => !v)}
+                          className={cn(
+                            'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs border transition-colors cursor-pointer',
+                            excludedOnly
+                              ? 'bg-secondary-container text-secondary-container-foreground border-outline'
+                              : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:bg-surface-container-high'
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center',
+                              excludedOnly
+                                ? 'bg-primary border-primary text-primary-foreground'
+                                : 'border-outline-variant/60 bg-transparent'
+                            )}
+                          >
+                            {excludedOnly && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
+                          </span>
+                          仅显示已禁选
+                        </button>
+                      </div>
+
+                      <div className="max-h-[250px] overflow-y-auto custom-scrollbar p-1">
+                        {filteredExcludedCandidates.map((student) => {
+                          const checked = manualExcludedSet.has(student.id)
+                          return (
+                            <button
+                              key={student.id}
+                              onClick={() => {
+                                setManualExcludedIds((prev) =>
+                                  checked
+                                    ? prev.filter((id) => id !== student.id)
+                                    : [...prev, student.id]
+                                )
+                              }}
+                              className={cn(
+                                'w-full text-left px-2.5 py-2 rounded-xl text-xs cursor-pointer flex items-center justify-between gap-2',
+                                checked
+                                  ? 'bg-secondary-container text-secondary-container-foreground'
+                                  : 'text-on-surface hover:bg-surface-container-high'
+                              )}
+                            >
+                              <span className="truncate">{student.name}</span>
+                              <span className="text-[10px] opacity-80">
+                                {checked ? '已禁选' : '可抽取'}
+                              </span>
+                            </button>
+                          )
+                        })}
+                        {filteredExcludedCandidates.length === 0 && (
+                          <div className="px-2.5 py-4 text-xs text-on-surface-variant text-center">
+                            无匹配学生
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="px-2 py-2 border-t border-outline-variant/30 flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const allActiveIds =
+                              currentClass?.students
+                                .filter((s) => s.status === 'active')
+                                .map((s) => s.id) || []
+                            setManualExcludedIds(allActiveIds)
+                          }}
+                          className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-on-surface hover:bg-surface-container-high cursor-pointer"
+                        >
+                          全部禁选
+                        </button>
+                        <button
+                          onClick={() => setManualExcludedIds([])}
+                          className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                        >
+                          清空禁选
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {showAutoDraw && (
+                <button
+                  onClick={() => setAutoDrawEnabled((v) => !v)}
+                  title="Ctrl/Cmd + Enter 可快速开始/停止连抽"
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs border border-outline-variant/40 cursor-pointer',
+                    autoDrawEnabled
+                      ? 'bg-secondary-container text-secondary-container-foreground'
+                      : 'bg-surface-container text-on-surface'
+                  )}
+                >
+                  连抽设置 {autoDrawEnabled ? '开' : '关'}
+                </button>
+              )}
+
+              {showAutoDraw && autoDrawEnabled && (
+                <>
+                  <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
+                    <span className="text-[11px] text-on-surface-variant">轮次</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={autoDrawRounds}
+                      onChange={(e) =>
+                        setAutoDrawRounds(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
+                      }
+                      className="w-12 bg-transparent text-xs text-on-surface text-center outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
+                    <span className="text-[11px] text-on-surface-variant">间隔ms</span>
+                    <input
+                      type="number"
+                      min={2500}
+                      max={12000}
+                      step={100}
+                      value={autoDrawIntervalMs}
+                      onChange={(e) =>
+                        setAutoDrawIntervalMs(
+                          Math.max(2500, Math.min(12000, Number(e.target.value) || 3600))
+                        )
+                      }
+                      className="w-16 bg-transparent text-xs text-on-surface text-center outline-none"
+                    />
+                  </div>
+                  {autoDrawRemaining === 0 ? (
+                    <button
+                      onClick={startAutoDraw}
+                      disabled={isSpinning || !currentClass || currentClass.students.length === 0}
+                      title="Ctrl/Cmd + Enter"
+                      className="px-3 py-1.5 rounded-full text-xs bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      开始连抽
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopAutoDraw}
+                      title="Ctrl/Cmd + Enter"
+                      className="px-3 py-1.5 rounded-full text-xs bg-destructive/10 text-destructive border border-destructive/20 cursor-pointer"
+                    >
+                      停止连抽（剩余 {autoDrawRemaining}）
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div
           className={cn(
@@ -421,7 +1074,13 @@ export function Home({
 
           {/* Group mode */}
           {mode === 'group' && showGroups && groups.length > 0 && (
-            <GroupResults groups={groups} />
+            <GroupResults
+              groups={groups}
+              assignments={groupAssignments}
+              taskOptions={groupTaskOptions}
+              onUpdateAssignment={handleUpdateGroupAssignment}
+              onApplyTemplateToGroup={handleApplyTemplateToGroup}
+            />
           )}
 
           {mode === 'group' && !showGroups && (
@@ -544,21 +1203,61 @@ export function Home({
                 )}
               </motion.button>
             ) : (
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 8px 24px -4px hsl(var(--primary) / 0.3)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleGroup}
-                disabled={!currentClass || currentClass.students.length === 0}
-                className={cn(
-                  'px-10 py-3 bg-primary text-primary-foreground rounded-full text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
-                  projectorMode && 'h-14 text-2xl px-12'
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: '0 8px 24px -4px hsl(var(--primary) / 0.3)'
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGroup}
+                  disabled={!currentClass || currentClass.students.length === 0}
+                  className={cn(
+                    'px-10 py-3 bg-primary text-primary-foreground rounded-full text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
+                    projectorMode && 'h-14 text-2xl px-12'
+                  )}
+                >
+                  <LayoutGrid className="w-6 h-6" />
+                  {showGroups ? '重新分组' : '随机分组'}
+                </motion.button>
+
+                {lastGroupSnapshot.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setGroups(lastGroupSnapshot)
+                      setShowGroups(true)
+                      setShowConfetti(true)
+                    }}
+                    className="px-4 py-2.5 rounded-full text-sm font-medium bg-secondary-container text-secondary-container-foreground cursor-pointer"
+                  >
+                    重放上次
+                  </button>
                 )}
-              >
-                <LayoutGrid className="w-6 h-6" />
-                {showGroups ? '重新分组' : '随机分组'}
-              </motion.button>
+
+                {showGroups && groupAssignments.length > 0 && (
+                  <button
+                    onClick={handleApplyGroupTaskScores}
+                    className="px-4 py-2.5 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20 cursor-pointer"
+                  >
+                    按任务批量记分
+                  </button>
+                )}
+              </div>
             )}
           </div>
+
+          {mode === 'group' && showGroups && groups.length > 0 && (
+            <div className="absolute top-4 left-4 rounded-xl bg-surface-container-high/80 border border-outline-variant/30 px-3 py-2 text-[11px] text-on-surface-variant">
+              {(() => {
+                const sums = groups.map((group) =>
+                  group.reduce((sum, student) => sum + (student.score || 0), 0)
+                )
+                const max = Math.max(...sums)
+                const min = Math.min(...sums)
+                return `分组解释：积分区间 ${min} ~ ${max}，差值 ${max - min}`
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Pick Count — below card */}
@@ -583,6 +1282,65 @@ export function Home({
             </button>
           </div>
         )}
+
+        {showSelectionExplanation &&
+          mode === 'pick' &&
+          phase === 'reveal' &&
+          winners.length > 0 && (
+            <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-on-surface-variant">抽选解释</div>
+                <div className="text-[11px] text-on-surface-variant">
+                  本次抽取 {lastSelectionMetaRef.current?.actualCount || winners.length} 人 / 请求{' '}
+                  {lastSelectionMetaRef.current?.requestedCount || pickCount} 人
+                </div>
+              </div>
+
+              {lastSelectionMetaRef.current?.explanationSummary && (
+                <div className="mb-2 text-[11px] text-on-surface-variant bg-surface-container-low/70 border border-outline-variant/20 rounded-xl px-2.5 py-1.5">
+                  {lastSelectionMetaRef.current.explanationSummary}
+                </div>
+              )}
+
+              {(lastSelectionMetaRef.current?.fallbackNotes || []).length > 0 && (
+                <div className="mb-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
+                  {(lastSelectionMetaRef.current?.fallbackNotes || []).join('；')}
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
+                {(lastSelectionMetaRef.current?.winnerExplanations || []).map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl bg-surface-container-low/70 p-2.5 border border-outline-variant/20"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-on-surface truncate">
+                        {item.name}
+                      </span>
+                      <span className="text-[11px] text-on-surface-variant shrink-0">
+                        概率约 {(item.estimatedProbability * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-on-surface-variant">
+                      权重 {item.baseWeight.toFixed(2)} -&gt; {item.finalWeight.toFixed(2)}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {item.reasons.map((reason) => (
+                        <span
+                          key={`${item.id}-${reason}`}
+                          className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-container-high text-on-surface-variant"
+                          title={REASON_TOOLTIPS[reason] || reason}
+                        >
+                          {REASON_LABELS[reason] || reason}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
       </div>
     </div>
   )

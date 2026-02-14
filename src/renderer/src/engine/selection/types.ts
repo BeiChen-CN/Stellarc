@@ -5,9 +5,14 @@ export type SelectionMode = 'pick' | 'group'
 export type SelectionReasonCode =
   | 'eligible'
   | 'excluded_by_status'
+  | 'excluded_by_manual'
   | 'excluded_by_cooldown'
   | 'weighted'
   | 'strategy_adjusted'
+  | 'balance_target_boost'
+  | 'stage_fairness_boost'
+  | 'priority_unpicked'
+  | 'fallback_relaxed_constraints'
   | 'fallback_random'
 
 export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
@@ -19,6 +24,13 @@ export interface SelectionPolicy {
   preventRepeat: boolean
   cooldownRounds: number
   strategyPreset: SelectionStrategyPreset
+  balanceByTerm: boolean
+  stageFairnessRounds: number
+  prioritizeUnpickedCount: number
+  groupStrategy: 'random' | 'balanced-score'
+  pairAvoidRounds: number
+  autoRelaxOnConflict: boolean
+  manualExcludedIds?: string[]
 }
 
 export interface CandidateSnapshot extends Student {
@@ -69,6 +81,7 @@ export interface SelectionResult {
     requestedCount: number
     actualCount: number
     generatedAt: string
+    fallbackNotes: string[]
   }
 }
 
@@ -105,4 +118,14 @@ export interface HistorySelectionMeta {
   actualCount: number
   generatedAt: string
   cooldownExcludedIds: string[]
+  fallbackNotes?: string[]
+  explanationSummary?: string
+  winnerExplanations?: Array<{
+    id: string
+    name: string
+    baseWeight: number
+    finalWeight: number
+    estimatedProbability: number
+    reasons: SelectionReasonCode[]
+  }>
 }

@@ -58,6 +58,10 @@ const api = {
   // Backup & Restore
   backupData: (targetPath: string) => ipcRenderer.invoke('backup-data', targetPath),
   restoreData: (sourcePath: string) => ipcRenderer.invoke('restore-data', sourcePath),
+  createRestorePoint: (name: string) => ipcRenderer.invoke('create-restore-point', name),
+  listRestorePoints: () => ipcRenderer.invoke('list-restore-points'),
+  restoreFromPoint: (restorePointPath: string) =>
+    ipcRenderer.invoke('restore-from-point', restorePointPath),
 
   // External Links
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
@@ -68,14 +72,22 @@ const api = {
   syncDataToFolder: (folderPath: string) => ipcRenderer.invoke('sync-data-to-folder', folderPath),
   syncDataFromFolder: (folderPath: string) =>
     ipcRenderer.invoke('sync-data-from-folder', folderPath),
+  syncDataToFolderV2: (folderPath: string) =>
+    ipcRenderer.invoke('sync-data-to-folder-v2', folderPath),
+  syncDataFromFolderV2: (folderPath: string, force: boolean) =>
+    ipcRenderer.invoke('sync-data-from-folder-v2', folderPath, force),
+  getSyncStatus: (folderPath: string) => ipcRenderer.invoke('get-sync-status', folderPath),
 
   // Auto Update
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
   onUpdateStatus: (callback: (status: string, info?: Record<string, unknown>) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, status: string, info?: Record<string, unknown>) =>
-      callback(status, info)
+    const subscription = (
+      _event: Electron.IpcRendererEvent,
+      status: string,
+      info?: Record<string, unknown>
+    ) => callback(status, info)
     ipcRenderer.on('update-status', subscription)
     return () => ipcRenderer.removeListener('update-status', subscription)
   },

@@ -6,14 +6,21 @@ import type { Student } from '../../types'
 interface StudentRowProps {
   student: Student
   classId: string
+  selected: boolean
+  onToggleSelected: (studentId: string, checked: boolean) => void
   showWeight: boolean
   showStudentId: boolean
   onUploadPhoto: (classId: string, studentId: string) => void
   onUpdateWeight: (classId: string, studentId: string, weight: number) => void
   onUpdateScore: (classId: string, studentId: string, score: number) => void
-  onUpdateStatus: (classId: string, studentId: string, status: 'active' | 'absent' | 'excluded') => void
+  onUpdateStatus: (
+    classId: string,
+    studentId: string,
+    status: 'active' | 'absent' | 'excluded'
+  ) => void
   onUpdateName: (classId: string, studentId: string, name: string) => void
   onUpdateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  onUpdateTags: (classId: string, studentId: string, tags: string[]) => void
   onRemove: (classId: string, studentId: string) => void
 }
 
@@ -76,6 +83,8 @@ function EditableCell({
 export const StudentRow = memo(function StudentRow({
   student,
   classId,
+  selected,
+  onToggleSelected,
   showWeight,
   showStudentId,
   onUploadPhoto,
@@ -84,13 +93,29 @@ export const StudentRow = memo(function StudentRow({
   onUpdateStatus,
   onUpdateName,
   onUpdateStudentId,
+  onUpdateTags,
   onRemove
 }: StudentRowProps) {
   const score = student.score || 0
   const weight = student.weight || 1
+  const latestScoreLog = student.scoreHistory?.[0]
 
   return (
     <tr className="border-b border-outline-variant/30 last:border-0 hover:bg-surface-container-high/50 transition-colors">
+      <td className="px-3 py-3 text-center">
+        <button
+          onClick={() => onToggleSelected(student.id, !selected)}
+          className={cn(
+            'w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer',
+            selected
+              ? 'bg-primary border-primary text-primary-foreground'
+              : 'border-outline-variant/70 bg-surface-container'
+          )}
+          title={selected ? '取消选择' : '选择学生'}
+        >
+          {selected && <CheckCircle className="w-3 h-3" />}
+        </button>
+      </td>
       <td className="px-4 py-3 font-medium text-on-surface">
         <div className="flex items-center gap-2">
           <button
@@ -126,6 +151,20 @@ export const StudentRow = memo(function StudentRow({
                 onSave={(sid) => onUpdateStudentId(classId, student.id, sid || undefined)}
               />
             )}
+            <EditableCell
+              value={(student.tags || []).join(' / ')}
+              placeholder="标签（/ 分隔）"
+              onSave={(tags) =>
+                onUpdateTags(
+                  classId,
+                  student.id,
+                  tags
+                    .split('/')
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag.length > 0)
+                )
+              }
+            />
           </div>
         </div>
       </td>
@@ -151,24 +190,35 @@ export const StudentRow = memo(function StudentRow({
       )}
 
       <td className="px-4 py-3 text-center">
-        <div className="flex items-center justify-center space-x-1">
-          <button
-            onClick={() => onUpdateScore(classId, student.id, score - 1)}
-            className="p-1.5 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive cursor-pointer transition-colors"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-          <span
-            className={`w-10 text-center font-bold tabular-nums text-sm ${score > 0 ? 'text-green-600 dark:text-green-400' : score < 0 ? 'text-destructive' : 'text-on-surface-variant'}`}
-          >
-            {score}
-          </span>
-          <button
-            onClick={() => onUpdateScore(classId, student.id, score + 1)}
-            className="p-1.5 rounded-full hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center space-x-1">
+            <button
+              onClick={() => onUpdateScore(classId, student.id, score - 1)}
+              className="p-1.5 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive cursor-pointer transition-colors"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span
+              className={`w-10 text-center font-bold tabular-nums text-sm ${score > 0 ? 'text-green-600 dark:text-green-400' : score < 0 ? 'text-destructive' : 'text-on-surface-variant'}`}
+            >
+              {score}
+            </span>
+            <button
+              onClick={() => onUpdateScore(classId, student.id, score + 1)}
+              className="p-1.5 rounded-full hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {latestScoreLog && (
+            <span
+              className="text-[10px] text-on-surface-variant mt-0.5"
+              title={`${latestScoreLog.taskName} ${latestScoreLog.delta > 0 ? '+' : ''}${latestScoreLog.delta} · ${new Date(latestScoreLog.timestamp).toLocaleString()}`}
+            >
+              最近 {latestScoreLog.delta > 0 ? '+' : ''}
+              {latestScoreLog.delta}
+            </span>
+          )}
         </div>
       </td>
 

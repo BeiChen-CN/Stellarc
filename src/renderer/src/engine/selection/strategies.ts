@@ -11,6 +11,9 @@ export interface StrategyPluginConfig {
   id: string
   name: string
   description?: string
+  enabled?: boolean
+  minAppVersion?: string
+  signature?: string
   baseMultiplier?: number
   scoreFactor?: number
   pickDecayFactor?: number
@@ -65,6 +68,47 @@ function isSafeStrategyId(id: string): boolean {
   return /^[a-z0-9-]{2,40}$/.test(id)
 }
 
+function parseVersion(input: string): number[] {
+  return input
+    .split('.')
+    .map((part) => parseInt(part, 10))
+    .map((n) => (Number.isFinite(n) ? n : 0))
+}
+
+function isVersionGte(current: string, required: string): boolean {
+  const c = parseVersion(current)
+  const r = parseVersion(required)
+  const len = Math.max(c.length, r.length)
+  for (let i = 0; i < len; i++) {
+    const cv = c[i] ?? 0
+    const rv = r[i] ?? 0
+    if (cv > rv) return true
+    if (cv < rv) return false
+  }
+  return true
+}
+
+function checksumForPlugin(plugin: StrategyPluginConfig): string {
+  const payload = [
+    plugin.id,
+    plugin.name,
+    plugin.description || '',
+    plugin.baseMultiplier ?? '',
+    plugin.scoreFactor ?? '',
+    plugin.pickDecayFactor ?? '',
+    plugin.minWeight ?? '',
+    plugin.maxWeight ?? '',
+    plugin.minAppVersion || ''
+  ].join('|')
+
+  let hash = 0
+  for (let i = 0; i < payload.length; i++) {
+    hash = (hash << 5) - hash + payload.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash).toString(16)
+}
+
 export function registerStrategyDescriptor(descriptor: StrategyDescriptor): boolean {
   if (!descriptor.id || !descriptor.name) {
     return false
@@ -110,19 +154,59 @@ function pluginToDescriptor(plugin: StrategyPluginConfig): StrategyDescriptor {
 
 export function loadStrategyPlugins(configs: StrategyPluginConfig[]): {
   loaded: number
+  skipped: number
   errors: string[]
+  details: Array<{ id: string; status: 'loaded' | 'skipped' | 'error'; reason?: string }>
 } {
   const errors: string[] = []
   let loaded = 0
+  let skipped = 0
+  const details: Array<{ id: string; status: 'loaded' | 'skipped' | 'error'; reason?: string }> = []
+  const currentVersion = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0'
 
   configs.forEach((config, index) => {
     if (!config || typeof config !== 'object') {
       errors.push(`plugins[${index}] is not an object`)
+      details.push({ id: `plugins[${index}]`, status: 'error', reason: 'not object' })
       return
     }
 
     if (!config.id || !config.name) {
       errors.push(`plugins[${index}] missing id or name`)
+      details.push({
+        id: config.id || `plugins[${index}]`,
+        status: 'error',
+        reason: 'missing id/name'
+      })
+      return
+    }
+
+    if (config.enabled === false) {
+      skipped++
+      details.push({ id: config.id, status: 'skipped', reason: 'disabled' })
+      return
+    }
+
+    if (config.minAppVersion && !isVersionGte(currentVersion, config.minAppVersion)) {
+      skipped++
+      details.push({
+        id: config.id,
+        status: 'skipped',
+        reason: `requires app >= ${config.minAppVersion}`
+      })
+      return
+    }
+
+    if (config.signature) {
+      const checksum = checksumForPlugin(config)
+      if (checksum !== config.signature) {
+        errors.push(`plugins[${index}] signature mismatch for '${config.id}'`)
+        details.push({ id: config.id, status: 'error', reason: 'signature mismatch' })
+        return
+      }
+    } else {
+      skipped++
+      details.push({ id: config.id, status: 'skipped', reason: 'missing signature' })
       return
     }
 
@@ -130,13 +214,15 @@ export function loadStrategyPlugins(configs: StrategyPluginConfig[]): {
     const ok = registerStrategyDescriptor(descriptor)
     if (!ok) {
       errors.push(`plugins[${index}] failed to register id '${config.id}'`)
+      details.push({ id: config.id, status: 'error', reason: 'failed to register' })
       return
     }
 
     loaded++
+    details.push({ id: config.id, status: 'loaded' })
   })
 
-  return { loaded, errors }
+  return { loaded, skipped, errors, details }
 }
 
 export function getStrategyDescriptor(id: SelectionStrategyPreset): StrategyDescriptor {

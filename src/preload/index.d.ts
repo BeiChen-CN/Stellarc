@@ -18,9 +18,7 @@ declare global {
       deletePhoto: (photoPath: string) => Promise<boolean>
       getPhotoPath: (relativePath: string) => Promise<string | null>
       getDataPath: () => Promise<string>
-      extractWallpaperColors: (
-        imagePath: string
-      ) => Promise<{
+      extractWallpaperColors: (imagePath: string) => Promise<{
         hue: number
         saturation: number
         lightness: number
@@ -32,15 +30,46 @@ declare global {
       onShortcutTriggered: (callback: (action: string) => void) => () => void
       backupData: (targetPath: string) => Promise<boolean>
       restoreData: (sourcePath: string) => Promise<boolean>
+      createRestorePoint: (
+        name: string
+      ) => Promise<{ ok: boolean; name?: string; message?: string }>
+      listRestorePoints: () => Promise<Array<{ name: string; path: string; createdAt: number }>>
+      restoreFromPoint: (restorePointPath: string) => Promise<boolean>
       openExternal: (url: string) => Promise<boolean>
       setAutoLaunch: (enabled: boolean) => Promise<boolean>
       getAutoLaunch: () => Promise<boolean>
       syncDataToFolder: (folderPath: string) => Promise<boolean>
       syncDataFromFolder: (folderPath: string) => Promise<boolean>
+      syncDataToFolderV2: (folderPath: string) => Promise<{
+        ok: boolean
+        code: string
+        message: string
+        localFingerprint?: string
+        remoteFingerprint?: string
+      }>
+      syncDataFromFolderV2: (
+        folderPath: string,
+        force: boolean
+      ) => Promise<{
+        ok: boolean
+        code: string
+        message: string
+        localFingerprint?: string
+        remoteFingerprint?: string
+      }>
+      getSyncStatus: (folderPath: string) => Promise<{
+        ok: boolean
+        code: string
+        message: string
+        localFingerprint?: string
+        remoteFingerprint?: string
+      }>
       checkForUpdates: () => Promise<boolean>
       downloadUpdate: () => Promise<boolean>
       installUpdate: () => Promise<void>
-      onUpdateStatus: (callback: (status: string, info?: Record<string, unknown>) => void) => () => void
+      onUpdateStatus: (
+        callback: (status: string, info?: Record<string, unknown>) => void
+      ) => () => void
       windowMinimize: () => Promise<void>
       windowMaximize: () => Promise<void>
       windowClose: () => Promise<void>

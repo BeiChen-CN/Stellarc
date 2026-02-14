@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { DefaultSelectionEngine } from './index'
-import type { SelectionRequest, GroupRequest, CandidateSnapshot } from './types'
+import type { SelectionRequest, GroupRequest, CandidateSnapshot, SelectionPolicy } from './types'
 
-function makeStudent(id: string, name: string, overrides?: Partial<CandidateSnapshot>): CandidateSnapshot {
+function makeStudent(
+  id: string,
+  name: string,
+  overrides?: Partial<CandidateSnapshot>
+): CandidateSnapshot {
   return {
     id,
     name,
@@ -17,11 +21,17 @@ function makeStudent(id: string, name: string, overrides?: Partial<CandidateSnap
   }
 }
 
-const defaultPolicy = {
+const defaultPolicy: SelectionPolicy = {
   weightedRandom: false,
   preventRepeat: false,
   cooldownRounds: 0,
-  strategyPreset: 'classic'
+  strategyPreset: 'classic',
+  balanceByTerm: false,
+  stageFairnessRounds: 0,
+  prioritizeUnpickedCount: 0,
+  groupStrategy: 'random',
+  pairAvoidRounds: 0,
+  autoRelaxOnConflict: true
 }
 
 function makePickRequest(overrides?: Partial<SelectionRequest>): SelectionRequest {

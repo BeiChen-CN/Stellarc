@@ -7,7 +7,9 @@
       "baseMultiplier": 1,
       "pickDecayFactor": 0.3,
       "scoreFactor": 0,
-      "minWeight": 0.15
+      "minWeight": 0.15,
+      "minAppVersion": "1.0.0",
+      "signature": "24186223"
     },
     {
       "id": "high-score-focus",
@@ -17,7 +19,9 @@
       "scoreFactor": 0.08,
       "pickDecayFactor": 0.05,
       "minWeight": 0.1,
-      "maxWeight": 8
+      "maxWeight": 8,
+      "minAppVersion": "1.0.0",
+      "signature": "79f6bea2"
     }
   ]
 }

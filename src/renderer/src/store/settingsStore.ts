@@ -62,6 +62,33 @@ export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
 
 export type StrategyPreset = string
 
+export interface RuleTemplateItem {
+  id: string
+  name: string
+  description?: string
+  pickCount: number
+  animationStyle: AnimationStyle
+  fairness: {
+    weightedRandom: boolean
+    preventRepeat: boolean
+    cooldownRounds: number
+    strategyPreset: StrategyPreset
+    balanceByTerm: boolean
+    stageFairnessRounds: number
+    prioritizeUnpickedCount: number
+    groupStrategy: 'random' | 'balanced-score'
+    pairAvoidRounds: number
+    autoRelaxOnConflict: boolean
+  }
+  groupTaskTemplates?: Array<{
+    id: string
+    name: string
+    scoreDelta: number
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
 const activityPresetDefaults: Record<
   ActivityPreset,
   {
@@ -72,6 +99,12 @@ const activityPresetDefaults: Record<
       preventRepeat: boolean
       cooldownRounds: number
       strategyPreset: StrategyPreset
+      balanceByTerm: boolean
+      stageFairnessRounds: number
+      prioritizeUnpickedCount: number
+      groupStrategy: 'random' | 'balanced-score'
+      pairAvoidRounds: number
+      autoRelaxOnConflict: boolean
     }
   }
 > = {
@@ -82,7 +115,13 @@ const activityPresetDefaults: Record<
       weightedRandom: false,
       preventRepeat: false,
       cooldownRounds: 0,
-      strategyPreset: 'classic'
+      strategyPreset: 'classic',
+      balanceByTerm: false,
+      stageFairnessRounds: 0,
+      prioritizeUnpickedCount: 0,
+      groupStrategy: 'random',
+      pairAvoidRounds: 0,
+      autoRelaxOnConflict: true
     }
   },
   'deep-focus': {
@@ -92,7 +131,13 @@ const activityPresetDefaults: Record<
       weightedRandom: true,
       preventRepeat: true,
       cooldownRounds: 2,
-      strategyPreset: 'balanced'
+      strategyPreset: 'balanced',
+      balanceByTerm: true,
+      stageFairnessRounds: 6,
+      prioritizeUnpickedCount: 1,
+      groupStrategy: 'balanced-score',
+      pairAvoidRounds: 6,
+      autoRelaxOnConflict: true
     }
   },
   'group-battle': {
@@ -102,7 +147,13 @@ const activityPresetDefaults: Record<
       weightedRandom: true,
       preventRepeat: false,
       cooldownRounds: 0,
-      strategyPreset: 'momentum'
+      strategyPreset: 'momentum',
+      balanceByTerm: false,
+      stageFairnessRounds: 0,
+      prioritizeUnpickedCount: 0,
+      groupStrategy: 'balanced-score',
+      pairAvoidRounds: 4,
+      autoRelaxOnConflict: true
     }
   }
 }
@@ -120,6 +171,12 @@ interface SettingsData {
   backgroundImage?: string
   projectorMode: boolean
   activityPreset: ActivityPreset
+  showClassroomFlow: boolean
+  showClassroomTemplate: boolean
+  showTemporaryExclusion: boolean
+  showAutoDraw: boolean
+  showSelectionExplanation: boolean
+  revealSettleMs: number
   syncEnabled: boolean
   syncFolder?: string
   animationStyle: AnimationStyle
@@ -130,11 +187,24 @@ interface SettingsData {
     preventRepeat: boolean
     cooldownRounds: number
     strategyPreset: StrategyPreset
+    balanceByTerm: boolean
+    stageFairnessRounds: number
+    prioritizeUnpickedCount: number
+    groupStrategy: 'random' | 'balanced-score'
+    pairAvoidRounds: number
+    autoRelaxOnConflict: boolean
   }
   pickCount: number
   maxHistoryRecords: number
   shortcutKey: string
   semester: { name: string; startDate: string; endDate: string } | null
+  ruleTemplates: RuleTemplateItem[]
+  scoreRules: {
+    maxScorePerStudent: number
+    minScorePerStudent: number
+    maxDeltaPerOperation: number
+    preventDuplicateTaskPerDay: boolean
+  }
 }
 
 export interface DynamicColorPalette {
@@ -159,6 +229,12 @@ interface SettingsState extends SettingsData {
   setSyncFolder: (path: string | undefined) => void
   toggleProjectorMode: () => void
   setActivityPreset: (preset: ActivityPreset) => void
+  toggleShowClassroomFlow: () => void
+  toggleShowClassroomTemplate: () => void
+  toggleShowTemporaryExclusion: () => void
+  toggleShowAutoDraw: () => void
+  toggleShowSelectionExplanation: () => void
+  setRevealSettleMs: (ms: number) => void
   setAnimationStyle: (style: AnimationStyle) => void
   setAnimationSpeed: (speed: AnimationSpeed) => void
   setCustomColor: (color: string | undefined) => void
@@ -167,6 +243,12 @@ interface SettingsState extends SettingsData {
     preventRepeat: boolean
     cooldownRounds: number
     strategyPreset: StrategyPreset
+    balanceByTerm: boolean
+    stageFairnessRounds: number
+    prioritizeUnpickedCount: number
+    groupStrategy: 'random' | 'balanced-score'
+    pairAvoidRounds: number
+    autoRelaxOnConflict: boolean
   }) => void
   setPickCount: (count: number) => void
   setMaxHistoryRecords: (max: number) => Promise<void>
@@ -175,6 +257,17 @@ interface SettingsState extends SettingsData {
   setDynamicColorPalette: (palette: DynamicColorPalette | null) => void
   extractAndApplyDynamicColor: () => Promise<void>
   setSemester: (semester: { name: string; startDate: string; endDate: string } | null) => void
+  addRuleTemplate: (template: Omit<RuleTemplateItem, 'id' | 'createdAt' | 'updatedAt'>) => void
+  updateRuleTemplate: (id: string, patch: Partial<RuleTemplateItem>) => void
+  removeRuleTemplate: (id: string) => void
+  replaceRuleTemplates: (templates: RuleTemplateItem[]) => void
+  applyRuleTemplate: (id: string) => boolean
+  setScoreRules: (rules: {
+    maxScorePerStudent: number
+    minScorePerStudent: number
+    maxDeltaPerOperation: number
+    preventDuplicateTaskPerDay: boolean
+  }) => void
   loadSettings: () => Promise<void>
 }
 
@@ -189,6 +282,12 @@ const defaults: SettingsData = {
   m3Mode: false,
   projectorMode: false,
   activityPreset: 'quick-pick',
+  showClassroomFlow: false,
+  showClassroomTemplate: false,
+  showTemporaryExclusion: false,
+  showAutoDraw: false,
+  showSelectionExplanation: false,
+  revealSettleMs: 900,
   syncEnabled: false,
   animationStyle: 'slot',
   animationSpeed: 'balanced',
@@ -197,11 +296,24 @@ const defaults: SettingsData = {
   maxHistoryRecords: 1000,
   shortcutKey: '',
   semester: null,
+  ruleTemplates: [],
+  scoreRules: {
+    maxScorePerStudent: 100,
+    minScorePerStudent: -50,
+    maxDeltaPerOperation: 20,
+    preventDuplicateTaskPerDay: true
+  },
   fairness: {
     weightedRandom: false,
     preventRepeat: false,
     cooldownRounds: 0,
-    strategyPreset: 'classic'
+    strategyPreset: 'classic',
+    balanceByTerm: false,
+    stageFairnessRounds: 0,
+    prioritizeUnpickedCount: 0,
+    groupStrategy: 'random',
+    pairAvoidRounds: 0,
+    autoRelaxOnConflict: true
   }
 }
 
@@ -220,6 +332,12 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       backgroundImage,
       projectorMode,
       activityPreset,
+      showClassroomFlow,
+      showClassroomTemplate,
+      showTemporaryExclusion,
+      showAutoDraw,
+      showSelectionExplanation,
+      revealSettleMs,
       syncEnabled,
       syncFolder,
       animationStyle,
@@ -229,7 +347,9 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       pickCount,
       maxHistoryRecords,
       shortcutKey,
-      semester
+      semester,
+      ruleTemplates,
+      scoreRules
     } = state
     await window.electronAPI.writeJson('settings.json', {
       theme,
@@ -244,6 +364,12 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       backgroundImage,
       projectorMode,
       activityPreset,
+      showClassroomFlow,
+      showClassroomTemplate,
+      showTemporaryExclusion,
+      showAutoDraw,
+      showSelectionExplanation,
+      revealSettleMs,
       syncEnabled,
       syncFolder,
       animationStyle,
@@ -253,7 +379,9 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       pickCount,
       maxHistoryRecords,
       shortcutKey,
-      semester
+      semester,
+      ruleTemplates,
+      scoreRules
     })
   } catch (e) {
     logger.error('SettingsStore', 'Failed to save settings', e)
@@ -297,6 +425,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const next = {
           ...defaults,
           ...raw,
+          ruleTemplates: Array.isArray(raw.ruleTemplates)
+            ? (raw.ruleTemplates as RuleTemplateItem[])
+            : defaults.ruleTemplates,
+          scoreRules:
+            typeof raw.scoreRules === 'object' && raw.scoreRules
+              ? {
+                  ...defaults.scoreRules,
+                  ...(raw.scoreRules as SettingsData['scoreRules'])
+                }
+              : defaults.scoreRules,
           fairness: {
             ...defaults.fairness,
             ...(typeof raw.fairness === 'object' && raw.fairness ? raw.fairness : {})
@@ -309,10 +447,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           if (!success) {
             set({ shortcutKey: '' })
             saveSettings({ ...get(), shortcutKey: '' })
-            useToastStore.getState().addToast(
-              `快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`,
-              'error'
-            )
+            useToastStore
+              .getState()
+              .addToast(`快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`, 'error')
           }
         }
       }
@@ -343,6 +480,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       get
     )
   },
+  toggleShowClassroomFlow: () =>
+    updateAndSave({ showClassroomFlow: !get().showClassroomFlow }, set, get),
+  toggleShowClassroomTemplate: () =>
+    updateAndSave({ showClassroomTemplate: !get().showClassroomTemplate }, set, get),
+  toggleShowTemporaryExclusion: () =>
+    updateAndSave({ showTemporaryExclusion: !get().showTemporaryExclusion }, set, get),
+  toggleShowAutoDraw: () => updateAndSave({ showAutoDraw: !get().showAutoDraw }, set, get),
+  toggleShowSelectionExplanation: () =>
+    updateAndSave({ showSelectionExplanation: !get().showSelectionExplanation }, set, get),
+  setRevealSettleMs: (revealSettleMs) =>
+    updateAndSave({ revealSettleMs: Math.max(0, Math.min(5000, revealSettleMs)) }, set, get),
   setBackgroundImage: (path) => {
     updateAndSave({ backgroundImage: path }, set, get)
     if (get().dynamicColor && path) {
@@ -397,6 +545,88 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
   setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
   setSemester: (semester) => updateAndSave({ semester }, set, get),
+  addRuleTemplate: (template) => {
+    const now = new Date().toISOString()
+    const next: RuleTemplateItem = {
+      ...template,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now
+    }
+    updateAndSave({ ruleTemplates: [next, ...get().ruleTemplates].slice(0, 60) }, set, get)
+  },
+  updateRuleTemplate: (id, patch) => {
+    updateAndSave(
+      {
+        ruleTemplates: get().ruleTemplates.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...patch,
+                id: item.id,
+                updatedAt: new Date().toISOString()
+              }
+            : item
+        )
+      },
+      set,
+      get
+    )
+  },
+  removeRuleTemplate: (id) => {
+    updateAndSave(
+      {
+        ruleTemplates: get().ruleTemplates.filter((item) => item.id !== id)
+      },
+      set,
+      get
+    )
+  },
+  replaceRuleTemplates: (templates) => {
+    const normalized = templates
+      .filter((item) => item && typeof item.name === 'string' && item.name.trim().length > 0)
+      .map((item) => ({
+        ...item,
+        id: item.id || crypto.randomUUID(),
+        name: item.name.trim(),
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: item.updatedAt || new Date().toISOString()
+      }))
+      .slice(0, 60)
+    updateAndSave({ ruleTemplates: normalized }, set, get)
+  },
+  applyRuleTemplate: (id) => {
+    const target = get().ruleTemplates.find((item) => item.id === id)
+    if (!target) return false
+    updateAndSave(
+      {
+        pickCount: target.pickCount,
+        animationStyle: target.animationStyle,
+        fairness: target.fairness
+      },
+      set,
+      get
+    )
+    return true
+  },
+  setScoreRules: (scoreRules) => {
+    const safe = {
+      maxScorePerStudent: Math.trunc(
+        Math.max(-9999, Math.min(9999, scoreRules.maxScorePerStudent))
+      ),
+      minScorePerStudent: Math.trunc(
+        Math.max(-9999, Math.min(9999, scoreRules.minScorePerStudent))
+      ),
+      maxDeltaPerOperation: Math.trunc(Math.max(1, Math.min(999, scoreRules.maxDeltaPerOperation))),
+      preventDuplicateTaskPerDay: scoreRules.preventDuplicateTaskPerDay
+    }
+    if (safe.minScorePerStudent > safe.maxScorePerStudent) {
+      const tmp = safe.minScorePerStudent
+      safe.minScorePerStudent = safe.maxScorePerStudent
+      safe.maxScorePerStudent = tmp
+    }
+    updateAndSave({ scoreRules: safe }, set, get)
+  },
   extractAndApplyDynamicColor: async () => {
     const { backgroundImage } = get()
     if (!backgroundImage) return

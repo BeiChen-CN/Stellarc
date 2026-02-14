@@ -1,11 +1,22 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Users, Settings as SettingsIcon, History as HistoryIcon, GraduationCap, Info, BarChart3, PanelLeftClose } from 'lucide-react'
+import {
+  Home,
+  Users,
+  Settings as SettingsIcon,
+  History as HistoryIcon,
+  GraduationCap,
+  Info,
+  BarChart3,
+  PanelLeftClose
+} from 'lucide-react'
 import { cn } from '../lib/utils'
 
 interface SidebarProps {
   currentView: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
-  onViewChange: (view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about') => void
+  onViewChange: (
+    view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
+  ) => void
 }
 
 const items = [
@@ -74,10 +85,9 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
                   : 'text-on-surface-variant hover:bg-secondary-container/40 hover:text-on-surface'
               )}
             >
-              <Icon className={cn(
-                'w-5 h-5 shrink-0',
-                isActive ? 'scale-110' : 'group-hover:scale-105'
-              )} />
+              <Icon
+                className={cn('w-5 h-5 shrink-0', isActive ? 'scale-110' : 'group-hover:scale-105')}
+              />
               <AnimatePresence mode="wait">
                 {!collapsed && (
                   <motion.span

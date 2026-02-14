@@ -10,7 +10,9 @@ import {
 interface StrategyState {
   loaded: boolean
   loadedCount: number
+  skippedCount: number
   lastErrors: string[]
+  lastDetails: Array<{ id: string; status: 'loaded' | 'skipped' | 'error'; reason?: string }>
   sourceFile: string
   loadPlugins: () => Promise<void>
 }
@@ -33,7 +35,9 @@ function normalizePlugins(input: unknown): StrategyPluginConfig[] {
 export const useStrategyStore = create<StrategyState>((set) => ({
   loaded: false,
   loadedCount: 0,
+  skippedCount: 0,
   lastErrors: [],
+  lastDetails: [],
   sourceFile: 'strategy-plugins.json',
 
   loadPlugins: async () => {
@@ -44,16 +48,41 @@ export const useStrategyStore = create<StrategyState>((set) => ({
       const plugins = normalizePlugins(data)
       const result = loadStrategyPlugins(plugins)
 
+      const existing = await window.electronAPI.readJson('diagnostics-events.json')
+      const events = Array.isArray(existing) ? existing : []
+      const pluginEvents = result.details.map((detail) => ({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        category: 'plugin',
+        level: detail.status === 'error' ? 'error' : detail.status === 'skipped' ? 'warn' : 'info',
+        code:
+          detail.status === 'error'
+            ? 'PLUGIN_LOAD_ERROR'
+            : detail.status === 'skipped'
+              ? 'PLUGIN_LOAD_SKIPPED'
+              : 'PLUGIN_LOAD_OK',
+        message: `策略插件 ${detail.id} ${detail.status}`,
+        context: detail.reason ? { reason: detail.reason } : undefined
+      }))
+      await window.electronAPI.writeJson('diagnostics-events.json', [
+        ...events.slice(-180),
+        ...pluginEvents
+      ])
+
       set({
         loaded: true,
         loadedCount: result.loaded,
-        lastErrors: result.errors
+        skippedCount: result.skipped,
+        lastErrors: result.errors,
+        lastDetails: result.details
       })
     } catch (error) {
       set({
         loaded: true,
         loadedCount: 0,
-        lastErrors: [error instanceof Error ? error.message : String(error)]
+        skippedCount: 0,
+        lastErrors: [error instanceof Error ? error.message : String(error)],
+        lastDetails: []
       })
     }
   }

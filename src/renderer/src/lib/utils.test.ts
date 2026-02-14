@@ -5,7 +5,7 @@ import { toFileUrl } from './utils'
 describe('toFileUrl', () => {
   it('converts windows absolute path', () => {
     expect(toFileUrl('C:\\Data Folder\\bg image.png')).toBe(
-      'file://C:/Data%20Folder/bg%20image.png'
+      'local-file://C%3A%2FData%20Folder%2Fbg%20image.png'
     )
   })
 
@@ -15,7 +15,7 @@ describe('toFileUrl', () => {
     )
   })
 
-  it('returns non-absolute raw input unchanged', () => {
-    expect(toFileUrl('photos/avatar.jpg')).toBe('photos/avatar.jpg')
+  it('converts relative raw input to local-file scheme', () => {
+    expect(toFileUrl('photos/avatar.jpg')).toBe('local-file://photos%2Favatar.jpg')
   })
 })

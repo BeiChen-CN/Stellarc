@@ -9,11 +9,30 @@ export interface HistoryRecord {
   timestamp: string
   classId: string
   className: string
+  eventType?: 'pick' | 'group' | 'task'
   pickedStudents: {
     id: string
     name: string
     studentId?: string
   }[]
+  groupSummary?: {
+    groupCount: number
+    groups: Array<{
+      groupIndex: number
+      studentIds: string[]
+      studentNames: string[]
+      taskTemplateId?: string
+      taskName?: string
+      taskScoreDelta?: number
+    }>
+  }
+  taskSummary?: {
+    taskName: string
+    scoreDelta: number
+    studentIds: string[]
+    studentNames: string[]
+    source: 'manual' | 'task-assignment' | 'batch'
+  }
   selectionMeta?: HistorySelectionMeta
 }
 
@@ -30,8 +49,15 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
 
   loadHistory: async () => {
     try {
-      const data = await window.electronAPI.readJson('history.json') as Record<string, unknown> | unknown[] | null
-      if (data && !Array.isArray(data) && Array.isArray((data as Record<string, unknown>).records)) {
+      const data = (await window.electronAPI.readJson('history.json')) as
+        | Record<string, unknown>
+        | unknown[]
+        | null
+      if (
+        data &&
+        !Array.isArray(data) &&
+        Array.isArray((data as Record<string, unknown>).records)
+      ) {
         set({ history: (data as { records: HistoryRecord[] }).records })
       } else if (Array.isArray(data)) {
         set({ history: data as HistoryRecord[] })

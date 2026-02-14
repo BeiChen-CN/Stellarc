@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
-import { Student, ClassGroup } from '../types'
+import { Student, ClassGroup, ClassTaskTemplate, ScoreLogEntry } from '../types'
 import { useToastStore } from './toastStore'
+import { useSettingsStore } from './settingsStore'
 import { logger } from '../lib/logger'
 
 interface ClassesState {
@@ -27,10 +28,26 @@ interface ClassesState {
   updateStudentPhoto: (classId: string, studentId: string, photo: string | undefined) => void
   updateStudentName: (classId: string, studentId: string, name: string) => void
   updateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  updateStudentTags: (classId: string, studentId: string, tags: string[]) => void
+  setClassTaskTemplates: (classId: string, templates: ClassTaskTemplate[]) => void
+  applyTaskScore: (
+    classId: string,
+    studentIds: string[],
+    taskName: string,
+    delta: number,
+    source?: 'manual' | 'task-assignment' | 'batch'
+  ) => { affected: number }
+  rollbackScoreLog: (
+    classId: string,
+    studentId: string,
+    logId: string
+  ) => { ok: boolean; message: string }
   incrementPickCount: (classId: string, studentId: string) => void
   renameClass: (classId: string, name: string) => void
   duplicateClass: (classId: string) => void
   resetClassScores: (classId: string) => void
+  dedupeClassStudents: (classId: string) => { removed: number }
+  normalizeClassStudents: (classId: string) => { updated: number; removed: number }
   undoLastChange: () => void
 }
 
@@ -56,7 +73,10 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
 
   loadClasses: async () => {
     try {
-      const data = await window.electronAPI.readJson('classes.json') as Record<string, unknown> | unknown[] | null
+      const data = (await window.electronAPI.readJson('classes.json')) as
+        | Record<string, unknown>
+        | unknown[]
+        | null
       if (Array.isArray(data)) {
         // Handle migration or direct array format
         set({
@@ -69,8 +89,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         const obj = data as { classes: ClassGroup[]; currentClassId?: string | null }
         set({
           classes: obj.classes,
-          currentClassId:
-            obj.currentClassId || (obj.classes.length > 0 ? obj.classes[0].id : null),
+          currentClassId: obj.currentClassId || (obj.classes.length > 0 ? obj.classes[0].id : null),
           undoStack: [],
           canUndo: false
         })
@@ -239,12 +258,40 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
   },
 
   updateStudentScore: (classId, studentId, score) => {
+    const nextScore = Math.trunc(score)
+    const scoreRules = useSettingsStore.getState().scoreRules
     set((state) => ({
       classes: state.classes.map((c) =>
         c.id === classId
           ? {
               ...c,
-              students: c.students.map((s) => (s.id === studentId ? { ...s, score } : s))
+              students: c.students.map((s) => {
+                if (s.id !== studentId) return s
+                const delta = nextScore - (s.score || 0)
+                if (delta === 0) return s
+                const limitedDelta = Math.max(
+                  -scoreRules.maxDeltaPerOperation,
+                  Math.min(scoreRules.maxDeltaPerOperation, delta)
+                )
+                const nextFinalScore = Math.max(
+                  scoreRules.minScorePerStudent,
+                  Math.min(scoreRules.maxScorePerStudent, (s.score || 0) + limitedDelta)
+                )
+                const appliedDelta = nextFinalScore - (s.score || 0)
+                if (appliedDelta === 0) return s
+                const log: ScoreLogEntry = {
+                  id: crypto.randomUUID(),
+                  timestamp: new Date().toISOString(),
+                  delta: appliedDelta,
+                  taskName: '手动调整',
+                  source: 'manual'
+                }
+                return {
+                  ...s,
+                  score: nextFinalScore,
+                  scoreHistory: [log, ...(s.scoreHistory || [])].slice(0, 100)
+                }
+              })
             }
           : c
       ),
@@ -281,7 +328,12 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     set((state) => ({
       classes: state.classes.map((c) =>
         c.id === classId
-          ? { ...c, students: c.students.map((s) => (s.id === studentId ? { ...s, name: name.trim() } : s)) }
+          ? {
+              ...c,
+              students: c.students.map((s) =>
+                s.id === studentId ? { ...s, name: name.trim() } : s
+              )
+            }
           : c
       ),
       undoStack: [
@@ -297,7 +349,12 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     set((state) => ({
       classes: state.classes.map((c) =>
         c.id === classId
-          ? { ...c, students: c.students.map((s) => (s.id === studentId ? { ...s, studentId: newStudentId?.trim() || undefined } : s)) }
+          ? {
+              ...c,
+              students: c.students.map((s) =>
+                s.id === studentId ? { ...s, studentId: newStudentId?.trim() || undefined } : s
+              )
+            }
           : c
       ),
       undoStack: [
@@ -307,6 +364,159 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       canUndo: true
     }))
     get().saveClasses()
+  },
+
+  updateStudentTags: (classId, studentId, tags) => {
+    const cleaned = tags
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .slice(0, 10)
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? {
+              ...c,
+              students: c.students.map((s) =>
+                s.id === studentId ? { ...s, tags: cleaned.length > 0 ? cleaned : undefined } : s
+              )
+            }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  setClassTaskTemplates: (classId, templates) => {
+    const cleaned = templates
+      .map((template) => ({
+        id: template.id,
+        name: template.name.trim(),
+        scoreDelta: Math.trunc(template.scoreDelta)
+      }))
+      .filter((template) => template.name.length > 0)
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? {
+              ...c,
+              taskTemplates: cleaned.length > 0 ? cleaned : undefined
+            }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
+  applyTaskScore: (classId, studentIds, taskName, delta, source = 'manual') => {
+    const targetIds = new Set(studentIds)
+    const safeTaskName = taskName.trim() || '任务积分'
+    const scoreRules = useSettingsStore.getState().scoreRules
+    const now = new Date().toISOString()
+    const today = now.slice(0, 10)
+    let affected = 0
+    set((state) => ({
+      classes: state.classes.map((c) => {
+        if (c.id !== classId) return c
+        return {
+          ...c,
+          students: c.students.map((s) => {
+            if (!targetIds.has(s.id)) return s
+            const duplicateToday = (s.scoreHistory || []).some(
+              (entry) => entry.taskName === safeTaskName && entry.timestamp.slice(0, 10) === today
+            )
+            if (scoreRules.preventDuplicateTaskPerDay && duplicateToday) {
+              return s
+            }
+            const limitedDelta = Math.max(
+              -scoreRules.maxDeltaPerOperation,
+              Math.min(scoreRules.maxDeltaPerOperation, delta)
+            )
+            const nextScore = Math.max(
+              scoreRules.minScorePerStudent,
+              Math.min(scoreRules.maxScorePerStudent, s.score + limitedDelta)
+            )
+            const appliedDelta = nextScore - s.score
+            if (appliedDelta === 0) return s
+            affected++
+            const log: ScoreLogEntry = {
+              id: crypto.randomUUID(),
+              timestamp: now,
+              delta: appliedDelta,
+              taskName: safeTaskName,
+              source
+            }
+            return {
+              ...s,
+              score: nextScore,
+              scoreHistory: [log, ...(s.scoreHistory || [])].slice(0, 100)
+            }
+          })
+        }
+      }),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+    return { affected }
+  },
+
+  rollbackScoreLog: (classId, studentId, logId) => {
+    let success = false
+    let message = '未找到可回滚记录'
+    set((state) => ({
+      classes: state.classes.map((c) => {
+        if (c.id !== classId) return c
+        return {
+          ...c,
+          students: c.students.map((s) => {
+            if (s.id !== studentId) return s
+            const logs = s.scoreHistory || []
+            const target = logs.find((entry) => entry.id === logId)
+            if (!target) return s
+            success = true
+            const nextScore = s.score - target.delta
+            const rollbackLog: ScoreLogEntry = {
+              id: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              delta: -target.delta,
+              taskName: `回滚:${target.taskName}`,
+              source: 'manual'
+            }
+            message = '回滚成功'
+            return {
+              ...s,
+              score: nextScore,
+              scoreHistory: [rollbackLog, ...logs.filter((entry) => entry.id !== logId)].slice(
+                0,
+                100
+              )
+            }
+          })
+        }
+      }),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    if (success) {
+      get().saveClasses()
+    }
+    return { ok: success, message }
   },
 
   renameClass: (classId, name) => {
@@ -333,6 +543,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         id: crypto.randomUUID(),
         pickCount: 0,
         score: 0,
+        scoreHistory: [],
         lastPickedAt: undefined
       }))
     }
@@ -351,9 +562,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
   resetClassScores: (classId) => {
     set((state) => ({
       classes: state.classes.map((c) =>
-        c.id === classId
-          ? { ...c, students: c.students.map((s) => ({ ...s, score: 0 })) }
-          : c
+        c.id === classId ? { ...c, students: c.students.map((s) => ({ ...s, score: 0 })) } : c
       ),
       undoStack: [
         ...state.undoStack.slice(-19),
@@ -362,5 +571,97 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       canUndo: true
     }))
     get().saveClasses()
+  },
+
+  dedupeClassStudents: (classId) => {
+    let removed = 0
+    set((state) => ({
+      classes: state.classes.map((c) => {
+        if (c.id !== classId) return c
+        const seen = new Set<string>()
+        const deduped = c.students.filter((student) => {
+          const key = `${student.name.trim().toLowerCase()}::${(student.studentId || '').trim().toLowerCase()}`
+          if (seen.has(key)) {
+            removed++
+            return false
+          }
+          seen.add(key)
+          return true
+        })
+        return { ...c, students: deduped }
+      }),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+    return { removed }
+  },
+
+  normalizeClassStudents: (classId) => {
+    let updated = 0
+    let removed = 0
+    set((state) => ({
+      classes: state.classes.map((c) => {
+        if (c.id !== classId) return c
+        const normalized: Student[] = []
+        c.students.forEach((student) => {
+          const name = student.name.trim()
+          if (!name) {
+            removed++
+            return
+          }
+
+          const next = {
+            ...student,
+            name,
+            weight: Number.isFinite(student.weight) && student.weight > 0 ? student.weight : 1,
+            score: Number.isFinite(student.score) ? student.score : 0,
+            pickCount:
+              Number.isFinite(student.pickCount) && student.pickCount >= 0 ? student.pickCount : 0,
+            status: student.status || 'active',
+            studentId: student.studentId?.trim() || undefined,
+            tags: (student.tags || []).map((tag) => tag.trim()).filter((tag) => tag.length > 0),
+            scoreHistory: Array.isArray(student.scoreHistory)
+              ? student.scoreHistory
+                  .filter((entry) => entry && typeof entry.taskName === 'string')
+                  .map((entry) => ({
+                    id: entry.id || crypto.randomUUID(),
+                    timestamp: entry.timestamp || new Date().toISOString(),
+                    delta: Math.trunc(entry.delta || 0),
+                    taskName: entry.taskName.trim() || '任务积分',
+                    source:
+                      entry.source === 'manual' ||
+                      entry.source === 'task-assignment' ||
+                      entry.source === 'batch'
+                        ? entry.source
+                        : 'manual'
+                  }))
+                  .slice(0, 100)
+              : undefined
+          }
+          if (
+            next.name !== student.name ||
+            next.weight !== student.weight ||
+            next.score !== student.score ||
+            next.pickCount !== student.pickCount ||
+            next.studentId !== student.studentId
+          ) {
+            updated++
+          }
+          normalized.push(next)
+        })
+        return { ...c, students: normalized }
+      }),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+    return { updated, removed }
   }
 }))

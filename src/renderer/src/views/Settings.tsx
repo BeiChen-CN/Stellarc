@@ -1,12 +1,14 @@
+import type { ReactElement } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import { AppearanceSection } from './settings/AppearanceSection'
 import { FairnessSection } from './settings/FairnessSection'
 import { DataSection } from './settings/DataSection'
+import { RuleTemplateCenterSection } from './settings/RuleTemplateCenterSection'
 
-export function Settings() {
+export function Settings(): ReactElement {
   const { setBackgroundImage } = useSettingsStore()
 
-  const handleSelectBackground = async () => {
+  const handleSelectBackground = async (): Promise<void> => {
     const filePath = await window.electronAPI.selectFile({
       title: '选择背景图片',
       filters: [{ name: '图片文件', extensions: ['jpg', 'png', 'jpeg', 'webp'] }]
@@ -27,6 +29,7 @@ export function Settings() {
         <div className="space-y-8">
           <AppearanceSection onSelectBackground={handleSelectBackground} />
           <FairnessSection />
+          <RuleTemplateCenterSection />
           <DataSection />
         </div>
       </div>

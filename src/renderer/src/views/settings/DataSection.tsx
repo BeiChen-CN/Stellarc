@@ -1,5 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Database, Save, History, Trash2, Power, Stethoscope, ChevronDown, CalendarDays, X, ChevronLeft, ChevronRight, FolderOpen, RefreshCw, ArrowUpFromLine, ArrowDownToLine, CheckCircle2, AlertCircle } from 'lucide-react'
+import {
+  Database,
+  Save,
+  History,
+  Trash2,
+  Power,
+  Stethoscope,
+  ChevronDown,
+  CalendarDays,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  FolderOpen,
+  RefreshCw,
+  ArrowUpFromLine,
+  ArrowDownToLine,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -33,8 +51,12 @@ function DatePicker({
   const [viewMonth, setViewMonth] = useState(parsed?.getMonth() ?? new Date().getMonth())
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (ref.current && !ref.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)) {
+    if (
+      ref.current &&
+      !ref.current.contains(e.target as Node) &&
+      btnRef.current &&
+      !btnRef.current.contains(e.target as Node)
+    ) {
       setOpen(false)
     }
   }, [])
@@ -49,7 +71,12 @@ function DatePicker({
         const panelHeight = 340
         if (spaceBelow < panelHeight) {
           // Open upward
-          setPopupStyle({ position: 'fixed', left: rect.left, bottom: window.innerHeight - rect.top + 4, zIndex: 9999 })
+          setPopupStyle({
+            position: 'fixed',
+            left: rect.left,
+            bottom: window.innerHeight - rect.top + 4,
+            zIndex: 9999
+          })
         } else {
           // Open downward
           setPopupStyle({ position: 'fixed', left: rect.left, top: rect.bottom + 4, zIndex: 9999 })
@@ -71,12 +98,16 @@ function DatePicker({
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
 
   const prevMonth = () => {
-    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11) }
-    else setViewMonth(viewMonth - 1)
+    if (viewMonth === 0) {
+      setViewYear(viewYear - 1)
+      setViewMonth(11)
+    } else setViewMonth(viewMonth - 1)
   }
   const nextMonth = () => {
-    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0) }
-    else setViewMonth(viewMonth + 1)
+    if (viewMonth === 11) {
+      setViewYear(viewYear + 1)
+      setViewMonth(0)
+    } else setViewMonth(viewMonth + 1)
   }
 
   const selectDay = (day: number) => {
@@ -101,24 +132,40 @@ function DatePicker({
         onClick={() => !disabled && setOpen(!open)}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2 border border-outline-variant rounded-xl text-sm bg-surface-container-low transition-colors text-left',
-          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-surface-container-high/60 cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary'
+          disabled
+            ? 'opacity-40 cursor-not-allowed'
+            : 'hover:bg-surface-container-high/60 cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary'
         )}
       >
         <CalendarDays className="w-4 h-4 text-on-surface-variant shrink-0" />
-        {value
-          ? <span className="text-on-surface">{formatDisplay(value)}</span>
-          : <span className="text-on-surface-variant">{placeholder || '选择日期'}</span>}
+        {value ? (
+          <span className="text-on-surface">{formatDisplay(value)}</span>
+        ) : (
+          <span className="text-on-surface-variant">{placeholder || '选择日期'}</span>
+        )}
       </button>
 
       {open && (
-        <div ref={ref} style={popupStyle} className="bg-surface-container rounded-2xl elevation-3 border border-outline-variant/30 p-3 w-[280px]">
+        <div
+          ref={ref}
+          style={popupStyle}
+          className="bg-surface-container rounded-2xl elevation-3 border border-outline-variant/30 p-3 w-[280px]"
+        >
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
-            <button onClick={prevMonth} className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors">
+            <button
+              onClick={prevMonth}
+              className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors"
+            >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm font-semibold text-on-surface">{viewYear} 年 {viewMonth + 1} 月</span>
-            <button onClick={nextMonth} className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors">
+            <span className="text-sm font-semibold text-on-surface">
+              {viewYear} 年 {viewMonth + 1} 月
+            </span>
+            <button
+              onClick={nextMonth}
+              className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer transition-colors"
+            >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -126,7 +173,12 @@ function DatePicker({
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="text-center text-[10px] text-on-surface-variant font-medium py-1">{w}</div>
+              <div
+                key={w}
+                className="text-center text-[10px] text-on-surface-variant font-medium py-1"
+              >
+                {w}
+              </div>
             ))}
           </div>
 
@@ -151,7 +203,7 @@ function DatePicker({
                     isSelected
                       ? 'bg-primary text-primary-foreground'
                       : isToday
-                   ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
                         : 'text-on-surface hover:bg-surface-container-high'
                   )}
                 >
@@ -164,7 +216,10 @@ function DatePicker({
           {/* Clear */}
           {value && (
             <button
-              onClick={() => { onChange(''); setOpen(false) }}
+              onClick={() => {
+                onChange('')
+                setOpen(false)
+              }}
               className="mt-2 w-full text-center text-xs text-destructive hover:text-destructive/80 cursor-pointer py-1"
             >
               清除日期
@@ -177,18 +232,37 @@ function DatePicker({
 }
 
 export function DataSection() {
-  const { maxHistoryRecords, setMaxHistoryRecords, syncEnabled, toggleSyncEnabled, syncFolder, setSyncFolder, semester, setSemester } =
-    useSettingsStore()
+  const {
+    maxHistoryRecords,
+    setMaxHistoryRecords,
+    syncEnabled,
+    toggleSyncEnabled,
+    syncFolder,
+    setSyncFolder,
+    semester,
+    setSemester
+  } = useSettingsStore()
   const addToast = useToastStore((state) => state.addToast)
   const showConfirm = useConfirmStore((state) => state.show)
-  const { loading: diagnosticsLoading, migrationState, healthReport, lastLoadedAt, loadDiagnostics } =
-    useDiagnosticsStore()
+  const showPrompt = useConfirmStore((state) => state.showPrompt)
+  const {
+    loading: diagnosticsLoading,
+    migrationState,
+    healthReport,
+    events,
+    lastLoadedAt,
+    loadDiagnostics
+  } = useDiagnosticsStore()
   const [autoLaunch, setAutoLaunchState] = useState(false)
   const [syncExpanded, setSyncExpanded] = useState(false)
   const [diagExpanded, setDiagExpanded] = useState(false)
   const [syncing, setSyncing] = useState<'push' | 'pull' | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'error' | null>(null)
+  const [lastSyncMessage, setLastSyncMessage] = useState<string>('')
+  const [syncLocalFingerprint, setSyncLocalFingerprint] = useState<string>('')
+  const [syncRemoteFingerprint, setSyncRemoteFingerprint] = useState<string>('')
+  const [restoringPoint, setRestoringPoint] = useState(false)
 
   useEffect(() => {
     window.electronAPI.getAutoLaunch().then(setAutoLaunchState)
@@ -239,6 +313,45 @@ export function DataSection() {
     )
   }
 
+  const handleCreateRestorePoint = async () => {
+    showPrompt(
+      '创建恢复点',
+      '请输入恢复点名称（建议包含日期或用途）',
+      '例如：周测前快照',
+      async (name) => {
+        const result = await window.electronAPI.createRestorePoint(name)
+        addToast(
+          result.ok ? `恢复点已创建：${result.name}` : result.message || '创建恢复点失败',
+          result.ok ? 'success' : 'error'
+        )
+      }
+    )
+  }
+
+  const handleRestoreLatestPoint = async () => {
+    const points = await window.electronAPI.listRestorePoints()
+    if (points.length === 0) {
+      addToast('暂无可用恢复点', 'error')
+      return
+    }
+
+    showConfirm(
+      '恢复到最近恢复点',
+      `将恢复到 ${points[0].name}，此操作会覆盖当前数据。`,
+      async () => {
+        setRestoringPoint(true)
+        const ok = await window.electronAPI.restoreFromPoint(points[0].path)
+        setRestoringPoint(false)
+        if (ok) {
+          addToast('恢复成功，应用将重新加载', 'success')
+          setTimeout(() => window.location.reload(), 1200)
+        } else {
+          addToast('恢复失败', 'error')
+        }
+      }
+    )
+  }
+
   const handleChooseSyncFolder = async () => {
     const folder = await window.electronAPI.selectFolder()
     if (!folder) return
@@ -252,31 +365,64 @@ export function DataSection() {
       return
     }
     setSyncing('push')
-    const ok = await window.electronAPI.syncDataToFolder(syncFolder)
+    const result = await window.electronAPI.syncDataToFolderV2(syncFolder)
     setSyncing(null)
-    setLastSyncStatus(ok ? 'success' : 'error')
-    if (ok) setLastSyncTime(new Date().toLocaleString())
-    addToast(ok ? '已同步到共享目录' : '同步失败', ok ? 'success' : 'error')
+    setLastSyncStatus(result.ok ? 'success' : 'error')
+    setLastSyncMessage(result.message)
+    setSyncLocalFingerprint(result.localFingerprint || '')
+    setSyncRemoteFingerprint(result.remoteFingerprint || '')
+    if (result.ok) setLastSyncTime(new Date().toLocaleString())
+    addToast(result.message, result.ok ? 'success' : 'error')
   }
 
-  const handleSyncFromFolder = async () => {
+  const handleSyncFromFolder = async (force = false) => {
     if (!syncFolder) {
       addToast('请先选择同步目录', 'error')
       return
     }
-    showConfirm('拉取数据', '从共享目录拉取将覆盖本地数据，确定继续吗？', async () => {
-      setSyncing('pull')
-      const ok = await window.electronAPI.syncDataFromFolder(syncFolder)
-      setSyncing(null)
-      setLastSyncStatus(ok ? 'success' : 'error')
-      if (ok) {
-        setLastSyncTime(new Date().toLocaleString())
-        addToast('已从共享目录拉取，应用将重新加载', 'success')
-        setTimeout(() => window.location.reload(), 1200)
-      } else {
-        addToast('拉取失败，请检查同步目录是否包含有效数据', 'error')
+    showConfirm(
+      '拉取数据',
+      force ? '将强制覆盖本地数据，确定继续吗？' : '从共享目录拉取将覆盖本地数据，确定继续吗？',
+      async () => {
+        setSyncing('pull')
+        const result = await window.electronAPI.syncDataFromFolderV2(syncFolder, force)
+        setSyncing(null)
+        setLastSyncStatus(result.ok ? 'success' : 'error')
+        setLastSyncMessage(result.message)
+        setSyncLocalFingerprint(result.localFingerprint || '')
+        setSyncRemoteFingerprint(result.remoteFingerprint || '')
+        if (result.ok) {
+          setLastSyncTime(new Date().toLocaleString())
+          addToast('已从共享目录拉取，应用将重新加载', 'success')
+          setTimeout(() => window.location.reload(), 1200)
+        } else {
+          if (result.code === 'SYNC_CONFLICT' && !force) {
+            showConfirm(
+              '检测到同步冲突',
+              '本地与远端都发生了变化。是否强制拉取远端覆盖本地？',
+              async () => {
+                await handleSyncFromFolder(true)
+              }
+            )
+          } else {
+            addToast(result.message, 'error')
+          }
+        }
       }
-    })
+    )
+  }
+
+  const handleCheckSyncStatus = async () => {
+    if (!syncFolder) {
+      addToast('请先选择同步目录', 'error')
+      return
+    }
+    const result = await window.electronAPI.getSyncStatus(syncFolder)
+    setLastSyncStatus(result.ok ? 'success' : 'error')
+    setLastSyncMessage(result.message)
+    setSyncLocalFingerprint(result.localFingerprint || '')
+    setSyncRemoteFingerprint(result.remoteFingerprint || '')
+    addToast(result.message, result.ok ? 'success' : 'error')
   }
 
   const handleToggleAutoLaunch = async () => {
@@ -315,12 +461,14 @@ export function DataSection() {
               max="10000"
               step="100"
               value={maxHistoryRecords}
-              onChange={(e) => setMaxHistoryRecords(Math.max(100, parseInt(e.target.value) || 1000))}
+              onChange={(e) =>
+                setMaxHistoryRecords(Math.max(100, parseInt(e.target.value) || 1000))
+              }
               className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
           <button
             onClick={handleBackup}
             className="flex flex-col items-center justify-center p-6 border border-outline-variant rounded-[28px] hover:bg-surface-container-high transition-all duration-200 group cursor-pointer"
@@ -329,7 +477,9 @@ export function DataSection() {
               <Save className="w-6 h-6" />
             </div>
             <span className="font-medium mb-1 text-on-surface">备份数据</span>
-            <span className="text-xs text-on-surface-variant text-center">导出所有设置和记录为 ZIP 文件</span>
+            <span className="text-xs text-on-surface-variant text-center">
+              导出所有设置和记录为 ZIP 文件
+            </span>
           </button>
           <button
             onClick={handleRestore}
@@ -339,7 +489,9 @@ export function DataSection() {
               <Database className="w-6 h-6" />
             </div>
             <span className="font-medium mb-1 text-destructive">恢复数据</span>
-            <span className="text-xs text-on-surface-variant text-center">从备份文件恢复所有数据</span>
+            <span className="text-xs text-on-surface-variant text-center">
+              从备份文件恢复所有数据
+            </span>
           </button>
           <button
             onClick={handleDeleteAllData}
@@ -349,7 +501,30 @@ export function DataSection() {
               <Trash2 className="w-6 h-6" />
             </div>
             <span className="font-medium mb-1 text-destructive">清除数据</span>
-            <span className="text-xs text-on-surface-variant text-center">删除所有班级、历史和设置</span>
+            <span className="text-xs text-on-surface-variant text-center">
+              删除所有班级、历史和设置
+            </span>
+          </button>
+          <button
+            onClick={handleCreateRestorePoint}
+            className="flex flex-col items-center justify-center p-6 border border-outline-variant rounded-[28px] hover:bg-surface-container-high transition-all duration-200 group cursor-pointer"
+          >
+            <div className="p-3 bg-primary/5 text-primary rounded-full mb-3 group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <span className="font-medium mb-1 text-on-surface">创建恢复点</span>
+            <span className="text-xs text-on-surface-variant text-center">
+              为设置和历史生成可回滚快照
+            </span>
+          </button>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button
+            disabled={restoringPoint}
+            onClick={handleRestoreLatestPoint}
+            className="px-4 py-2 rounded-full bg-secondary-container text-secondary-container-foreground text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {restoringPoint ? '恢复中...' : '恢复最近恢复点'}
           </button>
         </div>
       </section>
@@ -393,7 +568,15 @@ export function DataSection() {
                   value={semester?.name || ''}
                   onChange={(e) => {
                     const name = e.target.value
-                    setSemester(name ? { name, startDate: semester?.startDate || '', endDate: semester?.endDate || '' } : null)
+                    setSemester(
+                      name
+                        ? {
+                            name,
+                            startDate: semester?.startDate || '',
+                            endDate: semester?.endDate || ''
+                          }
+                        : null
+                    )
                   }}
                   className="w-full px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
                 />
@@ -440,7 +623,12 @@ export function DataSection() {
             多终端同步
           </h3>
           <button className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer">
-            <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', syncExpanded && 'rotate-180')} />
+            <ChevronDown
+              className={cn(
+                'w-4 h-4 transition-transform duration-200',
+                syncExpanded && 'rotate-180'
+              )}
+            />
           </button>
         </div>
         <AnimatePresence initial={false}>
@@ -464,7 +652,9 @@ export function DataSection() {
                     </div>
                     <div>
                       <h4 className="font-medium text-on-surface">启用目录同步</h4>
-                      <p className="text-xs text-on-surface-variant mt-0.5">通过共享文件夹（如网盘、NAS）在多台设备间同步数据</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">
+                        通过共享文件夹（如网盘、NAS）在多台设备间同步数据
+                      </p>
                     </div>
                   </div>
                   <MD3Switch checked={syncEnabled} onClick={toggleSyncEnabled} label="目录同步" />
@@ -482,7 +672,9 @@ export function DataSection() {
                     </button>
                     <div className="flex-1 min-w-0">
                       {syncFolder ? (
-                        <p className="text-xs text-on-surface truncate" title={syncFolder}>{syncFolder}</p>
+                        <p className="text-xs text-on-surface truncate" title={syncFolder}>
+                          {syncFolder}
+                        </p>
                       ) : (
                         <p className="text-xs text-on-surface-variant">未选择同步目录</p>
                       )}
@@ -493,15 +685,54 @@ export function DataSection() {
                 {/* Sync status bar */}
                 {lastSyncTime && (
                   <div className="px-5 pb-3 flex items-center gap-2 text-xs">
-                    {lastSyncStatus === 'success'
-                      ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />
-                      : <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                    {lastSyncStatus === 'success' ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                    )}
                     <span className="text-on-surface-variant">上次同步：{lastSyncTime}</span>
+                  </div>
+                )}
+                {lastSyncMessage && (
+                  <div className="px-5 pb-3 text-xs text-on-surface-variant">
+                    状态：{lastSyncMessage}
+                  </div>
+                )}
+                {(syncLocalFingerprint || syncRemoteFingerprint) && (
+                  <div className="px-5 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div className="rounded-xl bg-surface-container-high/40 p-2">
+                      <div className="text-on-surface-variant">本地指纹</div>
+                      <div className="font-mono text-on-surface mt-0.5 break-all">
+                        {syncLocalFingerprint || '-'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-surface-container-high/40 p-2">
+                      <div className="text-on-surface-variant">远端指纹</div>
+                      <div className="font-mono text-on-surface mt-0.5 break-all">
+                        {syncRemoteFingerprint || '-'}
+                      </div>
+                    </div>
+                    <div className="sm:col-span-2 text-on-surface-variant">
+                      对比：
+                      {syncLocalFingerprint && syncRemoteFingerprint
+                        ? syncLocalFingerprint === syncRemoteFingerprint
+                          ? '本地与远端一致'
+                          : '检测到差异，拉取前建议先确认并备份'
+                        : '等待完整指纹信息'}
+                    </div>
                   </div>
                 )}
 
                 {/* Push / Pull buttons */}
                 <div className="grid grid-cols-2 gap-3 px-5 pb-5">
+                  <button
+                    disabled={!syncFolder || syncing !== null}
+                    onClick={handleCheckSyncStatus}
+                    className="col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl border border-outline-variant/50 hover:bg-surface-container-high transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <RefreshCw className="w-4 h-4 text-on-surface-variant" />
+                    <span className="text-xs text-on-surface">检查同步状态</span>
+                  </button>
                   <button
                     disabled={!syncEnabled || !syncFolder || syncing !== null}
                     onClick={handleSyncToFolder}
@@ -513,11 +744,13 @@ export function DataSection() {
                       <ArrowUpFromLine className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                     )}
                     <span className="text-sm font-medium text-on-surface">推送到目录</span>
-                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">将本地数据上传到共享目录</span>
+                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">
+                      将本地数据上传到共享目录
+                    </span>
                   </button>
                   <button
                     disabled={!syncEnabled || !syncFolder || syncing !== null}
-                    onClick={handleSyncFromFolder}
+                    onClick={() => handleSyncFromFolder(false)}
                     className="flex flex-col items-center gap-2 p-4 rounded-2xl border bordariant/50 hover:bg-primary/5 hover:border-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer group"
                   >
                     {syncing === 'pull' ? (
@@ -526,7 +759,9 @@ export function DataSection() {
                       <ArrowDownToLine className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                     )}
                     <span className="text-sm font-medium text-on-surface">从目录拉取</span>
-                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">从共享目录覆盖本地数据</span>
+                    <span className="text-[10px] text-on-surface-variant text-center leading-tight">
+                      从共享目录覆盖本地数据
+                    </span>
                   </button>
                 </div>
               </div>
@@ -546,7 +781,12 @@ export function DataSection() {
             可观测性与诊断
           </h3>
           <button className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer">
-            <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', diagExpanded && 'rotate-180')} />
+            <ChevronDown
+              className={cn(
+                'w-4 h-4 transition-transform duration-200',
+                diagExpanded && 'rotate-180'
+              )}
+            />
           </button>
         </div>
         <AnimatePresence initial={false}>
@@ -576,15 +816,91 @@ export function DataSection() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-2xl bg-surface-container-high/40 p-3">
                     <div className="text-xs text-on-surface-variant">迁移状态</div>
-                    <div className="text-sm font-semibold text-on-surface mt-1">{migrationState?.status || 'unknown'}</div>
+                    <div className="text-sm font-semibold text-on-surface mt-1">
+                      {migrationState?.status || 'unknown'}
+                    </div>
                   </div>
                   <div className="rounded-2xl bg-surface-container-high/40 p-3">
                     <div className="text-xs text-on-surface-variant">自检修复数</div>
-                    <div className="text-sm font-semibold text-on-surface mt-1">{healthReport?.summary?.repaired ?? '-'}</div>
+                    <div className="text-sm font-semibold text-on-surface mt-1">
+                      {healthReport?.summary?.repaired ?? '-'}
+                    </div>
                   </div>
                   <div className="rounded-2xl bg-surface-container-high/40 p-3">
                     <div className="text-xs text-on-surface-variant">自检错误数</div>
-                    <div className="text-sm font-semibold text-on-surface mt-1">{healthReport?.summary?.error ?? '-'}</div>
+                    <div className="text-sm font-semibold text-on-surface mt-1">
+                      {healthReport?.summary?.error ?? '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {Array.isArray(healthReport?.checks || healthReport?.items) &&
+                  (healthReport?.checks || healthReport?.items)!.length > 0 && (
+                    <div className="rounded-2xl bg-surface-container-high/30 p-3">
+                      <div className="text-xs text-on-surface-variant mb-2">自检详情</div>
+                      <div className="space-y-1.5 max-h-28 overflow-y-auto custom-scrollbar">
+                        {(healthReport?.checks || healthReport?.items || [])
+                          .slice(0, 8)
+                          .map((check) => (
+                            <div
+                              key={check.name}
+                              className="text-xs flex items-center justify-between gap-2"
+                            >
+                              <span className="text-on-surface truncate">{check.name}</span>
+                              <span
+                                className={cn(
+                                  'px-2 py-0.5 rounded-full text-[10px]',
+                                  check.status === 'ok'
+                                    ? 'bg-primary/10 text-primary'
+                                    : check.status === 'warning'
+                                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                      : 'bg-destructive/10 text-destructive'
+                                )}
+                              >
+                                {check.status}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                <div className="rounded-2xl bg-surface-container-high/30 p-3">
+                  <div className="text-xs text-on-surface-variant mb-2">最近事件</div>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+                    {events.length === 0 ? (
+                      <div className="text-xs text-on-surface-variant">暂无诊断事件</div>
+                    ) : (
+                      events
+                        .slice()
+                        .reverse()
+                        .slice(0, 10)
+                        .map((event) => (
+                          <div
+                            key={event.id}
+                            className="text-xs flex items-start justify-between gap-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-on-surface truncate">{event.message}</div>
+                              <div className="text-on-surface-variant/80 truncate">
+                                {event.category} · {event.code}
+                              </div>
+                            </div>
+                            <span
+                              className={cn(
+                                'shrink-0 px-1.5 py-0.5 rounded text-[10px]',
+                                event.level === 'error'
+                                  ? 'bg-destructive/15 text-destructive'
+                                  : event.level === 'warn'
+                                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                    : 'bg-primary/10 text-primary'
+                              )}
+                            >
+                              {event.level}
+                            </span>
+                          </div>
+                        ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -607,7 +923,9 @@ export function DataSection() {
               </div>
               <div>
                 <h4 className="font-medium text-on-surface">开机自启动</h4>
-                <p className="text-xs text-on-surface-variant mt-0.5">系统启动时自动运行 Stellarc</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  系统启动时自动运行 Stellarc
+                </p>
               </div>
             </div>
             <MD3Switch checked={autoLaunch} onClick={handleToggleAutoLaunch} label="开机自启动" />

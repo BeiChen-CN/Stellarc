@@ -1,5 +1,25 @@
 import { useState, ReactNode } from 'react'
-import { Sun, Moon, Monitor, Palette, Layers, Zap, Target, Camera, CreditCard, ImageIcon, Pipette, Volume2, VolumeX, PartyPopper, Check, ChevronDown } from 'lucide-react'
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Palette,
+  Layers,
+  Zap,
+  Target,
+  Camera,
+  CreditCard,
+  ImageIcon,
+  Pipette,
+  Volume2,
+  VolumeX,
+  PartyPopper,
+  Check,
+  ChevronDown,
+  Users,
+  Shuffle,
+  BarChart3
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, toFileUrl } from '../../lib/utils'
 import { useSettingsStore, ColorTheme } from '../../store/settingsStore'
@@ -65,21 +85,48 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
   const [animExpanded, setAnimExpanded] = useState(false)
   const [presetExpanded, setPresetExpanded] = useState(false)
   const {
-    theme, setTheme,
-    colorTheme, setColorTheme,
-    customColor, setCustomColor,
-    m3Mode, toggleM3Mode,
-    designStyle, setDesignStyle,
-    animationStyle, setAnimationStyle,
-    animationSpeed, setAnimationSpeed,
-    activityPreset, setActivityPreset,
-    projectorMode, toggleProjectorMode,
-    backgroundImage, setBackgroundImage,
-    dynamicColor, toggleDynamicColor,
-    soundEnabled, toggleSoundEnabled,
-    confettiEnabled, toggleConfettiEnabled,
-    photoMode, togglePhotoMode,
-    showStudentId, toggleShowStudentId
+    theme,
+    setTheme,
+    colorTheme,
+    setColorTheme,
+    customColor,
+    setCustomColor,
+    m3Mode,
+    toggleM3Mode,
+    designStyle,
+    setDesignStyle,
+    animationStyle,
+    setAnimationStyle,
+    animationSpeed,
+    setAnimationSpeed,
+    activityPreset,
+    setActivityPreset,
+    showClassroomFlow,
+    toggleShowClassroomFlow,
+    showClassroomTemplate,
+    toggleShowClassroomTemplate,
+    showTemporaryExclusion,
+    toggleShowTemporaryExclusion,
+    showAutoDraw,
+    toggleShowAutoDraw,
+    showSelectionExplanation,
+    toggleShowSelectionExplanation,
+    revealSettleMs,
+    setRevealSettleMs,
+    projectorMode,
+    toggleProjectorMode,
+    backgroundImage,
+    setBackgroundImage,
+    dynamicColor,
+    toggleDynamicColor,
+    soundEnabled,
+    toggleSoundEnabled,
+    confettiEnabled,
+    toggleConfettiEnabled,
+    photoMode,
+    togglePhotoMode,
+    showStudentId,
+    toggleShowStudentId
   } = useSettingsStore()
 
   return (
@@ -101,11 +148,13 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
             </div>
           </div>
           <div className="flex rounded-full border border-outline-variant overflow-hidden">
-            {([
-              { value: 'light', label: '浅色', icon: Sun },
-              { value: 'system', label: '系统', icon: Monitor },
-              { value: 'dark', label: '深色', icon: Moon }
-            ] as const).map((opt) => {
+            {(
+              [
+                { value: 'light', label: '浅色', icon: Sun },
+                { value: 'system', label: '系统', icon: Monitor },
+                { value: 'dark', label: '深色', icon: Moon }
+              ] as const
+            ).map((opt) => {
               const Icon = opt.icon
               return (
                 <button
@@ -138,11 +187,13 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
             </div>
           </div>
           <div className="flex rounded-full border border-outline-variant overflow-hidden">
-            {([
-              { value: 'elegant', label: '优雅' },
-              { value: 'balanced', label: '均衡' },
-              { value: 'fast', label: '快速' }
-            ] as const).map((opt) => (
+            {(
+              [
+                { value: 'elegant', label: '优雅' },
+                { value: 'balanced', label: '均衡' },
+                { value: 'fast', label: '快速' }
+              ] as const
+            ).map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setAnimationSpeed(opt.value)}
@@ -175,7 +226,12 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
               onClick={() => setColorsExpanded(!colorsExpanded)}
               className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer"
             >
-              <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', colorsExpanded && 'rotate-180')} />
+              <ChevronDown
+                className={cn(
+                  'w-4 h-4 transition-transform duration-200',
+                  colorsExpanded && 'rotate-180'
+                )}
+              />
             </button>
           </div>
           <div className="grid grid-cols-5 gap-2 pl-14">
@@ -197,9 +253,13 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
                   className="w-7 h-7 rounded-full flex items-center justify-center ring-1 ring-black/5"
                   style={{ backgroundColor: ct.color }}
                 >
-                  {colorTheme === ct.id && !customColor && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                  {colorTheme === ct.id && !customColor && (
+                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  )}
                 </div>
-                <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">{ct.label}</span>
+                <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">
+                  {ct.label}
+                </span>
               </button>
             ))}
             {/* Custom Color */}
@@ -215,12 +275,16 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
                 className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer ring-1 ring-black/5 overflow-hidden"
                 style={{
                   backgroundColor: customColor || undefined,
-                  background: customColor ? undefined : 'conic-gradient(from 0deg, hsl(0 80% 60%), hsl(60 80% 60%), hsl(120 80% 60%), hsl(180 80% 60%), hsl(240 80% 60%), hsl(300 80% 60%), hsl(360 80% 60%))'
+                  background: customColor
+                    ? undefined
+                    : 'conic-gradient(from 0deg, hsl(0 80% 60%), hsl(60 80% 60%), hsl(120 80% 60%), hsl(180 80% 60%), hsl(240 80% 60%), hsl(300 80% 60%), hsl(360 80% 60%))'
                 }}
               >
-                {customColor
-                  ? <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                  : <Pipette className="w-3 h-3 text-white drop-shadow-sm" />}
+                {customColor ? (
+                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                ) : (
+                  <Pipette className="w-3 h-3 text-white drop-shadow-sm" />
+                )}
                 <input
                   type="color"
                   className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
@@ -228,7 +292,9 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
                   onChange={(e) => setCustomColor(e.target.value)}
                 />
               </label>
-              <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">自定义</span>
+              <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">
+                自定义
+              </span>
               {customColor && (
                 <button
                   onClick={() => setCustomColor(undefined)}
@@ -279,7 +345,9 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
               >
                 <DesignStylePreview type={ds.preview} isActive={designStyle === ds.id} />
                 <span className="text-xs font-medium text-on-surface">{ds.label}</span>
-                <span className="text-[10px] text-on-surface-variant leading-tight text-center">{ds.desc}</span>
+                <span className="text-[10px] text-on-surface-variant leading-tight text-center">
+                  {ds.desc}
+                </span>
               </button>
             ))}
           </div>
@@ -306,7 +374,9 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
                 )}
               >
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  {animationStyle === anim.id && <Check className="w-4 h-4 text-primary" strokeWidth={3} />}
+                  {animationStyle === anim.id && (
+                    <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                  )}
                 </div>
                 <span className="text-xs font-medium text-on-surface">{anim.label}</span>
                 <span className="text-[10px] text-on-surface-variant">{anim.desc}</span>
@@ -336,14 +406,82 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
                 )}
               >
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  {activityPreset === preset.id && <Check className="w-4 h-4 text-primary" strokeWidth={3} />}
+                  {activityPreset === preset.id && (
+                    <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                  )}
                 </div>
                 <span className="text-xs font-medium text-on-surface">{preset.label}</span>
-                <span className="text-[10px] text-on-surface-variant text-center">{preset.desc}</span>
+                <span className="text-[10px] text-on-surface-variant text-center">
+                  {preset.desc}
+                </span>
               </button>
             ))}
           </div>
         </CollapsibleGrid>
+
+        <ToggleRow
+          icon={<Layers className="w-5 h-5" />}
+          title="显示课堂流程"
+          desc="在主页显示课堂流程选择与步骤切换"
+          checked={showClassroomFlow}
+          onToggle={toggleShowClassroomFlow}
+        />
+
+        <ToggleRow
+          icon={<Target className="w-5 h-5" />}
+          title="显示课堂模板"
+          desc="在主页显示快速点名/深度互动/小组对抗模板"
+          checked={showClassroomTemplate}
+          onToggle={toggleShowClassroomTemplate}
+        />
+
+        <ToggleRow
+          icon={<Users className="w-5 h-5" />}
+          title="显示临时禁选"
+          desc="在主页上方显示临时禁选面板"
+          checked={showTemporaryExclusion}
+          onToggle={toggleShowTemporaryExclusion}
+        />
+
+        <ToggleRow
+          icon={<Shuffle className="w-5 h-5" />}
+          title="显示连抽"
+          desc="在主页上方显示连抽设置和控制"
+          checked={showAutoDraw}
+          onToggle={toggleShowAutoDraw}
+        />
+
+        {showAutoDraw && (
+          <div className="p-5 hover:bg-surface-container-high/50 transition-colors bg-surface-container-high/30 border-t border-outline-variant/20">
+            <div className="pl-14 flex items-center justify-between gap-4">
+              <div>
+                <h4 className="font-medium text-sm text-on-surface">揭晓稳定等待（毫秒）</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  连抽时，上一轮揭晓结束后额外等待该时间再开始下一轮
+                </p>
+              </div>
+              <input
+                type="number"
+                min="0"
+                max="5000"
+                step="100"
+                value={revealSettleMs}
+                onChange={(e) =>
+                  setRevealSettleMs(Math.max(0, Math.min(5000, parseInt(e.target.value) || 0)))
+                }
+                className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
+              />
+            </div>
+          </div>
+        )}
+
+        <ToggleRow
+          icon={<BarChart3 className="w-5 h-5" />}
+          title="显示抽选解释"
+          desc="在每次抽选后展示权重与原因解释"
+          checked={showSelectionExplanation}
+          onToggle={toggleShowSelectionExplanation}
+        />
 
         {/* Projector Mode */}
         <ToggleRow
@@ -382,7 +520,11 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
             )}
             <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden">
               {backgroundImage ? (
-                <img src={toFileUrl(backgroundImage)} alt="bg" className="w-full h-full object-cover" />
+                <img
+                  src={toFileUrl(backgroundImage)}
+                  alt="bg"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span className="text-xs text-on-surface-variant">默认</span>
               )}
@@ -398,7 +540,9 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
               ? 'hover:bg-surface-container-high/50 cursor-pointer'
               : 'opacity-50 cursor-not-allowed'
           )}
-          onClick={() => { if (backgroundImage) toggleDynamicColor() }}
+          onClick={() => {
+            if (backgroundImage) toggleDynamicColor()
+          }}
         >
           <div className="flex items-center space-x-4">
             <div className="p-2 bg-primary/10 text-primary rounded-full">
@@ -413,7 +557,9 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
           </div>
           <MD3Switch
             checked={dynamicColor && !!backgroundImage}
-            onClick={() => { if (backgroundImage) toggleDynamicColor() }}
+            onClick={() => {
+              if (backgroundImage) toggleDynamicColor()
+            }}
             label="动态取色"
           />
         </div>
@@ -487,7 +633,9 @@ function CollapsibleGrid({
           onClick={onToggle}
           className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer"
         >
-          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          />
         </button>
       </div>
       <AnimatePresence initial={false}>
