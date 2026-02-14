@@ -25,15 +25,15 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            build_command: npm run build && electron-builder --win --publish never
+            build_command: npm run build && npx electron-builder --win --publish never
             pack_command: powershell -Command "Compress-Archive -Path dist\* -DestinationPath stellarc-${env:TARGET_TAG}-windows.zip -Force"
           - os: macos-latest
             platform: macos
-            build_command: npm run build && electron-builder --mac --publish never
+            build_command: npm run build && npx electron-builder --mac --publish never
             pack_command: zip -r "stellarc-${TARGET_TAG}-macos.zip" dist
           - os: ubuntu-latest
             platform: linux
-            build_command: npm run build && electron-builder --linux --publish never
+            build_command: npm run build && npx electron-builder --linux --publish never
             pack_command: zip -r "stellarc-${TARGET_TAG}-linux.zip" dist
 
     steps:
