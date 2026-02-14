@@ -26,15 +26,12 @@ jobs:
           - os: windows-latest
             platform: windows
             build_command: npm run build && npx electron-builder --win --publish never
-            pack_command: powershell -Command "Compress-Archive -Path dist\* -DestinationPath stellarc-${env:TARGET_TAG}-windows.zip -Force"
           - os: macos-latest
             platform: macos
             build_command: npm run build && npx electron-builder --mac --publish never
-            pack_command: zip -r "stellarc-${TARGET_TAG}-macos.zip" dist
           - os: ubuntu-latest
             platform: linux
             build_command: npm run build && npx electron-builder --linux --publish never
-            pack_command: zip -r "stellarc-${TARGET_TAG}-linux.zip" dist
 
     steps:
       - name: Checkout
@@ -54,14 +51,30 @@ jobs:
       - name: Build app
         run: ${{ matrix.build_command }}
 
-      - name: Pack artifacts
-        run: ${{ matrix.pack_command }}
-
-      - name: Upload build package
+      - name: Upload windows installers
+        if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-bundle
-          path: stellarc-${{ env.TARGET_TAG }}-${{ matrix.platform }}.zip
+          path: |
+            dist/*.exe
+
+      - name: Upload mac installers
+        if: matrix.platform == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-bundle
+          path: |
+            dist/*.dmg
+
+      - name: Upload linux installers
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-bundle
+          path: |
+            dist/*.AppImage
+            dist/*.deb
 
   release:
     runs-on: ubuntu-latest
@@ -97,5 +110,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TARGET_TAG }}
-          files: release-assets/**/*.zip
+          files: |
+            release-assets/**/*.exe
+            release-assets/**/*.dmg
+            release-assets/**/*.AppImage
+            release-assets/**/*.deb
           body_path: RELEASE_NOTES.md
