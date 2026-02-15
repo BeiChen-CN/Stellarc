@@ -26,7 +26,7 @@ jobs:
           - os: windows-latest
             platform: windows
             build_command: npm run build && npx electron-builder --win --publish never
-            hash_command: powershell -Command "$files = @(Get-ChildItem -Path 'dist\*.exe','dist\*.msi' -File -ErrorAction SilentlyContinue); if ($files.Count -eq 0) { Write-Host 'No Windows installers found in dist'; exit 0 }; $files | ForEach-Object { $h=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(); Set-Content -Path ($_.FullName + '.sha256') -Value ($h + '  ' + $_.Name) }"
+            hash_command: $files = @(Get-ChildItem -Path 'dist\*.exe','dist\*.msi' -File -ErrorAction SilentlyContinue); if ($files.Count -eq 0) { Write-Host 'No Windows installers found in dist'; exit 0 }; $files | ForEach-Object { $h=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(); Set-Content -Path ($_.FullName + '.sha256') -Value ($h + '  ' + $_.Name) }
           - os: macos-latest
             platform: macos
             build_command: npm run build && npx electron-builder --mac --publish never
