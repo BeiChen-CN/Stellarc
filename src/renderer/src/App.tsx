@@ -60,12 +60,20 @@ function App() {
   }, [currentView, homeImmersive])
 
   useEffect(() => {
+    const root = document.documentElement
+    const body = document.body
+    const mountNode = document.getElementById('root')
+
     if (homeImmersive) {
-      document.documentElement.style.background = 'transparent'
-      document.body.style.background = 'transparent'
+      root.classList.add('immersive-mode')
+      root.style.background = 'transparent'
+      body.style.background = 'transparent'
+      mountNode?.style.setProperty('background', 'transparent')
     } else {
-      document.documentElement.style.removeProperty('background')
-      document.body.style.removeProperty('background')
+      root.classList.remove('immersive-mode')
+      root.style.removeProperty('background')
+      body.style.removeProperty('background')
+      mountNode?.style.removeProperty('background')
     }
   }, [homeImmersive])
 

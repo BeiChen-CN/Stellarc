@@ -988,37 +988,37 @@ export function Home({
             )}
           </motion.button>
 
-          {!isSpinning && (
-            <div className="shrink-0 flex items-center bg-transparent rounded-full px-2 py-1 border border-outline-variant/35 backdrop-blur-[1px]">
-              <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                人数
-              </span>
-              <button
-                onClick={() => setPickCount(Math.max(1, pickCount - 1))}
-                className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-              <span className="w-5 text-center text-sm font-bold text-primary">{pickCount}</span>
-              <button
-                onClick={() => setPickCount(Math.min(10, pickCount + 1))}
-                className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-              >
-                <ChevronUp className="w-3.5 h-3.5" />
-              </button>
+          <div className="shrink-0 flex items-center bg-transparent rounded-full px-2 py-1 border border-outline-variant/35 backdrop-blur-[1px]">
+            <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              人数
+            </span>
+            <button
+              onClick={() => setPickCount(Math.max(1, pickCount - 1))}
+              disabled={isSpinning}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-5 text-center text-sm font-bold text-primary">{pickCount}</span>
+            <button
+              onClick={() => setPickCount(Math.min(10, pickCount + 1))}
+              disabled={isSpinning}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
 
-              <div className="w-px h-4 mx-1 bg-outline-variant/40" />
-              <button
-                onClick={() => setImmersiveMode(false)}
-                className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-on-surface/10 cursor-pointer inline-flex items-center gap-1"
-                title="退出沉浸模式（Esc）"
-              >
-                <X className="w-3.5 h-3.5" />
-                退出
-              </button>
-            </div>
-          )}
+            <div className="w-px h-4 mx-1 bg-outline-variant/40" />
+            <button
+              onClick={() => setImmersiveMode(false)}
+              className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-on-surface/10 cursor-pointer inline-flex items-center gap-1"
+              title="退出沉浸模式（Esc）"
+            >
+              <X className="w-3.5 h-3.5" />
+              退出
+            </button>
+          </div>
 
           <div className="w-full max-w-xl rounded-2xl bg-transparent border border-outline-variant/30 backdrop-blur-[1px] px-4 py-3">
             <div className="text-xs text-on-surface-variant mb-1">抽取结果</div>
