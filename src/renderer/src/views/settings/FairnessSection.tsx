@@ -17,29 +17,13 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToastStore } from '../../store/toastStore'
 import { getStrategyDisplayList, useStrategyStore } from '../../store/strategyStore'
 import { MD3Switch } from './MD3Switch'
-import { ShortcutRecorder, formatAccelerator } from './ShortcutRecorder'
 
 export function FairnessSection() {
-  const { fairness, setFairness, shortcutKey, setShortcutKey, scoreRules, setScoreRules } =
-    useSettingsStore()
+  const { fairness, setFairness, scoreRules, setScoreRules } = useSettingsStore()
   const addToast = useToastStore((state) => state.addToast)
   const { loadedCount, skippedCount, lastErrors, lastDetails, loadPlugins, sourceFile } =
     useStrategyStore()
   const [strategyExpanded, setStrategyExpanded] = useState(false)
-
-  const handleSetShortcutKey = async (key: string) => {
-    const success = await setShortcutKey(key)
-    if (!success) {
-      addToast('快捷键注册失败，可能已被系统或其他应用占用。', 'error')
-      return false
-    }
-    if (key) {
-      addToast(`快捷键已设置为 ${formatAccelerator(key)}`, 'success')
-    } else {
-      addToast('已清除全局快捷键', 'success')
-    }
-    return true
-  }
 
   return (
     <section className="space-y-4">
@@ -363,9 +347,6 @@ export function FairnessSection() {
           </div>
         )}
 
-        {/* Global Shortcut */}
-        <ShortcutRecorder shortcutKey={shortcutKey} setShortcutKey={handleSetShortcutKey} />
-
         <div className="p-5 hover:bg-surface-container-high/50 transition-colors border-t border-outline-variant/20">
           <div className="flex items-center space-x-4 mb-3">
             <div className="p-2 bg-primary/10 text-primary rounded-full">
@@ -442,6 +423,62 @@ export function FairnessSection() {
             >
               同任务当日去重 {scoreRules.preventDuplicateTaskPerDay ? '开' : '关'}
             </button>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">同任务日内上限</div>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={scoreRules.taskDailyLimitPerStudent}
+                  onChange={(e) =>
+                    setScoreRules({
+                      ...scoreRules,
+                      taskDailyLimitPerStudent: Math.max(
+                        1,
+                        Math.min(50, parseInt(e.target.value) || 1)
+                      )
+                    })
+                  }
+                  className="w-20 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low outline-none text-on-surface"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">可重复任务（逗号分隔）</div>
+                <input
+                  value={(scoreRules.allowRepeatTasks || []).join(',')}
+                  onChange={(e) =>
+                    setScoreRules({
+                      ...scoreRules,
+                      allowRepeatTasks: e.target.value
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter((item) => item.length > 0)
+                    })
+                  }
+                  className="w-72 px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low outline-none text-on-surface"
+                  placeholder="例：课堂纪律,加分挑战"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-on-surface-variant mb-1">禁用任务（逗号分隔）</div>
+                <input
+                  value={(scoreRules.blockedTasks || []).join(',')}
+                  onChange={(e) =>
+                    setScoreRules({
+                      ...scoreRules,
+                      blockedTasks: e.target.value
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter((item) => item.length > 0)
+                    })
+                  }
+                  className="w-72 px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low outline-none text-on-surface"
+                  placeholder="例：临时测试"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

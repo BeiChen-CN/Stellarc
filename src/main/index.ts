@@ -52,10 +52,12 @@ function createWindow(): void {
   const isMac = process.platform === 'darwin'
 
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 800,
-    minHeight: 600,
+    width: 1440,
+    height: 960,
+    minWidth: 1024,
+    minHeight: 720,
+    transparent: true,
+    backgroundColor: '#00000000',
     show: false,
     autoHideMenuBar: true,
     frame: isMac,

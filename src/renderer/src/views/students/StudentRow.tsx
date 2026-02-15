@@ -20,6 +20,11 @@ interface StudentRowProps {
   ) => void
   onUpdateName: (classId: string, studentId: string, name: string) => void
   onUpdateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  onUpdateGender: (
+    classId: string,
+    studentId: string,
+    gender: 'male' | 'female' | undefined
+  ) => void
   onUpdateTags: (classId: string, studentId: string, tags: string[]) => void
   onRemove: (classId: string, studentId: string) => void
 }
@@ -93,6 +98,7 @@ export const StudentRow = memo(function StudentRow({
   onUpdateStatus,
   onUpdateName,
   onUpdateStudentId,
+  onUpdateGender,
   onUpdateTags,
   onRemove
 }: StudentRowProps) {
@@ -151,6 +157,31 @@ export const StudentRow = memo(function StudentRow({
                 onSave={(sid) => onUpdateStudentId(classId, student.id, sid || undefined)}
               />
             )}
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-[10px] text-on-surface-variant">性别</span>
+              <button
+                onClick={() => onUpdateGender(classId, student.id, 'male')}
+                className={cn(
+                  'px-1.5 py-0.5 rounded-full text-[10px] cursor-pointer border',
+                  student.gender === 'male'
+                    ? 'bg-secondary-container text-secondary-container-foreground border-transparent'
+                    : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
+                )}
+              >
+                男
+              </button>
+              <button
+                onClick={() => onUpdateGender(classId, student.id, 'female')}
+                className={cn(
+                  'px-1.5 py-0.5 rounded-full text-[10px] cursor-pointer border',
+                  student.gender === 'female'
+                    ? 'bg-secondary-container text-secondary-container-foreground border-transparent'
+                    : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
+                )}
+              >
+                女
+              </button>
+            </div>
             <EditableCell
               value={(student.tags || []).join(' / ')}
               placeholder="标签（/ 分隔）"

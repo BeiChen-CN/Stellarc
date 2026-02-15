@@ -1,6 +1,6 @@
 {
   "name": "stellarc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "隐私优先、算法公平、高度可定制的离线课堂随机点名工具",
   "main": "./out/main/index.js",
   "author": "Stellarc Team",

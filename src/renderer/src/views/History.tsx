@@ -40,6 +40,7 @@ export function History() {
   const [playbackIndex, setPlaybackIndex] = useState(0)
   const [playbackIntervalMs, setPlaybackIntervalMs] = useState(1400)
   const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([])
+  const [groupBySession, setGroupBySession] = useState(true)
 
   const classNames = useMemo(() => {
     const names = new Set(history.map((r) => r.className))
@@ -67,6 +68,51 @@ export function History() {
   }, [history, classFilter, eventFilter, searchQuery])
 
   const playbackRecord = filteredHistory[playbackIndex]
+
+  const sessionGroups = useMemo(() => {
+    const groups: Array<{
+      id: string
+      className: string
+      startTime: string
+      endTime: string
+      records: (typeof filteredHistory)[number][]
+    }> = []
+    const gapMs = 50 * 60 * 1000
+    filteredHistory.forEach((record) => {
+      const ts = new Date(record.timestamp).getTime()
+      const dateKey = new Date(record.timestamp).toLocaleDateString()
+      const last = groups[groups.length - 1]
+      if (!last) {
+        groups.push({
+          id: `${record.className}-${record.timestamp}`,
+          className: record.className,
+          startTime: record.timestamp,
+          endTime: record.timestamp,
+          records: [record]
+        })
+        return
+      }
+      const lastTs = new Date(last.endTime).getTime()
+      const lastDateKey = new Date(last.endTime).toLocaleDateString()
+      if (
+        last.className === record.className &&
+        lastDateKey === dateKey &&
+        Math.abs(lastTs - ts) <= gapMs
+      ) {
+        last.records.push(record)
+        last.endTime = record.timestamp
+        return
+      }
+      groups.push({
+        id: `${record.className}-${record.timestamp}`,
+        className: record.className,
+        startTime: record.timestamp,
+        endTime: record.timestamp,
+        records: [record]
+      })
+    })
+    return groups
+  }, [filteredHistory])
 
   useEffect(() => {
     if (!playbackMode || !playbackRunning || filteredHistory.length === 0) return
@@ -430,6 +476,17 @@ export function History() {
           >
             回放模式
           </button>
+          <button
+            onClick={() => setGroupBySession((prev) => !prev)}
+            className={cn(
+              'px-3.5 py-2 rounded-full text-sm border transition-colors cursor-pointer',
+              groupBySession
+                ? 'bg-secondary-container text-secondary-container-foreground border-outline-variant/50'
+                : 'bg-surface-container-low text-on-surface border-outline-variant/50'
+            )}
+          >
+            课次分组
+          </button>
         </div>
       )}
 
@@ -499,6 +556,103 @@ export function History() {
             <p className="text-sm mt-1">
               {history.length === 0 ? '开始抽选后，记录将显示在这里' : '尝试调整搜索条件'}
             </p>
+          </div>
+        ) : groupBySession ? (
+          <div className="p-3 space-y-3">
+            {sessionGroups.map((session) => (
+              <div
+                key={session.id}
+                className="rounded-2xl border border-outline-variant/20 bg-surface-container-high/40"
+              >
+                <div className="px-4 py-2.5 border-b border-outline-variant/20 flex items-center justify-between">
+                  <div className="text-sm font-medium text-on-surface">
+                    {session.className} · {new Date(session.startTime).toLocaleDateString()}
+                  </div>
+                  <div className="text-xs text-on-surface-variant">
+                    {new Date(session.endTime).toLocaleTimeString()} -{' '}
+                    {new Date(session.startTime).toLocaleTimeString()} · {session.records.length} 条
+                  </div>
+                </div>
+
+                <div className="divide-y divide-outline-variant/10">
+                  {session.records.map((record) => {
+                    const expanded = expandedRecordIds.includes(record.id)
+                    return (
+                      <div
+                        key={record.id}
+                        className="group px-4 py-3 hover:bg-surface-container-high/60"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-on-surface truncate">
+                              {summarizeNames(
+                                record.pickedStudents.map((s) => s.name),
+                                record.eventType === 'group' ? 10 : 6
+                              )}
+                            </div>
+                            <div className="mt-1 text-[11px] text-on-surface-variant">
+                              {record.eventType === 'group'
+                                ? '分组'
+                                : record.eventType === 'task'
+                                  ? '任务'
+                                  : '点名'}
+                              {' · '}
+                              {new Date(record.timestamp).toLocaleTimeString()}
+                            </div>
+                            {expanded && (
+                              <div className="mt-2 text-[11px] text-on-surface-variant space-y-1">
+                                <div>
+                                  全部学生：{record.pickedStudents.map((s) => s.name).join('、')}
+                                </div>
+                                {record.taskSummary && (
+                                  <div>
+                                    任务：{record.taskSummary.taskName}（
+                                    {record.taskSummary.scoreDelta > 0 ? '+' : ''}
+                                    {record.taskSummary.scoreDelta}）
+                                  </div>
+                                )}
+                                {record.groupSummary && (
+                                  <div>
+                                    分组：
+                                    {record.groupSummary.groups
+                                      .map(
+                                        (item) =>
+                                          `第${item.groupIndex}组 ${item.studentNames.join('、')}`
+                                      )
+                                      .join('；')}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => toggleExpandedRecord(record.id)}
+                              className="p-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all cursor-pointer"
+                              title={expanded ? '收起详情' : '展开详情'}
+                            >
+                              {expanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecord(record.id)}
+                              className="p-1.5 rounded-full text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                              title="删除此记录"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>

@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Users,
   Shuffle,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, toFileUrl } from '../../lib/utils'
@@ -76,10 +77,13 @@ const ACTIVITY_PRESETS = [
 ]
 
 interface AppearanceSectionProps {
+  variant: 'appearance' | 'experience'
   onSelectBackground: () => void
 }
 
-export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps) {
+export function AppearanceSection({ variant, onSelectBackground }: AppearanceSectionProps) {
+  const isAppearance = variant === 'appearance'
+  const isExperience = variant === 'experience'
   const [colorsExpanded, setColorsExpanded] = useState(false)
   const [designExpanded, setDesignExpanded] = useState(false)
   const [animExpanded, setAnimExpanded] = useState(false)
@@ -99,6 +103,8 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
     setAnimationStyle,
     animationSpeed,
     setAnimationSpeed,
+    animationDurationScale,
+    setAnimationDurationScale,
     activityPreset,
     setActivityPreset,
     showClassroomFlow,
@@ -120,338 +126,418 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
     dynamicColor,
     toggleDynamicColor,
     soundEnabled,
+    soundIntensity,
     toggleSoundEnabled,
+    setSoundIntensity,
     confettiEnabled,
     toggleConfettiEnabled,
     photoMode,
     togglePhotoMode,
     showStudentId,
-    toggleShowStudentId
+    toggleShowStudentId,
+    showPickGenderFilter,
+    showPickEligibleCount,
+    toggleShowPickGenderFilter,
+    toggleShowPickEligibleCount,
+    showPickPreviewPanel,
+    showPickMissReasonPanel,
+    showTaskScorePanel,
+    showBatchEditPanel,
+    showScoreLogPanel,
+    showGroupTaskTemplatePanel,
+    toggleShowPickPreviewPanel,
+    toggleShowPickMissReasonPanel,
+    toggleShowTaskScorePanel,
+    toggleShowBatchEditPanel,
+    toggleShowScoreLogPanel,
+    toggleShowGroupTaskTemplatePanel
   } = useSettingsStore()
 
   return (
     <section className="space-y-4">
       <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
-        <Monitor className="w-5 h-5 text-primary" />
-        外观与体验
+        {isAppearance ? (
+          <Palette className="w-5 h-5 text-primary" />
+        ) : (
+          <Zap className="w-5 h-5 text-primary" />
+        )}
+        {isAppearance ? '外观' : '体验'}
       </h3>
       <div className="bg-surface-container rounded-[28px] overflow-hidden">
         {/* Theme Mode */}
-        <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-primary/10 text-primary rounded-full">
-              {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+        {isAppearance && (
+          <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">主题模式</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">切换应用的亮色或暗色外观</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-medium text-on-surface">主题模式</h4>
-              <p className="text-xs text-on-surface-variant mt-0.5">切换应用的亮色或暗色外观</p>
+            <div className="flex rounded-full border border-outline-variant overflow-hidden">
+              {(
+                [
+                  { value: 'light', label: '浅色', icon: Sun },
+                  { value: 'system', label: '系统', icon: Monitor },
+                  { value: 'dark', label: '深色', icon: Moon }
+                ] as const
+              ).map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTheme(opt.value)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 relative',
+                      theme === opt.value
+                        ? 'bg-secondary-container text-secondary-container-foreground'
+                        : 'text-on-surface-variant hover:bg-surface-container-high/60'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <div className="flex rounded-full border border-outline-variant overflow-hidden">
-            {(
-              [
-                { value: 'light', label: '浅色', icon: Sun },
-                { value: 'system', label: '系统', icon: Monitor },
-                { value: 'dark', label: '深色', icon: Moon }
-              ] as const
-            ).map((opt) => {
-              const Icon = opt.icon
-              return (
+        )}
+
+        {/* Animation Speed (Global) */}
+        {isExperience && (
+          <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">动画速率</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  控制软件所有动画与过渡的速度
+                </p>
+              </div>
+            </div>
+            <div className="flex rounded-full border border-outline-variant overflow-hidden">
+              {(
+                [
+                  { value: 'elegant', label: '优雅' },
+                  { value: 'balanced', label: '均衡' },
+                  { value: 'fast', label: '快速' }
+                ] as const
+              ).map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setTheme(opt.value)}
+                  onClick={() => setAnimationSpeed(opt.value)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 relative',
-                    theme === opt.value
+                    'px-3.5 py-1.5 text-xs font-medium transition-all duration-200',
+                    animationSpeed === opt.value
                       ? 'bg-secondary-container text-secondary-container-foreground'
                       : 'text-on-surface-variant hover:bg-surface-container-high/60'
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5" />
                   {opt.label}
                 </button>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Animation Speed (Global) */}
-        <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-primary/10 text-primary rounded-full">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-medium text-on-surface">动画速率</h4>
-              <p className="text-xs text-on-surface-variant mt-0.5">控制软件所有动画与过渡的速度</p>
+        {isExperience && (
+          <div className="p-5 hover:bg-surface-container-high/50 transition-colors bg-surface-container-high/30">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-primary/10 text-primary rounded-full">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-on-surface">动画时长</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">
+                    调整点名动画的总时长（更快或更慢）
+                  </p>
+                </div>
+              </div>
+              <div className="w-[220px] shrink-0">
+                <input
+                  type="range"
+                  min="0.6"
+                  max="1.8"
+                  step="0.05"
+                  value={animationDurationScale}
+                  onChange={(e) => setAnimationDurationScale(parseFloat(e.target.value) || 1)}
+                  className="w-full accent-primary cursor-pointer"
+                />
+                <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
+                  <span>更快</span>
+                  <span>{Math.round(animationDurationScale * 100)}%</span>
+                  <span>更慢</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex rounded-full border border-outline-variant overflow-hidden">
-            {(
-              [
-                { value: 'elegant', label: '优雅' },
-                { value: 'balanced', label: '均衡' },
-                { value: 'fast', label: '快速' }
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setAnimationSpeed(opt.value)}
-                className={cn(
-                  'px-3.5 py-1.5 text-xs font-medium transition-all duration-200',
-                  animationSpeed === opt.value
-                    ? 'bg-secondary-container text-secondary-container-foreground'
-                    : 'text-on-surface-variant hover:bg-surface-container-high/60'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Color Theme */}
-        <div className="p-5 hover:bg-surface-container-high/50 transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-primary/10 text-primary rounded-full">
-                <Palette className="w-5 h-5" />
+        {isAppearance && (
+          <div className="p-5 hover:bg-surface-container-high/50 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-primary/10 text-primary rounded-full">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-on-surface">主题配色</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">选择应用的主色调</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium text-on-surface">主题配色</h4>
-                <p className="text-xs text-on-surface-variant mt-0.5">选择应用的主色调</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setColorsExpanded(!colorsExpanded)}
-              className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer"
-            >
-              <ChevronDown
-                className={cn(
-                  'w-4 h-4 transition-transform duration-200',
-                  colorsExpanded && 'rotate-180'
-                )}
-              />
-            </button>
-          </div>
-          <div className="grid grid-cols-5 gap-2 pl-14">
-            {(colorsExpanded ? COLOR_THEMES : COLOR_THEMES.slice(0, 9)).map((ct) => (
               <button
-                key={ct.id}
-                onClick={() => {
-                  setColorTheme(ct.id)
-                  setCustomColor(undefined)
-                }}
+                onClick={() => setColorsExpanded(!colorsExpanded)}
+                className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer"
+              >
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 transition-transform duration-200',
+                    colorsExpanded && 'rotate-180'
+                  )}
+                />
+              </button>
+            </div>
+            <div className="grid grid-cols-5 gap-2 pl-14">
+              {(colorsExpanded ? COLOR_THEMES : COLOR_THEMES.slice(0, 9)).map((ct) => (
+                <button
+                  key={ct.id}
+                  onClick={() => {
+                    setColorTheme(ct.id)
+                    setCustomColor(undefined)
+                  }}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200',
+                    colorTheme === ct.id && !customColor
+                      ? 'bg-secondary-container border-2 border-outline'
+                      : 'border-2 border-transparent hover:bg-surface-container-high'
+                  )}
+                >
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center ring-1 ring-black/5"
+                    style={{ backgroundColor: ct.color }}
+                  >
+                    {colorTheme === ct.id && !customColor && (
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">
+                    {ct.label}
+                  </span>
+                </button>
+              ))}
+              {/* Custom Color */}
+              <div
                 className={cn(
                   'relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200',
-                  colorTheme === ct.id && !customColor
+                  customColor
                     ? 'bg-secondary-container border-2 border-outline'
                     : 'border-2 border-transparent hover:bg-surface-container-high'
                 )}
               >
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center ring-1 ring-black/5"
-                  style={{ backgroundColor: ct.color }}
+                <label
+                  className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer ring-1 ring-black/5 overflow-hidden"
+                  style={{
+                    backgroundColor: customColor || undefined,
+                    background: customColor
+                      ? undefined
+                      : 'conic-gradient(from 0deg, hsl(0 80% 60%), hsl(60 80% 60%), hsl(120 80% 60%), hsl(180 80% 60%), hsl(240 80% 60%), hsl(300 80% 60%), hsl(360 80% 60%))'
+                  }}
                 >
-                  {colorTheme === ct.id && !customColor && (
+                  {customColor ? (
                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  ) : (
+                    <Pipette className="w-3 h-3 text-white drop-shadow-sm" />
                   )}
-                </div>
+                  <input
+                    type="color"
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    value={customColor || '#6366f1'}
+                    onChange={(e) => setCustomColor(e.target.value)}
+                  />
+                </label>
                 <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">
-                  {ct.label}
+                  自定义
                 </span>
-              </button>
-            ))}
-            {/* Custom Color */}
-            <div
-              className={cn(
-                'relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200',
-                customColor
-                  ? 'bg-secondary-container border-2 border-outline'
-                  : 'border-2 border-transparent hover:bg-surface-container-high'
-              )}
-            >
-              <label
-                className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer ring-1 ring-black/5 overflow-hidden"
-                style={{
-                  backgroundColor: customColor || undefined,
-                  background: customColor
-                    ? undefined
-                    : 'conic-gradient(from 0deg, hsl(0 80% 60%), hsl(60 80% 60%), hsl(120 80% 60%), hsl(180 80% 60%), hsl(240 80% 60%), hsl(300 80% 60%), hsl(360 80% 60%))'
-                }}
-              >
-                {customColor ? (
-                  <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                ) : (
-                  <Pipette className="w-3 h-3 text-white drop-shadow-sm" />
+                {customColor && (
+                  <button
+                    onClick={() => setCustomColor(undefined)}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-white flex items-center justify-center text-[8px] leading-none cursor-pointer hover:bg-destructive/80 transition-colors"
+                  >
+                    ×
+                  </button>
                 )}
-                <input
-                  type="color"
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                  value={customColor || '#6366f1'}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                />
-              </label>
-              <span className="text-xs font-medium text-on-surface-variant leading-tight text-center">
-                自定义
-              </span>
-              {customColor && (
-                <button
-                  onClick={() => setCustomColor(undefined)}
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-white flex items-center justify-center text-[8px] leading-none cursor-pointer hover:bg-destructive/80 transition-colors"
-                >
-                  ×
-                </button>
-              )}
+              </div>
             </div>
+            {!colorsExpanded && COLOR_THEMES.length > 9 && (
+              <button
+                onClick={() => setColorsExpanded(true)}
+                className="mt-2 ml-14 text-xs text-primary hover:text-primary/80 font-medium cursor-pointer transition-colors"
+              >
+                展开全部 {COLOR_THEMES.length} 种配色...
+              </button>
+            )}
           </div>
-          {!colorsExpanded && COLOR_THEMES.length > 9 && (
-            <button
-              onClick={() => setColorsExpanded(true)}
-              className="mt-2 ml-14 text-xs text-primary hover:text-primary/80 font-medium cursor-pointer transition-colors"
-            >
-              展开全部 {COLOR_THEMES.length} 种配色...
-            </button>
-          )}
-        </div>
+        )}
 
         {/* M3 Color Tint */}
-        <ToggleRow
-          icon={<Palette className="w-5 h-5" />}
-          title="主题取色"
-          desc="开启后背景、卡片、边框等都会带有主题色调"
-          checked={m3Mode}
-          onToggle={toggleM3Mode}
-        />
+        {isAppearance && (
+          <ToggleRow
+            icon={<Palette className="w-5 h-5" />}
+            title="主题取色"
+            desc="开启后背景、卡片、边框等都会带有主题色调"
+            checked={m3Mode}
+            onToggle={toggleM3Mode}
+          />
+        )}
 
         {/* Design Style */}
-        <CollapsibleGrid
-          icon={<Layers className="w-5 h-5" />}
-          title="设计风格"
-          desc="选择界面的视觉风格"
-          expanded={designExpanded}
-          onToggle={() => setDesignExpanded(!designExpanded)}
-        >
-          <div className="grid grid-cols-3 gap-3 pl-14">
-            {designStyles.map((ds) => (
-              <button
-                key={ds.id}
-                onClick={() => setDesignStyle(ds.id)}
-                className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 ${
-                  designStyle === ds.id
-                    ? 'bg-secondary-container border-2 border-outline'
-                    : 'border-2 border-transparent hover:bg-surface-container-high'
-                }`}
-              >
-                <DesignStylePreview type={ds.preview} isActive={designStyle === ds.id} />
-                <span className="text-xs font-medium text-on-surface">{ds.label}</span>
-                <span className="text-[10px] text-on-surface-variant leading-tight text-center">
-                  {ds.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </CollapsibleGrid>
+        {isAppearance && (
+          <CollapsibleGrid
+            icon={<Layers className="w-5 h-5" />}
+            title="设计风格"
+            desc="选择界面的视觉风格"
+            expanded={designExpanded}
+            onToggle={() => setDesignExpanded(!designExpanded)}
+          >
+            <div className="grid grid-cols-3 gap-3 pl-14">
+              {designStyles.map((ds) => (
+                <button
+                  key={ds.id}
+                  onClick={() => setDesignStyle(ds.id)}
+                  className={`relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 ${
+                    designStyle === ds.id
+                      ? 'bg-secondary-container border-2 border-outline'
+                      : 'border-2 border-transparent hover:bg-surface-container-high'
+                  }`}
+                >
+                  <DesignStylePreview type={ds.preview} isActive={designStyle === ds.id} />
+                  <span className="text-xs font-medium text-on-surface">{ds.label}</span>
+                  <span className="text-[10px] text-on-surface-variant leading-tight text-center">
+                    {ds.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CollapsibleGrid>
+        )}
 
         {/* Animation Style */}
-        <CollapsibleGrid
-          icon={<Zap className="w-5 h-5" />}
-          title="抽选动画"
-          desc="选择抽选时的动画效果"
-          expanded={animExpanded}
-          onToggle={() => setAnimExpanded(!animExpanded)}
-        >
-          <div className="grid grid-cols-4 gap-3 pl-14">
-            {ANIMATION_STYLES.map((anim) => (
-              <button
-                key={anim.id}
-                onClick={() => setAnimationStyle(anim.id)}
-                className={cn(
-                  'relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
-                  animationStyle === anim.id
-                    ? 'bg-secondary-container border-2 border-outline'
-                    : 'border-2 border-transparent hover:bg-surface-container-high'
-                )}
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  {animationStyle === anim.id && (
-                    <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+        {isExperience && (
+          <CollapsibleGrid
+            icon={<Zap className="w-5 h-5" />}
+            title="抽选动画"
+            desc="选择抽选时的动画效果"
+            expanded={animExpanded}
+            onToggle={() => setAnimExpanded(!animExpanded)}
+          >
+            <div className="grid grid-cols-4 gap-3 pl-14">
+              {ANIMATION_STYLES.map((anim) => (
+                <button
+                  key={anim.id}
+                  onClick={() => setAnimationStyle(anim.id)}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
+                    animationStyle === anim.id
+                      ? 'bg-secondary-container border-2 border-outline'
+                      : 'border-2 border-transparent hover:bg-surface-container-high'
                   )}
-                </div>
-                <span className="text-xs font-medium text-on-surface">{anim.label}</span>
-                <span className="text-[10px] text-on-surface-variant">{anim.desc}</span>
-              </button>
-            ))}
-          </div>
-        </CollapsibleGrid>
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    {animationStyle === anim.id && (
+                      <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-on-surface">{anim.label}</span>
+                  <span className="text-[10px] text-on-surface-variant">{anim.desc}</span>
+                </button>
+              ))}
+            </div>
+          </CollapsibleGrid>
+        )}
 
         {/* Activity Preset */}
-        <CollapsibleGrid
-          icon={<Target className="w-5 h-5" />}
-          title="课堂活动预设"
-          desc="预设会影响主页默认模式与抽选节奏"
-          expanded={presetExpanded}
-          onToggle={() => setPresetExpanded(!presetExpanded)}
-        >
-          <div className="grid grid-cols-3 gap-3 pl-14">
-            {ACTIVITY_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => setActivityPreset(preset.id)}
-                className={cn(
-                  'relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
-                  activityPreset === preset.id
-                    ? 'bg-secondary-container border-2 border-outline'
-                    : 'border-2 border-transparent hover:bg-surface-container-high'
-                )}
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  {activityPreset === preset.id && (
-                    <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+        {isExperience && (
+          <CollapsibleGrid
+            icon={<Target className="w-5 h-5" />}
+            title="课堂活动预设"
+            desc="预设会影响主页默认模式与抽选节奏"
+            expanded={presetExpanded}
+            onToggle={() => setPresetExpanded(!presetExpanded)}
+          >
+            <div className="grid grid-cols-3 gap-3 pl-14">
+              {ACTIVITY_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => setActivityPreset(preset.id)}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
+                    activityPreset === preset.id
+                      ? 'bg-secondary-container border-2 border-outline'
+                      : 'border-2 border-transparent hover:bg-surface-container-high'
                   )}
-                </div>
-                <span className="text-xs font-medium text-on-surface">{preset.label}</span>
-                <span className="text-[10px] text-on-surface-variant text-center">
-                  {preset.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </CollapsibleGrid>
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    {activityPreset === preset.id && (
+                      <Check className="w-4 h-4 text-primary" strokeWidth={3} />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-on-surface">{preset.label}</span>
+                  <span className="text-[10px] text-on-surface-variant text-center">
+                    {preset.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CollapsibleGrid>
+        )}
 
-        <ToggleRow
-          icon={<Layers className="w-5 h-5" />}
-          title="显示课堂流程"
-          desc="在主页显示课堂流程选择与步骤切换"
-          checked={showClassroomFlow}
-          onToggle={toggleShowClassroomFlow}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Layers className="w-5 h-5" />}
+            title="课堂流程"
+            desc="在主页显示课堂流程选择与步骤切换"
+            checked={showClassroomFlow}
+            onToggle={toggleShowClassroomFlow}
+          />
+        )}
 
-        <ToggleRow
-          icon={<Target className="w-5 h-5" />}
-          title="显示课堂模板"
-          desc="在主页显示快速点名/深度互动/小组对抗模板"
-          checked={showClassroomTemplate}
-          onToggle={toggleShowClassroomTemplate}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Target className="w-5 h-5" />}
+            title="课堂模板"
+            desc="在主页显示快速点名/深度互动/小组对抗模板"
+            checked={showClassroomTemplate}
+            onToggle={toggleShowClassroomTemplate}
+          />
+        )}
 
-        <ToggleRow
-          icon={<Users className="w-5 h-5" />}
-          title="显示临时禁选"
-          desc="在主页上方显示临时禁选面板"
-          checked={showTemporaryExclusion}
-          onToggle={toggleShowTemporaryExclusion}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Users className="w-5 h-5" />}
+            title="临时禁选"
+            desc="在主页上方显示临时禁选面板"
+            checked={showTemporaryExclusion}
+            onToggle={toggleShowTemporaryExclusion}
+          />
+        )}
 
-        <ToggleRow
-          icon={<Shuffle className="w-5 h-5" />}
-          title="显示连抽"
-          desc="在主页上方显示连抽设置和控制"
-          checked={showAutoDraw}
-          onToggle={toggleShowAutoDraw}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Shuffle className="w-5 h-5" />}
+            title="连续抽取"
+            desc="在主页上方显示连抽设置和控制"
+            checked={showAutoDraw}
+            onToggle={toggleShowAutoDraw}
+          />
+        )}
 
-        {showAutoDraw && (
+        {isExperience && showAutoDraw && (
           <div className="p-5 hover:bg-surface-container-high/50 transition-colors bg-surface-container-high/30 border-t border-outline-variant/20">
             <div className="pl-14 flex items-center justify-between gap-4">
               <div>
@@ -475,130 +561,271 @@ export function AppearanceSection({ onSelectBackground }: AppearanceSectionProps
           </div>
         )}
 
-        <ToggleRow
-          icon={<BarChart3 className="w-5 h-5" />}
-          title="显示抽选解释"
-          desc="在每次抽选后展示权重与原因解释"
-          checked={showSelectionExplanation}
-          onToggle={toggleShowSelectionExplanation}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<BarChart3 className="w-5 h-5" />}
+            title="抽选解释"
+            desc="在每次抽选后展示权重与原因解释"
+            checked={showSelectionExplanation}
+            onToggle={toggleShowSelectionExplanation}
+          />
+        )}
 
         {/* Projector Mode */}
-        <ToggleRow
-          icon={<Monitor className="w-5 h-5" />}
-          title="投屏模式"
-          desc="主页采用大字号高可读布局，适合教室大屏"
-          checked={projectorMode}
-          onToggle={toggleProjectorMode}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Monitor className="w-5 h-5" />}
+            title="投屏模式"
+            desc="主页采用大字号高可读布局，适合教室大屏"
+            checked={projectorMode}
+            onToggle={toggleProjectorMode}
+          />
+        )}
 
         {/* Background Image */}
-        <div
-          className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors cursor-pointer"
-          onClick={onSelectBackground}
-        >
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-primary/10 text-primary rounded-full">
-              <ImageIcon className="w-5 h-5" />
+        {isAppearance && (
+          <div
+            className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors cursor-pointer"
+            onClick={onSelectBackground}
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">背景图片</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">自定义主页背景 (点击更换)</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-medium text-on-surface">背景图片</h4>
-              <p className="text-xs text-on-surface-variant mt-0.5">自定义主页背景 (点击更换)</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {backgroundImage && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setBackgroundImage(undefined)
-                }}
-                className="text-xs text-destructive hover:underline mr-2"
-              >
-                清除
-              </button>
-            )}
-            <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden">
-              {backgroundImage ? (
-                <img
-                  src={toFileUrl(backgroundImage)}
-                  alt="bg"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-xs text-on-surface-variant">默认</span>
+            <div className="flex items-center gap-2">
+              {backgroundImage && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setBackgroundImage(undefined)
+                  }}
+                  className="text-xs text-destructive hover:underline mr-2"
+                >
+                  清除
+                </button>
               )}
+              <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center overflow-hidden">
+                {backgroundImage ? (
+                  <img
+                    src={toFileUrl(backgroundImage)}
+                    alt="bg"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs text-on-surface-variant">默认</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Dynamic Color */}
-        <div
-          className={cn(
-            'flex items-center justify-between p-5 transition-colors select-none',
-            backgroundImage
-              ? 'hover:bg-surface-container-high/50 cursor-pointer'
-              : 'opacity-50 cursor-not-allowed'
-          )}
-          onClick={() => {
-            if (backgroundImage) toggleDynamicColor()
-          }}
-        >
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-primary/10 text-primary rounded-full">
-              <Pipette className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-medium text-on-surface">动态取色</h4>
-              <p className="text-xs text-on-surface-variant mt-0.5">
-                {backgroundImage ? '从背景图片提取主色调作为主题色' : '请先设置背景图片'}
-              </p>
-            </div>
-          </div>
-          <MD3Switch
-            checked={dynamicColor && !!backgroundImage}
+        {isAppearance && (
+          <div
+            className={cn(
+              'flex items-center justify-between p-5 transition-colors select-none',
+              backgroundImage
+                ? 'hover:bg-surface-container-high/50 cursor-pointer'
+                : 'opacity-50 cursor-not-allowed'
+            )}
             onClick={() => {
               if (backgroundImage) toggleDynamicColor()
             }}
-            label="动态取色"
-          />
-        </div>
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <Pipette className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">动态取色</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  {backgroundImage ? '从背景图片提取主色调作为主题色' : '请先设置背景图片'}
+                </p>
+              </div>
+            </div>
+            <MD3Switch
+              checked={dynamicColor && !!backgroundImage}
+              onClick={() => {
+                if (backgroundImage) toggleDynamicColor()
+              }}
+              label="动态取色"
+            />
+          </div>
+        )}
 
         {/* Sound */}
-        <ToggleRow
-          icon={soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          title="启用音效"
-          desc="抽奖时的声音反馈"
-          checked={soundEnabled}
-          onToggle={toggleSoundEnabled}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            title="启用音效"
+            desc="抽奖时的声音反馈"
+            checked={soundEnabled}
+            onToggle={toggleSoundEnabled}
+          />
+        )}
+
+        {isExperience && soundEnabled && (
+          <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors bg-surface-container-high/30">
+            <div className="pl-14">
+              <h4 className="font-medium text-sm text-on-surface">点名音效强度</h4>
+              <p className="text-xs text-on-surface-variant mt-0.5">控制点名过程中的滴答音量大小</p>
+            </div>
+            <div className="flex rounded-full border border-outline-variant overflow-hidden">
+              {(
+                [
+                  { value: 'low', label: '低' },
+                  { value: 'medium', label: '中' },
+                  { value: 'high', label: '高' }
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setSoundIntensity(opt.value)}
+                  className={cn(
+                    'px-3.5 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
+                    soundIntensity === opt.value
+                      ? 'bg-secondary-container text-secondary-container-foreground'
+                      : 'text-on-surface-variant hover:bg-surface-container-high/60'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Confetti */}
-        <ToggleRow
-          icon={<PartyPopper className="w-5 h-5" />}
-          title="五彩纸屑"
-          desc="抽选结果揭晓时显示庆祝动画"
-          checked={confettiEnabled}
-          onToggle={toggleConfettiEnabled}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<PartyPopper className="w-5 h-5" />}
+            title="五彩纸屑"
+            desc="抽选结果揭晓时显示庆祝动画"
+            checked={confettiEnabled}
+            onToggle={toggleConfettiEnabled}
+          />
+        )}
 
         {/* Photo Mode */}
-        <ToggleRow
-          icon={<Camera className="w-5 h-5" />}
-          title="显示头像"
-          desc="抽选时显示学生头像 (若有)"
-          checked={photoMode}
-          onToggle={togglePhotoMode}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<Camera className="w-5 h-5" />}
+            title="显示头像"
+            desc="抽选时显示学生头像 (若有)"
+            checked={photoMode}
+            onToggle={togglePhotoMode}
+          />
+        )}
 
         {/* Show Student ID */}
-        <ToggleRow
-          icon={<CreditCard className="w-5 h-5" />}
-          title="显示学号"
-          desc="在名字旁显示学号"
-          checked={showStudentId}
-          onToggle={toggleShowStudentId}
-        />
+        {isExperience && (
+          <ToggleRow
+            icon={<CreditCard className="w-5 h-5" />}
+            title="显示学号"
+            desc="在名字旁显示学号"
+            checked={showStudentId}
+            onToggle={toggleShowStudentId}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<Users className="w-5 h-5" />}
+            title="抽取范围筛选"
+            desc="首页显示范围（全部/男生/女生）"
+            checked={showPickGenderFilter}
+            onToggle={toggleShowPickGenderFilter}
+          />
+        )}
+
+        {isExperience && showPickGenderFilter && (
+          <ToggleRow
+            icon={<BarChart3 className="w-5 h-5" />}
+            title="范围可抽人数"
+            desc="范围按钮后显示当前可抽人数"
+            checked={showPickEligibleCount}
+            onToggle={toggleShowPickEligibleCount}
+          />
+        )}
+
+        {isExperience && (
+          <div className="p-5 hover:bg-surface-container-high/50 transition-colors border-t border-outline-variant/20">
+            <div className="flex items-center space-x-4 mb-2">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">功能模块显示</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">控制首页与学生管理模块显示</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<Target className="w-5 h-5" />}
+            title="抽选前预览"
+            desc="首页显示候选/可抽/排除统计"
+            checked={showPickPreviewPanel}
+            onToggle={toggleShowPickPreviewPanel}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<Target className="w-5 h-5" />}
+            title="未抽中原因"
+            desc="首页按学生查看未抽中原因"
+            checked={showPickMissReasonPanel}
+            onToggle={toggleShowPickMissReasonPanel}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<CreditCard className="w-5 h-5" />}
+            title="批量编辑"
+            desc="学生页显示批量编辑模块"
+            checked={showBatchEditPanel}
+            onToggle={toggleShowBatchEditPanel}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<TrendingUp className="w-5 h-5" />}
+            title="任务积分"
+            desc="学生页显示任务积分模块"
+            checked={showTaskScorePanel}
+            onToggle={toggleShowTaskScorePanel}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<Layers className="w-5 h-5" />}
+            title="分组任务模板"
+            desc="学生页显示分组任务模板编辑"
+            checked={showGroupTaskTemplatePanel}
+            onToggle={toggleShowGroupTaskTemplatePanel}
+          />
+        )}
+
+        {isExperience && (
+          <ToggleRow
+            icon={<BarChart3 className="w-5 h-5" />}
+            title="积分日志面板"
+            desc="学生页显示积分日志与回滚"
+            checked={showScoreLogPanel}
+            onToggle={toggleShowScoreLogPanel}
+          />
+        )}
       </div>
     </section>
   )

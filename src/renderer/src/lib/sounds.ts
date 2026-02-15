@@ -1,9 +1,16 @@
+type SoundIntensity = 'low' | 'medium' | 'high'
+
 const audioCtx = () => {
   if (!_ctx) _ctx = new AudioContext()
   return _ctx
 }
 export { audioCtx }
 let _ctx: AudioContext | null = null
+let _soundScale = 1
+
+export function setSoundIntensity(intensity: SoundIntensity) {
+  _soundScale = intensity === 'low' ? 0.55 : intensity === 'high' ? 1.2 : 1
+}
 
 function playTone(freq: number, duration: number, type: OscillatorType = 'sine', volume = 0.15) {
   const ctx = audioCtx()
@@ -11,7 +18,7 @@ function playTone(freq: number, duration: number, type: OscillatorType = 'sine',
   const gain = ctx.createGain()
   osc.type = type
   osc.frequency.setValueAtTime(freq, ctx.currentTime)
-  gain.gain.setValueAtTime(volume, ctx.currentTime)
+  gain.gain.setValueAtTime(Math.min(0.22, volume * _soundScale), ctx.currentTime)
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
   osc.connect(gain)
   gain.connect(ctx.destination)
@@ -39,7 +46,7 @@ export function playReveal() {
     const gain = ctx.createGain()
     osc.type = 'sine'
     osc.frequency.setValueAtTime(freq, now + i * 0.1)
-    gain.gain.setValueAtTime(0.12, now + i * 0.1)
+    gain.gain.setValueAtTime(Math.min(0.22, 0.12 * _soundScale), now + i * 0.1)
     gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3)
     osc.connect(gain)
     gain.connect(ctx.destination)
@@ -65,7 +72,7 @@ export function playTypewriterKey() {
   filter.frequency.setValueAtTime(3000, now)
   filter.Q.setValueAtTime(2, now)
   const gain = ctx.createGain()
-  gain.gain.setValueAtTime(0.12, now)
+  gain.gain.setValueAtTime(Math.min(0.2, 0.12 * _soundScale), now)
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.015)
   source.connect(filter)
   filter.connect(gain)
@@ -82,7 +89,7 @@ export function playBounceTick() {
   osc.type = 'sine'
   osc.frequency.setValueAtTime(200, now)
   osc.frequency.exponentialRampToValueAtTime(80, now + 0.08)
-  gain.gain.setValueAtTime(0.1, now)
+  gain.gain.setValueAtTime(Math.min(0.2, 0.1 * _soundScale), now)
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
   osc.connect(gain)
   gain.connect(ctx.destination)
@@ -103,7 +110,7 @@ export function playWheelTick() {
   const source = ctx.createBufferSource()
   source.buffer = buffer
   const gain = ctx.createGain()
-  gain.gain.setValueAtTime(0.1, now)
+  gain.gain.setValueAtTime(Math.min(0.2, 0.1 * _soundScale), now)
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02)
   const filter = ctx.createBiquadFilter()
   filter.type = 'highpass'

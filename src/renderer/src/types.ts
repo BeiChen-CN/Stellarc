@@ -2,6 +2,7 @@ export interface Student {
   id: string
   name: string
   studentId?: string
+  gender?: 'male' | 'female'
   tags?: string[]
   photo?: string
   pickCount: number
@@ -40,10 +41,20 @@ export interface Settings {
   showTemporaryExclusion?: boolean
   showAutoDraw?: boolean
   showSelectionExplanation?: boolean
+  showPickGenderFilter?: boolean
+  showPickEligibleCount?: boolean
+  showPickPreviewPanel?: boolean
+  showPickMissReasonPanel?: boolean
+  showTaskScorePanel?: boolean
+  showBatchEditPanel?: boolean
+  showScoreLogPanel?: boolean
+  showGroupTaskTemplatePanel?: boolean
+  onboardingCompleted?: boolean
   revealSettleMs?: number
   showStudentId: boolean
   photoMode: boolean
   soundEnabled: boolean
+  soundIntensity?: 'low' | 'medium' | 'high'
   backgroundImage?: string
   fairness: {
     weightedRandom: boolean
@@ -88,6 +99,9 @@ export interface Settings {
     minScorePerStudent: number
     maxDeltaPerOperation: number
     preventDuplicateTaskPerDay: boolean
+    taskDailyLimitPerStudent?: number
+    allowRepeatTasks?: string[]
+    blockedTasks?: string[]
   }
 }
 

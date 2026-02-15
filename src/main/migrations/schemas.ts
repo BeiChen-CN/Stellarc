@@ -6,6 +6,7 @@ export const studentSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   studentId: z.string().optional(),
+  gender: z.enum(['male', 'female']).optional(),
   tags: z.array(z.string().min(1)).optional(),
   photo: z.string().optional(),
   pickCount: z.number().int().nonnegative().default(0),
@@ -131,6 +132,7 @@ export const settingsV2Schema = z.object({
   showStudentId: z.boolean().default(true),
   photoMode: z.boolean().default(true),
   soundEnabled: z.boolean().default(true),
+  soundIntensity: z.enum(['low', 'medium', 'high']).default('medium'),
   confettiEnabled: z.boolean().default(true),
   m3Mode: z.boolean().default(false),
   backgroundImage: z.string().optional(),
@@ -141,10 +143,21 @@ export const settingsV2Schema = z.object({
   showTemporaryExclusion: z.boolean().default(false),
   showAutoDraw: z.boolean().default(false),
   showSelectionExplanation: z.boolean().default(false),
+  showPickGenderFilter: z.boolean().default(false),
+  showPickEligibleCount: z.boolean().default(false),
+  showPickPreviewPanel: z.boolean().default(false),
+  showPickMissReasonPanel: z.boolean().default(false),
+  showTaskScorePanel: z.boolean().default(false),
+  showBatchEditPanel: z.boolean().default(false),
+  showScoreLogPanel: z.boolean().default(false),
+  showGroupTaskTemplatePanel: z.boolean().default(false),
+  onboardingCompleted: z.boolean().default(false),
   revealSettleMs: z.number().int().min(0).max(5000).default(900),
   syncEnabled: z.boolean().default(false),
   syncFolder: z.string().optional(),
   animationStyle: z.string().default('slot'),
+  animationSpeed: z.enum(['elegant', 'balanced', 'fast']).default('balanced'),
+  animationDurationScale: z.number().min(0.6).max(1.8).default(1),
   dynamicColor: z.boolean().default(false),
   fairness: fairnessSchema.default({
     weightedRandom: false,
@@ -189,13 +202,19 @@ export const settingsV2Schema = z.object({
       maxScorePerStudent: z.number().int().default(100),
       minScorePerStudent: z.number().int().default(-50),
       maxDeltaPerOperation: z.number().int().min(1).default(20),
-      preventDuplicateTaskPerDay: z.boolean().default(true)
+      preventDuplicateTaskPerDay: z.boolean().default(true),
+      taskDailyLimitPerStudent: z.number().int().min(1).default(1),
+      allowRepeatTasks: z.array(z.string().min(1)).default([]),
+      blockedTasks: z.array(z.string().min(1)).default([])
     })
     .default({
       maxScorePerStudent: 100,
       minScorePerStudent: -50,
       maxDeltaPerOperation: 20,
-      preventDuplicateTaskPerDay: true
+      preventDuplicateTaskPerDay: true,
+      taskDailyLimitPerStudent: 1,
+      allowRepeatTasks: [],
+      blockedTasks: []
     })
 })
 

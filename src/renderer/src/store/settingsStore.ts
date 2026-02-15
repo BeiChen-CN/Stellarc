@@ -56,6 +56,8 @@ export type AnimationStyle =
 
 export type AnimationSpeed = 'elegant' | 'balanced' | 'fast'
 
+export type SoundIntensity = 'low' | 'medium' | 'high'
+
 export type ActivityPreset = 'quick-pick' | 'deep-focus' | 'group-battle'
 
 export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
@@ -166,6 +168,7 @@ interface SettingsData {
   showStudentId: boolean
   photoMode: boolean
   soundEnabled: boolean
+  soundIntensity: SoundIntensity
   confettiEnabled: boolean
   m3Mode: boolean
   backgroundImage?: string
@@ -176,11 +179,21 @@ interface SettingsData {
   showTemporaryExclusion: boolean
   showAutoDraw: boolean
   showSelectionExplanation: boolean
+  showPickGenderFilter: boolean
+  showPickEligibleCount: boolean
+  showPickPreviewPanel: boolean
+  showPickMissReasonPanel: boolean
+  showTaskScorePanel: boolean
+  showBatchEditPanel: boolean
+  showScoreLogPanel: boolean
+  showGroupTaskTemplatePanel: boolean
+  onboardingCompleted: boolean
   revealSettleMs: number
   syncEnabled: boolean
   syncFolder?: string
   animationStyle: AnimationStyle
   animationSpeed: AnimationSpeed
+  animationDurationScale: number
   dynamicColor: boolean
   fairness: {
     weightedRandom: boolean
@@ -204,6 +217,9 @@ interface SettingsData {
     minScorePerStudent: number
     maxDeltaPerOperation: number
     preventDuplicateTaskPerDay: boolean
+    taskDailyLimitPerStudent: number
+    allowRepeatTasks: string[]
+    blockedTasks: string[]
   }
 }
 
@@ -222,6 +238,7 @@ interface SettingsState extends SettingsData {
   toggleShowStudentId: () => void
   togglePhotoMode: () => void
   toggleSoundEnabled: () => void
+  setSoundIntensity: (intensity: SoundIntensity) => void
   toggleConfettiEnabled: () => void
   toggleM3Mode: () => void
   setBackgroundImage: (path: string | undefined) => void
@@ -234,9 +251,20 @@ interface SettingsState extends SettingsData {
   toggleShowTemporaryExclusion: () => void
   toggleShowAutoDraw: () => void
   toggleShowSelectionExplanation: () => void
+  toggleShowPickGenderFilter: () => void
+  toggleShowPickEligibleCount: () => void
+  toggleShowPickPreviewPanel: () => void
+  toggleShowPickMissReasonPanel: () => void
+  toggleShowTaskScorePanel: () => void
+  toggleShowBatchEditPanel: () => void
+  toggleShowScoreLogPanel: () => void
+  toggleShowGroupTaskTemplatePanel: () => void
+  completeOnboarding: () => void
+  resetOnboarding: () => void
   setRevealSettleMs: (ms: number) => void
   setAnimationStyle: (style: AnimationStyle) => void
   setAnimationSpeed: (speed: AnimationSpeed) => void
+  setAnimationDurationScale: (scale: number) => void
   setCustomColor: (color: string | undefined) => void
   setFairness: (fairness: {
     weightedRandom: boolean
@@ -267,6 +295,9 @@ interface SettingsState extends SettingsData {
     minScorePerStudent: number
     maxDeltaPerOperation: number
     preventDuplicateTaskPerDay: boolean
+    taskDailyLimitPerStudent: number
+    allowRepeatTasks: string[]
+    blockedTasks: string[]
   }) => void
   loadSettings: () => Promise<void>
 }
@@ -278,6 +309,7 @@ const defaults: SettingsData = {
   showStudentId: true,
   photoMode: true,
   soundEnabled: true,
+  soundIntensity: 'medium',
   confettiEnabled: true,
   m3Mode: false,
   projectorMode: false,
@@ -287,10 +319,20 @@ const defaults: SettingsData = {
   showTemporaryExclusion: false,
   showAutoDraw: false,
   showSelectionExplanation: false,
+  showPickGenderFilter: false,
+  showPickEligibleCount: false,
+  showPickPreviewPanel: false,
+  showPickMissReasonPanel: false,
+  showTaskScorePanel: false,
+  showBatchEditPanel: false,
+  showScoreLogPanel: false,
+  showGroupTaskTemplatePanel: false,
+  onboardingCompleted: false,
   revealSettleMs: 900,
   syncEnabled: false,
   animationStyle: 'slot',
   animationSpeed: 'balanced',
+  animationDurationScale: 1,
   dynamicColor: false,
   pickCount: 1,
   maxHistoryRecords: 1000,
@@ -301,7 +343,10 @@ const defaults: SettingsData = {
     maxScorePerStudent: 100,
     minScorePerStudent: -50,
     maxDeltaPerOperation: 20,
-    preventDuplicateTaskPerDay: true
+    preventDuplicateTaskPerDay: true,
+    taskDailyLimitPerStudent: 1,
+    allowRepeatTasks: [],
+    blockedTasks: []
   },
   fairness: {
     weightedRandom: false,
@@ -327,6 +372,7 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showStudentId,
       photoMode,
       soundEnabled,
+      soundIntensity,
       confettiEnabled,
       m3Mode,
       backgroundImage,
@@ -337,11 +383,21 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showTemporaryExclusion,
       showAutoDraw,
       showSelectionExplanation,
+      showPickGenderFilter,
+      showPickEligibleCount,
+      showPickPreviewPanel,
+      showPickMissReasonPanel,
+      showTaskScorePanel,
+      showBatchEditPanel,
+      showScoreLogPanel,
+      showGroupTaskTemplatePanel,
+      onboardingCompleted,
       revealSettleMs,
       syncEnabled,
       syncFolder,
       animationStyle,
       animationSpeed,
+      animationDurationScale,
       dynamicColor,
       fairness,
       pickCount,
@@ -359,6 +415,7 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showStudentId,
       photoMode,
       soundEnabled,
+      soundIntensity,
       confettiEnabled,
       m3Mode,
       backgroundImage,
@@ -369,11 +426,21 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showTemporaryExclusion,
       showAutoDraw,
       showSelectionExplanation,
+      showPickGenderFilter,
+      showPickEligibleCount,
+      showPickPreviewPanel,
+      showPickMissReasonPanel,
+      showTaskScorePanel,
+      showBatchEditPanel,
+      showScoreLogPanel,
+      showGroupTaskTemplatePanel,
+      onboardingCompleted,
       revealSettleMs,
       syncEnabled,
       syncFolder,
       animationStyle,
       animationSpeed,
+      animationDurationScale,
       dynamicColor,
       fairness,
       pickCount,
@@ -464,6 +531,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleShowStudentId: () => updateAndSave({ showStudentId: !get().showStudentId }, set, get),
   togglePhotoMode: () => updateAndSave({ photoMode: !get().photoMode }, set, get),
   toggleSoundEnabled: () => updateAndSave({ soundEnabled: !get().soundEnabled }, set, get),
+  setSoundIntensity: (soundIntensity) => updateAndSave({ soundIntensity }, set, get),
   toggleConfettiEnabled: () => updateAndSave({ confettiEnabled: !get().confettiEnabled }, set, get),
   toggleM3Mode: () => updateAndSave({ m3Mode: !get().m3Mode }, set, get),
   toggleProjectorMode: () => updateAndSave({ projectorMode: !get().projectorMode }, set, get),
@@ -489,6 +557,31 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleShowAutoDraw: () => updateAndSave({ showAutoDraw: !get().showAutoDraw }, set, get),
   toggleShowSelectionExplanation: () =>
     updateAndSave({ showSelectionExplanation: !get().showSelectionExplanation }, set, get),
+  toggleShowPickGenderFilter: () =>
+    updateAndSave(
+      {
+        showPickGenderFilter: !get().showPickGenderFilter,
+        showPickEligibleCount: !get().showPickGenderFilter ? get().showPickEligibleCount : false
+      },
+      set,
+      get
+    ),
+  toggleShowPickEligibleCount: () =>
+    updateAndSave({ showPickEligibleCount: !get().showPickEligibleCount }, set, get),
+  toggleShowPickPreviewPanel: () =>
+    updateAndSave({ showPickPreviewPanel: !get().showPickPreviewPanel }, set, get),
+  toggleShowPickMissReasonPanel: () =>
+    updateAndSave({ showPickMissReasonPanel: !get().showPickMissReasonPanel }, set, get),
+  toggleShowTaskScorePanel: () =>
+    updateAndSave({ showTaskScorePanel: !get().showTaskScorePanel }, set, get),
+  toggleShowBatchEditPanel: () =>
+    updateAndSave({ showBatchEditPanel: !get().showBatchEditPanel }, set, get),
+  toggleShowScoreLogPanel: () =>
+    updateAndSave({ showScoreLogPanel: !get().showScoreLogPanel }, set, get),
+  toggleShowGroupTaskTemplatePanel: () =>
+    updateAndSave({ showGroupTaskTemplatePanel: !get().showGroupTaskTemplatePanel }, set, get),
+  completeOnboarding: () => updateAndSave({ onboardingCompleted: true }, set, get),
+  resetOnboarding: () => updateAndSave({ onboardingCompleted: false }, set, get),
   setRevealSettleMs: (revealSettleMs) =>
     updateAndSave({ revealSettleMs: Math.max(0, Math.min(5000, revealSettleMs)) }, set, get),
   setBackgroundImage: (path) => {
@@ -503,6 +596,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setSyncFolder: (syncFolder) => updateAndSave({ syncFolder }, set, get),
   setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
   setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
+  setAnimationDurationScale: (scale) =>
+    updateAndSave({ animationDurationScale: Math.max(0.6, Math.min(1.8, scale)) }, set, get),
   setCustomColor: (color) => updateAndSave({ customColor: color }, set, get),
   setFairness: (fairness) => updateAndSave({ fairness }, set, get),
   setPickCount: (count) => updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
@@ -618,7 +713,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         Math.max(-9999, Math.min(9999, scoreRules.minScorePerStudent))
       ),
       maxDeltaPerOperation: Math.trunc(Math.max(1, Math.min(999, scoreRules.maxDeltaPerOperation))),
-      preventDuplicateTaskPerDay: scoreRules.preventDuplicateTaskPerDay
+      preventDuplicateTaskPerDay: scoreRules.preventDuplicateTaskPerDay,
+      taskDailyLimitPerStudent: Math.trunc(
+        Math.max(1, Math.min(50, scoreRules.taskDailyLimitPerStudent))
+      ),
+      allowRepeatTasks: (scoreRules.allowRepeatTasks || [])
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .slice(0, 30),
+      blockedTasks: (scoreRules.blockedTasks || [])
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .slice(0, 30)
     }
     if (safe.minScorePerStudent > safe.maxScorePerStudent) {
       const tmp = safe.minScorePerStudent

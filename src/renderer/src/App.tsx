@@ -10,18 +10,22 @@ import { Statistics } from './views/Statistics'
 import { ToastContainer } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TitleBar } from './components/TitleBar'
+import { OnboardingGuide } from './components/OnboardingGuide'
 import { useClassesStore } from './store/classesStore'
 import { useSettingsStore } from './store/settingsStore'
 import type { DynamicColorPalette } from './store/settingsStore'
 import { useHistoryStore } from './store/historyStore'
 import { useStrategyStore } from './store/strategyStore'
 import { useSpeedFactor } from './lib/useSpeedFactor'
+import { cn } from './lib/utils'
 
 function App() {
   const [currentView, setCurrentView] = useState<
     'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
   >('home')
   const [appReady, setAppReady] = useState(false)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const [homeImmersive, setHomeImmersive] = useState(false)
   const loadClasses = useClassesStore((state) => state.loadClasses)
   const loadSettings = useSettingsStore((state) => state.loadSettings)
   const loadHistory = useHistoryStore((state) => state.loadHistory)
@@ -38,7 +42,9 @@ function App() {
     dynamicColor,
     dynamicColorPalette,
     backgroundImage,
-    extractAndApplyDynamicColor
+    extractAndApplyDynamicColor,
+    onboardingCompleted,
+    completeOnboarding
   } = useSettingsStore()
 
   useEffect(() => {
@@ -46,6 +52,22 @@ function App() {
       setAppReady(true)
     )
   }, [])
+
+  useEffect(() => {
+    if (currentView !== 'home' && homeImmersive) {
+      setHomeImmersive(false)
+    }
+  }, [currentView, homeImmersive])
+
+  useEffect(() => {
+    if (homeImmersive) {
+      document.documentElement.style.background = 'transparent'
+      document.body.style.background = 'transparent'
+    } else {
+      document.documentElement.style.removeProperty('background')
+      document.body.style.removeProperty('background')
+    }
+  }, [homeImmersive])
 
   // Register global shortcut when shortcutKey changes
   useEffect(() => {
@@ -329,7 +351,7 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'home':
-        return <Home onNavigate={setCurrentView} />
+        return <Home onNavigate={setCurrentView} onImmersiveChange={setHomeImmersive} />
       case 'students':
         return <Students />
       case 'history':
@@ -341,7 +363,7 @@ function App() {
       case 'about':
         return <About />
       default:
-        return <Home onNavigate={setCurrentView} />
+        return <Home onNavigate={setCurrentView} onImmersiveChange={setHomeImmersive} />
     }
   }
 
@@ -365,11 +387,21 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground transition-colors duration-500">
-      <TitleBar />
+    <div
+      className={cn(
+        'flex flex-col h-screen text-foreground transition-colors duration-500',
+        homeImmersive ? 'bg-transparent' : 'bg-background'
+      )}
+    >
+      {!homeImmersive && <TitleBar />}
       <div className="flex flex-1 min-h-0">
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
-        <main className="flex-1 min-h-0 overflow-hidden bg-background relative">
+        {!homeImmersive && <Sidebar currentView={currentView} onViewChange={setCurrentView} />}
+        <main
+          className={cn(
+            'flex-1 min-h-0 overflow-hidden relative',
+            homeImmersive ? 'bg-transparent' : 'bg-background'
+          )}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
@@ -386,6 +418,13 @@ function App() {
       </div>
       <ToastContainer />
       <ConfirmDialog />
+      <OnboardingGuide
+        open={appReady && !onboardingCompleted && !onboardingDismissed}
+        onClose={(complete) => {
+          if (complete) completeOnboarding()
+          setOnboardingDismissed(true)
+        }}
+      />
     </div>
   )
 }

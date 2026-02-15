@@ -28,7 +28,23 @@ interface ClassesState {
   updateStudentPhoto: (classId: string, studentId: string, photo: string | undefined) => void
   updateStudentName: (classId: string, studentId: string, name: string) => void
   updateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  updateStudentGender: (
+    classId: string,
+    studentId: string,
+    gender: 'male' | 'female' | undefined
+  ) => void
   updateStudentTags: (classId: string, studentId: string, tags: string[]) => void
+  batchUpdateStudents: (
+    classId: string,
+    studentIds: string[],
+    patch: {
+      gender?: 'male' | 'female'
+      status?: 'active' | 'absent' | 'excluded'
+      weight?: number
+      tags?: string[]
+      tagsMode?: 'replace' | 'append'
+    }
+  ) => { affected: number }
   setClassTaskTemplates: (classId: string, templates: ClassTaskTemplate[]) => void
   applyTaskScore: (
     classId: string,
@@ -366,6 +382,25 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     get().saveClasses()
   },
 
+  updateStudentGender: (classId, studentId, gender) => {
+    set((state) => ({
+      classes: state.classes.map((c) =>
+        c.id === classId
+          ? {
+              ...c,
+              students: c.students.map((s) => (s.id === studentId ? { ...s, gender } : s))
+            }
+          : c
+      ),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+  },
+
   updateStudentTags: (classId, studentId, tags) => {
     const cleaned = tags
       .map((tag) => tag.trim())
@@ -389,6 +424,56 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       canUndo: true
     }))
     get().saveClasses()
+  },
+
+  batchUpdateStudents: (classId, studentIds, patch) => {
+    const targetIds = new Set(studentIds)
+    const cleanTags = (patch.tags || [])
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .slice(0, 10)
+    let affected = 0
+    set((state) => ({
+      classes: state.classes.map((c) => {
+        if (c.id !== classId) return c
+        return {
+          ...c,
+          students: c.students.map((s) => {
+            if (!targetIds.has(s.id)) return s
+            const nextTags =
+              patch.tagsMode === 'append'
+                ? Array.from(new Set([...(s.tags || []), ...cleanTags])).slice(0, 10)
+                : cleanTags.length > 0
+                  ? cleanTags
+                  : s.tags
+            const next = {
+              ...s,
+              gender: patch.gender ?? s.gender,
+              status: patch.status ?? s.status,
+              weight:
+                typeof patch.weight === 'number' && Number.isFinite(patch.weight)
+                  ? Math.max(1, Math.trunc(patch.weight))
+                  : s.weight,
+              tags: nextTags
+            }
+            const changed =
+              next.gender !== s.gender ||
+              next.status !== s.status ||
+              next.weight !== s.weight ||
+              JSON.stringify(next.tags || []) !== JSON.stringify(s.tags || [])
+            if (changed) affected++
+            return next
+          })
+        }
+      }),
+      undoStack: [
+        ...state.undoStack.slice(-19),
+        { classes: state.classes, currentClassId: state.currentClassId }
+      ],
+      canUndo: true
+    }))
+    get().saveClasses()
+    return { affected }
   },
 
   setClassTaskTemplates: (classId, templates) => {
@@ -420,7 +505,15 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
   applyTaskScore: (classId, studentIds, taskName, delta, source = 'manual') => {
     const targetIds = new Set(studentIds)
     const safeTaskName = taskName.trim() || '任务积分'
+    const normalizedTaskName = safeTaskName.toLowerCase()
     const scoreRules = useSettingsStore.getState().scoreRules
+    const blockedSet = new Set((scoreRules.blockedTasks || []).map((item) => item.toLowerCase()))
+    const allowRepeatSet = new Set(
+      (scoreRules.allowRepeatTasks || []).map((item) => item.toLowerCase())
+    )
+    if (blockedSet.has(normalizedTaskName)) {
+      return { affected: 0 }
+    }
     const now = new Date().toISOString()
     const today = now.slice(0, 10)
     let affected = 0
@@ -431,10 +524,20 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
           ...c,
           students: c.students.map((s) => {
             if (!targetIds.has(s.id)) return s
-            const duplicateToday = (s.scoreHistory || []).some(
-              (entry) => entry.taskName === safeTaskName && entry.timestamp.slice(0, 10) === today
-            )
-            if (scoreRules.preventDuplicateTaskPerDay && duplicateToday) {
+            const sameTaskTodayCount = (s.scoreHistory || []).filter(
+              (entry) =>
+                entry.taskName.toLowerCase() === normalizedTaskName &&
+                entry.timestamp.slice(0, 10) === today
+            ).length
+            const canRepeatToday = allowRepeatSet.has(normalizedTaskName)
+            if (
+              scoreRules.preventDuplicateTaskPerDay &&
+              !canRepeatToday &&
+              sameTaskTodayCount > 0
+            ) {
+              return s
+            }
+            if (sameTaskTodayCount >= (scoreRules.taskDailyLimitPerStudent || 1)) {
               return s
             }
             const limitedDelta = Math.max(
@@ -623,6 +726,8 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
               Number.isFinite(student.pickCount) && student.pickCount >= 0 ? student.pickCount : 0,
             status: student.status || 'active',
             studentId: student.studentId?.trim() || undefined,
+            gender:
+              student.gender === 'male' || student.gender === 'female' ? student.gender : undefined,
             tags: (student.tags || []).map((tag) => tag.trim()).filter((tag) => tag.length > 0),
             scoreHistory: Array.isArray(student.scoreHistory)
               ? student.scoreHistory

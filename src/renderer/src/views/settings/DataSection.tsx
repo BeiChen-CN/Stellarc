@@ -26,6 +26,7 @@ import { useConfirmStore } from '../../store/confirmStore'
 import { useDiagnosticsStore } from '../../store/diagnosticsStore'
 import { MD3Switch } from './MD3Switch'
 import { UpdateChecker } from './UpdateChecker'
+import { ShortcutRecorder, formatAccelerator } from './ShortcutRecorder'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -240,7 +241,10 @@ export function DataSection() {
     syncFolder,
     setSyncFolder,
     semester,
-    setSemester
+    setSemester,
+    shortcutKey,
+    setShortcutKey,
+    resetOnboarding
   } = useSettingsStore()
   const addToast = useToastStore((state) => state.addToast)
   const showConfirm = useConfirmStore((state) => state.show)
@@ -263,6 +267,7 @@ export function DataSection() {
   const [syncLocalFingerprint, setSyncLocalFingerprint] = useState<string>('')
   const [syncRemoteFingerprint, setSyncRemoteFingerprint] = useState<string>('')
   const [restoringPoint, setRestoringPoint] = useState(false)
+  const [dangerExpanded, setDangerExpanded] = useState(false)
 
   useEffect(() => {
     window.electronAPI.getAutoLaunch().then(setAutoLaunchState)
@@ -436,6 +441,20 @@ export function DataSection() {
     }
   }
 
+  const handleSetShortcutKey = async (key: string) => {
+    const success = await setShortcutKey(key)
+    if (!success) {
+      addToast('快捷键注册失败，可能已被系统或其他应用占用。', 'error')
+      return false
+    }
+    if (key) {
+      addToast(`快捷键已设置为 ${formatAccelerator(key)}`, 'success')
+    } else {
+      addToast('已清除全局快捷键', 'success')
+    }
+    return true
+  }
+
   return (
     <>
       {/* Data Management */}
@@ -468,7 +487,7 @@ export function DataSection() {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mt-4">
           <button
             onClick={handleBackup}
             className="flex flex-col items-center justify-center p-6 border border-outline-variant rounded-[28px] hover:bg-surface-container-high transition-all duration-200 group cursor-pointer"
@@ -479,30 +498,6 @@ export function DataSection() {
             <span className="font-medium mb-1 text-on-surface">备份数据</span>
             <span className="text-xs text-on-surface-variant text-center">
               导出所有设置和记录为 ZIP 文件
-            </span>
-          </button>
-          <button
-            onClick={handleRestore}
-            className="flex flex-col items-center justify-center p-6 border border-outline-variant rounded-[28px] hover:bg-destructive/5 hover:border-destructive/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="p-3 bg-destructive/5 text-destructive rounded-full mb-3 group-hover:scale-110 transition-transform">
-              <Database className="w-6 h-6" />
-            </div>
-            <span className="font-medium mb-1 text-destructive">恢复数据</span>
-            <span className="text-xs text-on-surface-variant text-center">
-              从备份文件恢复所有数据
-            </span>
-          </button>
-          <button
-            onClick={handleDeleteAllData}
-            className="flex flex-col items-center justify-center p-6 border border-outline-variant rounded-[28px] hover:bg-destructive/5 hover:border-destructive/30 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="p-3 bg-destructive/5 text-destructive rounded-full mb-3 group-hover:10 transition-transform">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <span className="font-medium mb-1 text-destructive">清除数据</span>
-            <span className="text-xs text-on-surface-variant text-center">
-              删除所有班级、历史和设置
             </span>
           </button>
           <button
@@ -518,14 +513,79 @@ export function DataSection() {
             </span>
           </button>
         </div>
-        <div className="mt-3 flex justify-end">
+
+        <div className="mt-4 rounded-[20px] border border-destructive/30 bg-destructive/5 overflow-hidden">
           <button
-            disabled={restoringPoint}
-            onClick={handleRestoreLatestPoint}
-            className="px-4 py-2 rounded-full bg-secondary-container text-secondary-container-foreground text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            onClick={() => setDangerExpanded((prev) => !prev)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer hover:bg-destructive/10 transition-colors"
           >
-            {restoringPoint ? '恢复中...' : '恢复最近恢复点'}
+            <div>
+              <div className="text-sm font-semibold text-destructive">危险操作</div>
+              <div className="text-xs text-on-surface-variant mt-0.5">
+                恢复整库、回滚恢复点、清空数据
+              </div>
+            </div>
+            <ChevronDown
+              className={cn(
+                'w-4 h-4 text-destructive transition-transform',
+                dangerExpanded && 'rotate-180'
+              )}
+            />
           </button>
+
+          <AnimatePresence initial={false}>
+            {dangerExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                className="overflow-hidden border-t border-destructive/20"
+              >
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button
+                    onClick={handleRestore}
+                    className="flex flex-col items-center justify-center p-4 border border-destructive/30 rounded-2xl hover:bg-destructive/10 transition-all duration-200 group cursor-pointer"
+                  >
+                    <div className="p-2.5 bg-destructive/10 text-destructive rounded-full mb-2 group-hover:scale-110 transition-transform">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium text-destructive text-sm">恢复数据</span>
+                    <span className="text-[11px] text-on-surface-variant text-center mt-1">
+                      从备份覆盖当前数据
+                    </span>
+                  </button>
+
+                  <button
+                    disabled={restoringPoint}
+                    onClick={handleRestoreLatestPoint}
+                    className="flex flex-col items-center justify-center p-4 border border-destructive/30 rounded-2xl hover:bg-destructive/10 transition-all duration-200 group cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <div className="p-2.5 bg-destructive/10 text-destructive rounded-full mb-2 group-hover:scale-110 transition-transform">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium text-destructive text-sm">恢复最近恢复点</span>
+                    <span className="text-[11px] text-on-surface-variant text-center mt-1">
+                      {restoringPoint ? '恢复中...' : '回滚到最近快照'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={handleDeleteAllData}
+                    className="flex flex-col items-center justify-center p-4 border border-destructive/30 rounded-2xl hover:bg-destructive/10 transition-all duration-200 group cursor-pointer"
+                  >
+                    <div className="p-2.5 bg-destructive/10 text-destructive rounded-full mb-2 group-hover:scale-110 transition-transform">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium text-destructive text-sm">清除数据</span>
+                    <span className="text-[11px] text-on-surface-variant text-center mt-1">
+                      删除所有班级/历史/设置
+                    </span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
@@ -916,6 +976,29 @@ export function DataSection() {
           系统
         </h3>
         <div className="bg-surface-container rounded-[28px] overflow-hidden">
+          <ShortcutRecorder shortcutKey={shortcutKey} setShortcutKey={handleSetShortcutKey} />
+
+          <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors border-t border-outline-variant/20">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 text-primary rounded-full">
+                <Power className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-medium text-on-surface">新手引导</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">重新打开首次使用引导</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                resetOnboarding()
+                addToast('已重置新手引导，下次将自动显示', 'success')
+              }}
+              className="px-3 py-1.5 rounded-full text-xs bg-secondary-container text-secondary-container-foreground cursor-pointer"
+            >
+              重新显示
+            </button>
+          </div>
+
           <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
             <div className="flex items-center space-x-4">
               <div className="p-2 bg-primary/10 text-primary rounded-full">

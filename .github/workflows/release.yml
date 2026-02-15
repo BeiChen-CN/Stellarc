@@ -26,12 +26,15 @@ jobs:
           - os: windows-latest
             platform: windows
             build_command: npm run build && npx electron-builder --win --publish never
+            hash_command: powershell -Command "Get-ChildItem dist\*.exe | ForEach-Object { $h=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(); Set-Content -Path ($_.FullName + '.sha256') -Value ($h + '  ' + $_.Name) }"
           - os: macos-latest
             platform: macos
             build_command: npm run build && npx electron-builder --mac --publish never
+            hash_command: for f in dist/*.dmg; do [ -f "$f" ] && shasum -a 256 "$f" > "$f.sha256"; done
           - os: ubuntu-latest
             platform: linux
             build_command: npm run build && npx electron-builder --linux --publish never
+            hash_command: for f in dist/*.AppImage dist/*.deb; do [ -f "$f" ] && sha256sum "$f" > "$f.sha256"; done
 
     steps:
       - name: Checkout
@@ -51,6 +54,9 @@ jobs:
       - name: Build app
         run: ${{ matrix.build_command }}
 
+      - name: Generate SHA256 files
+        run: ${{ matrix.hash_command }}
+
       - name: Upload windows installers
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
@@ -58,6 +64,7 @@ jobs:
           name: ${{ matrix.platform }}-bundle
           path: |
             dist/*.exe
+            dist/*.exe.sha256
 
       - name: Upload mac installers
         if: matrix.platform == 'macos'
@@ -66,6 +73,7 @@ jobs:
           name: ${{ matrix.platform }}-bundle
           path: |
             dist/*.dmg
+            dist/*.dmg.sha256
 
       - name: Upload linux installers
         if: matrix.platform == 'linux'
@@ -75,6 +83,8 @@ jobs:
           path: |
             dist/*.AppImage
             dist/*.deb
+            dist/*.AppImage.sha256
+            dist/*.deb.sha256
 
   release:
     runs-on: ubuntu-latest
@@ -115,4 +125,5 @@ jobs:
             release-assets/**/*.dmg
             release-assets/**/*.AppImage
             release-assets/**/*.deb
+            release-assets/**/*.sha256
           body_path: RELEASE_NOTES.md
