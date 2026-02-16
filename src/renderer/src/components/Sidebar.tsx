@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home,
@@ -28,7 +28,7 @@ const items = [
   { id: 'about', label: '关于页面', icon: Info }
 ] as const
 
-export function Sidebar({ currentView, onViewChange }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactElement {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -78,7 +78,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
               animate={{ paddingLeft: collapsed ? 0 : 12, paddingRight: collapsed ? 0 : 12 }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className={cn(
-                'flex items-center w-full py-2.5 text-sm font-medium rounded-full group relative overflow-hidden',
+                'flex items-center w-full py-2.5 text-sm font-medium rounded-full group relative overflow-hidden cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container',
                 collapsed ? 'justify-center' : '',
                 isActive
                   ? 'bg-secondary-container text-secondary-container-foreground'
@@ -110,7 +110,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
       <div className="p-3 flex justify-center">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors cursor-pointer"
+          className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
           title={collapsed ? '展开侧边栏' : '收起侧边栏'}
         >
           <motion.div

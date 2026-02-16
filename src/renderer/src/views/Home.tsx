@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactElement } from 'react'
 import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -40,6 +40,9 @@ import { WinnerDisplay } from './home/WinnerDisplay'
 import { PickIdleState } from './home/PickIdleState'
 import { ClassTimer } from '../components/ClassTimer'
 import { useFlowStore } from '../store/flowStore'
+import { useImmersiveUI } from './home/hooks/useImmersiveUI'
+import { useTemporaryExclusion } from './home/hooks/useTemporaryExclusion'
+import type { ClassroomFlow } from '../store/flowStore'
 
 const ANIMATION_DURATION_MAP = { elegant: 3200, balanced: 2200, fast: 1300 } as const
 const ANIMATION_DURATION_REDUCED_MS = 300
@@ -48,6 +51,13 @@ const TICK_INTERVAL_RANGE_MS = 145
 const LOCK_IN_PROGRESS = 0.85
 const SLOW_DOWN_PROGRESS = 0.6
 const SOUND_GAP_BASE_MS = { elegant: 120, balanced: 145, fast: 180 } as const
+type PickPlan = {
+  eligibleStudents: Student[]
+  winners: Student[]
+  traces: ReturnType<typeof selectionEngine.pick>['traces']
+  selectionMeta: HistorySelectionMeta
+  totalCandidates: number
+}
 
 function pickUniqueStudents(pool: Student[], count: number): Student[] {
   if (count <= 0 || pool.length === 0) return []
@@ -94,6 +104,27 @@ const REASON_TOOLTIPS: Record<string, string> = {
   fallback_random: '当前使用随机兜底逻辑，按候选集合随机抽取。'
 }
 
+const REASON_CATEGORIES: Array<{ key: 'eligibility' | 'fairness' | 'fallback'; label: string }> = [
+  { key: 'eligibility', label: '资格过滤' },
+  { key: 'fairness', label: '公平策略' },
+  { key: 'fallback', label: '兜底策略' }
+]
+
+function getReasonCategory(reason: string): 'eligibility' | 'fairness' | 'fallback' {
+  if (
+    reason.startsWith('excluded_') ||
+    reason === 'eligible' ||
+    reason === 'weighted' ||
+    reason === 'strategy_adjusted'
+  ) {
+    return 'eligibility'
+  }
+  if (reason.includes('balance') || reason.includes('fairness') || reason.includes('priority')) {
+    return 'fairness'
+  }
+  return 'fallback'
+}
+
 const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
   { id: 'task-observe', name: '观察记录', scoreDelta: 1 },
   { id: 'task-quiz', name: '快问快答', scoreDelta: 2 },
@@ -101,13 +132,68 @@ const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
   { id: 'task-review', name: '同伴互评', scoreDelta: 1 }
 ]
 
+const ACTIVITY_PRESET_IDS = ['quick-pick', 'deep-focus', 'group-battle'] as const
+
+function isActivityPreset(value: unknown): value is (typeof ACTIVITY_PRESET_IDS)[number] {
+  return typeof value === 'string' && (ACTIVITY_PRESET_IDS as readonly string[]).includes(value)
+}
+
+function normalizeImportedFlows(payload: unknown): ClassroomFlow[] | null {
+  const root =
+    payload && typeof payload === 'object' && 'flows' in payload
+      ? (payload as { flows?: unknown }).flows
+      : payload
+  if (!Array.isArray(root)) return null
+  const flows: ClassroomFlow[] = []
+  root.forEach((flow, flowIndex) => {
+    if (!flow || typeof flow !== 'object') return
+    const candidate = flow as {
+      id?: unknown
+      name?: unknown
+      steps?: unknown
+    }
+    if (typeof candidate.name !== 'string' || !Array.isArray(candidate.steps)) return
+    const steps = candidate.steps
+      .map((step, stepIndex) => {
+        if (!step || typeof step !== 'object') return null
+        const item = step as {
+          id?: unknown
+          title?: unknown
+          activityPreset?: unknown
+          notes?: unknown
+        }
+        if (typeof item.title !== 'string' || !isActivityPreset(item.activityPreset)) return null
+        return {
+          id:
+            typeof item.id === 'string' && item.id.trim()
+              ? item.id
+              : `step-${flowIndex + 1}-${stepIndex + 1}`,
+          title: item.title.trim(),
+          activityPreset: item.activityPreset,
+          notes: typeof item.notes === 'string' ? item.notes : undefined
+        }
+      })
+      .filter((step): step is NonNullable<typeof step> => !!step)
+    if (steps.length === 0) return
+    flows.push({
+      id:
+        typeof candidate.id === 'string' && candidate.id.trim()
+          ? candidate.id
+          : `flow-${flowIndex + 1}`,
+      name: candidate.name.trim(),
+      steps
+    })
+  })
+  return flows.length > 0 ? flows : null
+}
+
 export function Home({
   onNavigate,
   onImmersiveChange
 }: {
   onNavigate: (view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about') => void
   onImmersiveChange?: (immersive: boolean) => void
-}) {
+}): ReactElement {
   const { classes, currentClassId, setCurrentClass, incrementPickCount, addClass, applyTaskScore } =
     useClassesStore()
   const { history, addHistoryRecord } = useHistoryStore()
@@ -129,11 +215,6 @@ export function Home({
   >([])
   const [showGroups, setShowGroups] = useState(false)
   const [flowMenuOpen, setFlowMenuOpen] = useState(false)
-  const [excludedMenuOpen, setExcludedMenuOpen] = useState(false)
-  const [manualExcludedIds, setManualExcludedIds] = useState<string[]>([])
-  const [excludedSearch, setExcludedSearch] = useState('')
-  const [excludedOnly, setExcludedOnly] = useState(false)
-  const [classExcludedMap, setClassExcludedMap] = useState<Record<string, string[]>>({})
   const [autoDrawEnabled, setAutoDrawEnabled] = useState(false)
   const [autoDrawRounds, setAutoDrawRounds] = useState(3)
   const [autoDrawIntervalMs, setAutoDrawIntervalMs] = useState(3600)
@@ -144,14 +225,13 @@ export function Home({
   const lastSoundAtRef = useRef(0)
   const wheelWinnersRef = useRef<Student[]>([])
   const lastSelectionMetaRef = useRef<HistorySelectionMeta | null>(null)
+  const [lastSelectionMeta, setLastSelectionMeta] = useState<HistorySelectionMeta | null>(null)
   const [candidateKey, setCandidateKey] = useState(0)
   const autoDrawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoDrawRemainingRef = useRef(0)
-  const excludedMenuRef = useRef<HTMLDivElement | null>(null)
   const [lastGroupSnapshot, setLastGroupSnapshot] = useState<Student[][]>([])
   const [pickGenderFilter, setPickGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const [previewStudentQuery, setPreviewStudentQuery] = useState('')
-  const [immersiveMode, setImmersiveMode] = useState(false)
 
   const prefersReducedMotion = useMemo(
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -159,8 +239,16 @@ export function Home({
   )
 
   const currentClass = classes.find((c) => c.id === currentClassId)
-  const { flows, activeFlowId, activeStepIndex, setActiveFlow, nextStep, resetFlow } =
-    useFlowStore()
+  const {
+    flows,
+    activeFlowId,
+    activeStepIndex,
+    setActiveFlow,
+    nextStep,
+    resetFlow,
+    setFlows,
+    resetDefaultFlows
+  } = useFlowStore()
   const activeFlow = flows.find((flow) => flow.id === activeFlowId)
 
   const {
@@ -192,12 +280,29 @@ export function Home({
   } = useSettingsStore()
 
   const effectivePickGenderFilter = showPickGenderFilter ? pickGenderFilter : 'all'
-  const immersivePickMode = immersiveMode && mode === 'pick'
-
-  useEffect(() => {
-    onImmersiveChange?.(immersivePickMode)
-    return () => onImmersiveChange?.(false)
-  }, [immersivePickMode, onImmersiveChange])
+  const { immersiveMode, immersivePickMode, setImmersiveMode } = useImmersiveUI(
+    mode,
+    onImmersiveChange
+  )
+  const {
+    excludedMenuOpen,
+    setExcludedMenuOpen,
+    excludedSearch,
+    setExcludedSearch,
+    excludedOnly,
+    setExcludedOnly,
+    manualExcludedIds,
+    manualExcludedSet,
+    excludedMenuRef,
+    filteredExcludedCandidates,
+    pickRangeEligibleCount,
+    updateManualExcludedIds,
+    hydrateForClass
+  } = useTemporaryExclusion({
+    currentClass,
+    currentClassId,
+    effectivePickGenderFilter
+  })
 
   const handleDrawRef = useRef<() => void>(() => {})
 
@@ -214,68 +319,6 @@ export function Home({
   }, [])
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('home-temporary-exclusion-by-class')
-      if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, string[]>
-        if (parsed && typeof parsed === 'object') {
-          setClassExcludedMap(parsed)
-        }
-      }
-    } catch {
-      // ignore localStorage parse errors
-    }
-  }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('home-temporary-exclusion-by-class', JSON.stringify(classExcludedMap))
-    } catch {
-      // ignore localStorage write errors
-    }
-  }, [classExcludedMap])
-
-  useEffect(() => {
-    if (!currentClass) {
-      setManualExcludedIds([])
-      setExcludedMenuOpen(false)
-      return
-    }
-    const validIds = new Set(currentClass.students.map((student) => student.id))
-    const persisted = classExcludedMap[currentClass.id] || []
-    setManualExcludedIds(persisted.filter((id) => validIds.has(id)))
-  }, [currentClass, classExcludedMap])
-
-  useEffect(() => {
-    if (!currentClass) return
-    setClassExcludedMap((prev) => {
-      const prevList = prev[currentClass.id] || []
-      const same =
-        prevList.length === manualExcludedIds.length &&
-        prevList.every((id, index) => id === manualExcludedIds[index])
-      if (same) {
-        return prev
-      }
-      return {
-        ...prev,
-        [currentClass.id]: manualExcludedIds
-      }
-    })
-  }, [currentClass, manualExcludedIds])
-
-  useEffect(() => {
-    if (!excludedMenuOpen) return
-    const onMouseDown = (event: MouseEvent) => {
-      if (!excludedMenuRef.current) return
-      if (!excludedMenuRef.current.contains(event.target as Node)) {
-        setExcludedMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onMouseDown)
-    return () => document.removeEventListener('mousedown', onMouseDown)
-  }, [excludedMenuOpen])
-
-  useEffect(() => {
     const cleanup = window.electronAPI.onShortcutTriggered((action) => {
       if (action === 'pick') {
         handleDrawRef.current()
@@ -284,17 +327,7 @@ export function Home({
     return cleanup
   }, [])
 
-  useEffect(() => {
-    if (activityPreset === 'group-battle') {
-      setMode('group')
-      setGroupCount((prev) => Math.max(prev, 4))
-      return
-    }
-
-    setMode('pick')
-  }, [activityPreset])
-
-  const getPickPlan = useCallback(() => {
+  const getPickPlan = useCallback((): PickPlan | null => {
     if (!currentClass) return null
 
     const genderFilteredStudents =
@@ -431,6 +464,23 @@ export function Home({
     }
   }, [currentClass, mode, previewStudentQuery, getPickPlan])
 
+  const selectionReasonOverview = useMemo(() => {
+    const reasonCount = new Map<string, number>()
+    const winnerExplanations = lastSelectionMeta?.winnerExplanations || []
+    winnerExplanations.forEach((item) => {
+      item.reasons.forEach((reason) => {
+        reasonCount.set(reason, (reasonCount.get(reason) || 0) + 1)
+      })
+    })
+    const flattened = Array.from(reasonCount.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count)
+    return REASON_CATEGORIES.map((category) => ({
+      ...category,
+      items: flattened.filter((item) => getReasonCategory(item.reason) === category.key)
+    })).filter((group) => group.items.length > 0)
+  }, [lastSelectionMeta])
+
   const finishDraw = useCallback(
     (preSelectedWinners: Student[]) => {
       if (!currentClass) return
@@ -499,7 +549,7 @@ export function Home({
     finishDraw(wheelWinnersRef.current)
   }, [finishDraw])
 
-  const handleDraw = () => {
+  const handleDraw = useCallback((): void => {
     if (isSpinning) return
     if (!currentClass || currentClass.students.length === 0) return
 
@@ -518,6 +568,7 @@ export function Home({
     }
 
     lastSelectionMetaRef.current = pickPlan.selectionMeta
+    setLastSelectionMeta(pickPlan.selectionMeta)
 
     setIsSpinning(true)
     setWinners([])
@@ -570,7 +621,7 @@ export function Home({
     const startTime = performance.now()
     let lastTickAt = startTime
 
-    const animate = (time: number) => {
+    const animate = (time: number): void => {
       const elapsed = time - startTime
       const progress = Math.min(elapsed / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 4)
@@ -620,11 +671,28 @@ export function Home({
     }
 
     animationRef.current = requestAnimationFrame(animate)
-  }
+  }, [
+    isSpinning,
+    currentClass,
+    getPickPlan,
+    addToast,
+    effectivePickGenderFilter,
+    pickCount,
+    animationStyle,
+    sf,
+    animationDurationScale,
+    finishDraw,
+    prefersReducedMotion,
+    animationSpeed,
+    soundEnabled,
+    phase
+  ])
 
-  handleDrawRef.current = handleDraw
+  useEffect(() => {
+    handleDrawRef.current = handleDraw
+  }, [handleDraw])
 
-  const handleGroup = () => {
+  const handleGroup = (): void => {
     if (!currentClass) return
 
     const activeCount = currentClass.students.filter((s) => s.status === 'active').length
@@ -775,22 +843,52 @@ export function Home({
     [groupTaskOptions]
   )
 
-  const handleModeChange = useCallback((newMode: 'pick' | 'group') => {
-    setMode(newMode)
-    if (newMode === 'pick') {
-      setShowGroups(false)
-      setGroupAssignments([])
-    } else {
-      setPhase('idle')
-      setWinners([])
-      autoDrawRemainingRef.current = 0
-      setAutoDrawRemaining(0)
-      if (autoDrawTimerRef.current) {
-        clearTimeout(autoDrawTimerRef.current)
-        autoDrawTimerRef.current = null
+  const handleModeChange = useCallback(
+    (newMode: 'pick' | 'group') => {
+      setMode(newMode)
+      if (newMode === 'pick') {
+        setShowGroups(false)
+        setGroupAssignments([])
+      } else {
+        setImmersiveMode(false)
+        setPhase('idle')
+        setWinners([])
+        autoDrawRemainingRef.current = 0
+        setAutoDrawRemaining(0)
+        if (autoDrawTimerRef.current) {
+          clearTimeout(autoDrawTimerRef.current)
+          autoDrawTimerRef.current = null
+        }
       }
-    }
-  }, [])
+    },
+    [setImmersiveMode]
+  )
+
+  const applyActivityPreset = useCallback(
+    (preset: 'quick-pick' | 'deep-focus' | 'group-battle'): void => {
+      setActivityPreset(preset)
+      if (preset === 'group-battle') {
+        setMode('group')
+        setGroupCount((prev) => Math.max(prev, 4))
+      } else {
+        setMode('pick')
+      }
+    },
+    [setActivityPreset]
+  )
+
+  const handleSelectClass = useCallback(
+    (classId: string): void => {
+      setCurrentClass(classId)
+      const targetClass = classes.find((item) => item.id === classId)
+      if (!targetClass) {
+        updateManualExcludedIds([])
+        return
+      }
+      hydrateForClass(classId, targetClass.students)
+    },
+    [setCurrentClass, classes, updateManualExcludedIds, hydrateForClass]
+  )
 
   const handleCreateClass = useCallback(() => {
     showPrompt('创建班级', '请输入新班级的名称', '班级名称', (name) => {
@@ -799,39 +897,50 @@ export function Home({
     })
   }, [addClass, addToast, showPrompt])
 
-  const filteredExcludedCandidates = useMemo(() => {
-    const list = (currentClass?.students || []).filter((student) => {
-      if (student.status !== 'active') return false
-      if (effectivePickGenderFilter === 'all') return true
-      return student.gender === effectivePickGenderFilter
+  const handleExportFlows = useCallback(async (): Promise<void> => {
+    const filePath = await window.electronAPI.saveFile({
+      title: '导出课堂流程模板',
+      defaultPath: 'classroom-flows.json',
+      filters: [{ name: 'JSON 文件', extensions: ['json'] }]
     })
-    const query = excludedSearch.trim().toLowerCase()
-    const excludedSet = new Set(manualExcludedIds)
-    return list.filter((student) => {
-      if (excludedOnly && !excludedSet.has(student.id)) {
-        return false
-      }
-      if (!query) {
-        return true
-      }
-      return (
-        student.name.toLowerCase().includes(query) ||
-        (student.studentId || '').toLowerCase().includes(query)
-      )
+    if (!filePath) return
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      flows
+    }
+    const ok = await window.electronAPI.writeExportFile(filePath, JSON.stringify(payload, null, 2))
+    addToast(ok ? '课堂流程模板导出成功' : '课堂流程模板导出失败', ok ? 'success' : 'error')
+  }, [flows, addToast])
+
+  const handleImportFlows = useCallback(async (): Promise<void> => {
+    const filePath = await window.electronAPI.selectFile({
+      title: '导入课堂流程模板',
+      filters: [{ name: 'JSON 文件', extensions: ['json'] }]
     })
-  }, [currentClass, effectivePickGenderFilter, excludedOnly, excludedSearch, manualExcludedIds])
+    if (!filePath) return
+    try {
+      const raw = await window.electronAPI.readTextFile(filePath)
+      const payload = JSON.parse(raw) as unknown
+      const imported = normalizeImportedFlows(payload)
+      if (!imported) {
+        addToast('模板格式无效，请检查 JSON 内容', 'error')
+        return
+      }
+      setFlows(imported)
+      setActiveFlow(null)
+      addToast(`已导入 ${imported.length} 条课堂流程模板`, 'success')
+    } catch (error) {
+      logger.error('Home', 'Import classroom flows failed', error)
+      addToast('导入失败，请检查模板文件', 'error')
+    }
+  }, [setFlows, setActiveFlow, addToast])
 
-  const manualExcludedSet = useMemo(() => new Set(manualExcludedIds), [manualExcludedIds])
-
-  const pickRangeEligibleCount = useMemo(() => {
-    if (!currentClass) return 0
-    return currentClass.students.filter((student) => {
-      if (student.status !== 'active') return false
-      if (manualExcludedSet.has(student.id)) return false
-      if (effectivePickGenderFilter === 'all') return true
-      return student.gender === effectivePickGenderFilter
-    }).length
-  }, [currentClass, manualExcludedSet, effectivePickGenderFilter])
+  const handleResetFlows = useCallback((): void => {
+    resetDefaultFlows()
+    setActiveFlow(null)
+    addToast('课堂流程模板已恢复默认', 'info')
+  }, [resetDefaultFlows, setActiveFlow, addToast])
 
   const startAutoDraw = useCallback(() => {
     if (mode !== 'pick') {
@@ -858,13 +967,7 @@ export function Home({
   }, [])
 
   useEffect(() => {
-    if (mode !== 'pick' && immersiveMode) {
-      setImmersiveMode(false)
-    }
-  }, [mode, immersiveMode])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
         if (immersiveMode) {
           setImmersiveMode(false)
@@ -884,7 +987,7 @@ export function Home({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mode, immersiveMode, startAutoDraw, stopAutoDraw])
+  }, [mode, immersiveMode, startAutoDraw, stopAutoDraw, setExcludedMenuOpen, setImmersiveMode])
 
   return (
     <div
@@ -937,7 +1040,7 @@ export function Home({
             currentClassId={currentClassId}
             currentClass={currentClass}
             isSpinning={isSpinning}
-            onSelectClass={setCurrentClass}
+            onSelectClass={handleSelectClass}
           />
 
           <TopControls
@@ -956,17 +1059,38 @@ export function Home({
       )}
 
       {immersivePickMode && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 px-4 py-6">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-1/2 top-[22%] h-48 w-48 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute bottom-[18%] left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
+          </div>
+
+          <div className="absolute top-4 right-4 z-10 rounded-full border border-outline-variant/45 bg-surface-container/75 backdrop-blur-md px-3 py-1.5 text-[11px] text-on-surface-variant inline-flex items-center gap-2">
+            <span>{currentClass?.name || '未选班级'}</span>
+            <span className="opacity-50">|</span>
+            <span>可抽 {pickRangeEligibleCount}</span>
+            {autoDrawRemaining > 0 && (
+              <>
+                <span className="opacity-50">|</span>
+                <span>连抽剩余 {autoDrawRemaining}</span>
+              </>
+            )}
+          </div>
+
           <motion.button
-            whileHover={{ scale: 1.05, boxShadow: '0 8px 24px -4px hsl(var(--primary) / 0.3)' }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={
+              prefersReducedMotion
+                ? undefined
+                : { scale: 1.03, boxShadow: '0 10px 28px -6px hsl(var(--primary) / 0.35)' }
+            }
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
             onClick={handleDraw}
             disabled={isSpinning || !currentClass || currentClass.students.length === 0}
             aria-label={isSpinning ? '抽选中' : '开始点名'}
             aria-busy={isSpinning}
             title="按 Esc 退出沉浸模式"
             className={cn(
-              'px-10 py-3 bg-primary text-primary-foreground rounded-full text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
+              'relative z-10 min-h-12 px-7 sm:px-10 py-3 bg-primary text-primary-foreground rounded-full text-lg sm:text-xl font-bold elevation-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               projectorMode && 'h-14 text-2xl px-12'
             )}
           >
@@ -988,7 +1112,7 @@ export function Home({
             )}
           </motion.button>
 
-          <div className="shrink-0 flex items-center bg-transparent rounded-full px-2 py-1 border border-outline-variant/35 backdrop-blur-[1px]">
+          <div className="relative z-10 shrink-0 flex items-center rounded-full px-2.5 py-1.5 border border-outline-variant/45 bg-surface-container/70 backdrop-blur-md shadow-sm">
             <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
               人数
@@ -1012,7 +1136,7 @@ export function Home({
             <div className="w-px h-4 mx-1 bg-outline-variant/40" />
             <button
               onClick={() => setImmersiveMode(false)}
-              className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-on-surface/10 cursor-pointer inline-flex items-center gap-1"
+              className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-on-surface/10 cursor-pointer inline-flex items-center gap-1 transition-colors duration-200"
               title="退出沉浸模式（Esc）"
             >
               <X className="w-3.5 h-3.5" />
@@ -1020,14 +1144,16 @@ export function Home({
             </button>
           </div>
 
-          <div className="w-full max-w-xl rounded-2xl bg-transparent border border-outline-variant/30 backdrop-blur-[1px] px-4 py-3">
-            <div className="text-xs text-on-surface-variant mb-1">抽取结果</div>
+          <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-outline-variant/45 bg-surface-container/70 backdrop-blur-md px-5 py-4 shadow-sm">
+            <div className="text-xs text-on-surface-variant mb-1.5">抽取结果</div>
             {phase === 'reveal' && winners.length > 0 ? (
-              <div className="text-on-surface font-semibold text-lg break-words">
+              <div className="text-on-surface font-semibold text-lg md:text-xl break-words leading-relaxed">
                 {winners.map((winner) => winner.name).join('、')}
               </div>
             ) : isSpinning ? (
-              <div className="text-on-surface-variant text-sm">抽选中...</div>
+              <div className="text-on-surface text-sm">抽选中...</div>
+            ) : !currentClass || currentClass.students.length === 0 ? (
+              <div className="text-on-surface-variant text-sm">请先选择班级并添加学生</div>
             ) : (
               <div className="text-on-surface-variant text-sm">等待抽取</div>
             )}
@@ -1042,12 +1168,12 @@ export function Home({
           {(showClassroomFlow || showClassroomTemplate) && (
             <div className="mb-3 shrink-0 w-full max-w-2xl">
               {showClassroomFlow && (
-                <div className="mb-2 flex items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
+                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
                   <span className="text-xs text-on-surface-variant">课堂流程</span>
                   <div className="relative">
                     <button
                       onClick={() => setFlowMenuOpen((v) => !v)}
-                      className="text-xs bg-surface-container-low border border-outline-variant rounded-full pl-2.5 pr-7 py-1 text-on-surface hover:bg-surface-container transition-colors cursor-pointer min-w-[120px] text-left"
+                      className="text-xs bg-surface-container-low border border-outline-variant rounded-full pl-2.5 pr-7 py-1 text-on-surface hover:bg-surface-container transition-colors cursor-pointer min-w-[96px] sm:min-w-[120px] text-left"
                     >
                       {activeFlow?.name || '未选择流程'}
                     </button>
@@ -1096,7 +1222,7 @@ export function Home({
                         addToast('请先选择课堂流程', 'error')
                         return
                       }
-                      setActivityPreset(step.activityPreset)
+                      applyActivityPreset(step.activityPreset)
                       addToast(`已切换到步骤 ${activeStepIndex + 1}: ${step.title}`, 'success')
                     }}
                     className="px-2.5 py-1 rounded-full text-[11px] bg-primary text-primary-foreground cursor-pointer"
@@ -1112,16 +1238,34 @@ export function Home({
                   >
                     重置
                   </button>
+                  <button
+                    onClick={handleExportFlows}
+                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
+                  >
+                    导出模板
+                  </button>
+                  <button
+                    onClick={handleImportFlows}
+                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
+                  >
+                    导入模板
+                  </button>
+                  <button
+                    onClick={handleResetFlows}
+                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
+                  >
+                    默认模板
+                  </button>
                 </div>
               )}
 
               {showClassroomTemplate && (
-                <div className="flex items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
+                <div className="flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
                   <span className="text-xs text-on-surface-variant">课堂模板</span>
                   {ACTIVITY_TEMPLATES.map((template) => (
                     <button
                       key={template.id}
-                      onClick={() => setActivityPreset(template.id)}
+                      onClick={() => applyActivityPreset(template.id)}
                       className={cn(
                         'px-2.5 py-1 rounded-full text-[11px] transition-colors cursor-pointer',
                         activityPreset === template.id
@@ -1150,7 +1294,7 @@ export function Home({
                       临时禁选 {manualExcludedIds.length}
                     </button>
                     {excludedMenuOpen && (
-                      <div className="absolute left-0 mt-1 w-[360px] max-h-[420px] overflow-hidden bg-surface-container rounded-2xl border border-outline-variant/40 elevation-2 z-40">
+                      <div className="absolute left-0 mt-1 w-[min(360px,calc(100vw-2rem))] max-h-[420px] overflow-hidden bg-surface-container rounded-2xl border border-outline-variant/40 elevation-2 z-40">
                         <div className="px-3 py-2 border-b border-outline-variant/30 flex items-center justify-between">
                           <span className="text-xs text-on-surface-variant">
                             可选{' '}
@@ -1200,10 +1344,10 @@ export function Home({
                               <button
                                 key={student.id}
                                 onClick={() => {
-                                  setManualExcludedIds((prev) =>
+                                  updateManualExcludedIds(
                                     checked
-                                      ? prev.filter((id) => id !== student.id)
-                                      : [...prev, student.id]
+                                      ? manualExcludedIds.filter((id) => id !== student.id)
+                                      : [...manualExcludedIds, student.id]
                                   )
                                 }}
                                 className={cn(
@@ -1234,14 +1378,14 @@ export function Home({
                                 currentClass?.students
                                   .filter((s) => s.status === 'active')
                                   .map((s) => s.id) || []
-                              setManualExcludedIds(allActiveIds)
+                              updateManualExcludedIds(allActiveIds)
                             }}
                             className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-on-surface hover:bg-surface-container-high cursor-pointer"
                           >
                             全部禁选
                           </button>
                           <button
-                            onClick={() => setManualExcludedIds([])}
+                            onClick={() => updateManualExcludedIds([])}
                             className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                           >
                             清空禁选
@@ -1442,7 +1586,7 @@ export function Home({
                   aria-label={isSpinning ? '抽选中' : '开始点名'}
                   aria-busy={isSpinning}
                   className={cn(
-                    'px-10 py-3 bg-primary text-primary-foreground rounded-full text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
+                    'px-7 sm:px-10 py-3 bg-primary text-primary-foreground rounded-full text-lg sm:text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
                     projectorMode && 'h-14 text-2xl px-12'
                   )}
                 >
@@ -1474,7 +1618,7 @@ export function Home({
                     onClick={handleGroup}
                     disabled={!currentClass || currentClass.students.length === 0}
                     className={cn(
-                      'px-10 py-3 bg-primary text-primary-foreground rounded-full text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
+                      'px-7 sm:px-10 py-3 bg-primary text-primary-foreground rounded-full text-lg sm:text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
                       projectorMode && 'h-14 text-2xl px-12'
                     )}
                   >
@@ -1523,7 +1667,7 @@ export function Home({
 
           {/* Pick Count — below card */}
           {mode === 'pick' && !isSpinning && (
-            <div className="mt-3 shrink-0 flex items-center bg-surface-container-high/80 rounded-full px-2.5 py-1 border border-outline-variant/40">
+            <div className="mt-3 shrink-0 flex flex-wrap items-center justify-center gap-1 bg-surface-container-high/80 rounded-full px-2.5 py-1 border border-outline-variant/40">
               <button
                 onClick={() => setImmersiveMode(true)}
                 className="mr-2 px-2.5 py-1 rounded-full text-[11px] border border-outline-variant/40 bg-surface-container text-on-surface-variant hover:bg-surface-container-high inline-flex items-center gap-1 cursor-pointer"
@@ -1641,6 +1785,21 @@ export function Home({
                         权重 {previewStudentExplain.baseWeight.toFixed(2)} -&gt;{' '}
                         {previewStudentExplain.finalWeight.toFixed(2)}
                       </div>
+                      <details className="mt-1.5 rounded-lg bg-surface-container-low/60 px-2 py-1.5">
+                        <summary className="cursor-pointer text-[11px] text-on-surface">
+                          规则说明
+                        </summary>
+                        <div className="mt-1.5 space-y-1">
+                          {previewStudentExplain.reasons.map((reason) => (
+                            <div key={`tip-${previewStudentExplain.student.id}-${reason}`}>
+                              <span className="font-medium text-on-surface">
+                                {REASON_LABELS[reason] || reason}
+                              </span>
+                              <span className="ml-1">{REASON_TOOLTIPS[reason] || '暂无说明'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
                     </>
                   )}
                 </div>
@@ -1656,25 +1815,51 @@ export function Home({
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs text-on-surface-variant">抽选解释</div>
                   <div className="text-[11px] text-on-surface-variant">
-                    本次抽取 {lastSelectionMetaRef.current?.actualCount || winners.length} 人 / 请求{' '}
-                    {lastSelectionMetaRef.current?.requestedCount || pickCount} 人
+                    本次抽取 {lastSelectionMeta?.actualCount || winners.length} 人 / 请求{' '}
+                    {lastSelectionMeta?.requestedCount || pickCount} 人
                   </div>
                 </div>
 
-                {lastSelectionMetaRef.current?.explanationSummary && (
+                {lastSelectionMeta?.explanationSummary && (
                   <div className="mb-2 text-[11px] text-on-surface-variant bg-surface-container-low/70 border border-outline-variant/20 rounded-xl px-2.5 py-1.5">
-                    {lastSelectionMetaRef.current.explanationSummary}
+                    {lastSelectionMeta.explanationSummary}
                   </div>
                 )}
 
-                {(lastSelectionMetaRef.current?.fallbackNotes || []).length > 0 && (
+                {(lastSelectionMeta?.fallbackNotes || []).length > 0 && (
                   <div className="mb-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
-                    {(lastSelectionMetaRef.current?.fallbackNotes || []).join('；')}
+                    {(lastSelectionMeta?.fallbackNotes || []).join('；')}
+                  </div>
+                )}
+
+                {selectionReasonOverview.length > 0 && (
+                  <div className="mb-2 rounded-xl bg-surface-container-low/70 border border-outline-variant/20 p-2.5">
+                    <div className="text-[11px] text-on-surface-variant mb-1.5">规则命中概览</div>
+                    <div className="space-y-1.5">
+                      {selectionReasonOverview.map((group) => (
+                        <div key={`reason-group-${group.key}`}>
+                          <div className="text-[10px] text-on-surface-variant mb-1">
+                            {group.label}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {group.items.map((item) => (
+                              <span
+                                key={`reason-overview-${group.key}-${item.reason}`}
+                                className="px-2 py-0.5 rounded-full text-[10px] bg-surface-container-high text-on-surface-variant"
+                                title={REASON_TOOLTIPS[item.reason] || item.reason}
+                              >
+                                {REASON_LABELS[item.reason] || item.reason} x {item.count}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 <div className="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
-                  {(lastSelectionMetaRef.current?.winnerExplanations || []).map((item) => (
+                  {(lastSelectionMeta?.winnerExplanations || []).map((item) => (
                     <div
                       key={item.id}
                       className="rounded-xl bg-surface-container-low/70 p-2.5 border border-outline-variant/20"

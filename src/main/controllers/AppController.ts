@@ -13,9 +13,20 @@ import { detectSyncConflict } from '../sync/conflict'
 const shortcutSchema = z.tuple([z.string(), z.string()])
 const pathSchema = z.tuple([z.string().min(1)])
 const pathBoolSchema = z.tuple([z.string().min(1), z.boolean()])
+const intSchema = z.tuple([z.number().int().min(1).max(500)])
+const daySchema = z.tuple([z.number().int().min(1).max(3650)])
 const restorePointNameSchema = z.tuple([z.string().min(1).max(80)])
 const urlSchema = z.tuple([z.string().url()])
 const boolSchema = z.tuple([z.boolean()])
+const diagnosticEventSchema = z.tuple([
+  z.object({
+    category: z.enum(['sync', 'shortcut', 'plugin', 'self-check']),
+    level: z.enum(['info', 'warn', 'error']),
+    code: z.string().min(1).max(80),
+    message: z.string().min(1).max(200),
+    context: z.record(z.string(), z.unknown()).optional()
+  })
+])
 
 type SyncResultCode =
   | 'SYNC_OK'
@@ -87,6 +98,22 @@ export class AppController extends BaseController {
     this.handleValidated('create-restore-point', restorePointNameSchema, this.createRestorePoint)
     this.handle('list-restore-points', this.listRestorePoints)
     this.handleValidated('restore-from-point', pathSchema, this.restoreFromPoint)
+    this.handleValidated('delete-restore-point', pathSchema, this.deleteRestorePoint)
+    this.handleValidated(
+      'delete-old-restore-points-keep',
+      intSchema,
+      this.deleteOldRestorePointsKeep
+    )
+    this.handleValidated(
+      'delete-restore-points-older-than-days',
+      daySchema,
+      this.deleteRestorePointsOlderThanDays
+    )
+    this.handleValidated(
+      'append-diagnostic-event',
+      diagnosticEventSchema,
+      this.appendDiagnosticEventFromIPC
+    )
   }
 
   private restorePointsDir(): string {
@@ -155,11 +182,135 @@ export class AppController extends BaseController {
     _event: Electron.IpcMainInvokeEvent,
     restorePointPath: string
   ): Promise<boolean> {
-    const normalized = path.normalize(restorePointPath)
-    if (!normalized.startsWith(path.normalize(this.restorePointsDir()))) {
-      throw new Error('Access denied: restore point path is invalid')
+    try {
+      const normalized = path.normalize(restorePointPath)
+      if (!normalized.startsWith(path.normalize(this.restorePointsDir()))) {
+        throw new Error('Access denied: restore point path is invalid')
+      }
+      const ok = await this.restoreData(_event, normalized)
+      this.appendDiagnosticEvent({
+        category: 'sync',
+        level: ok ? 'info' : 'error',
+        code: ok ? 'RESTORE_POINT_APPLIED' : 'RESTORE_POINT_APPLY_FAILED',
+        message: ok ? 'Restore point applied' : 'Restore point apply failed',
+        context: { path: normalized }
+      })
+      return ok
+    } catch (error) {
+      this.appendDiagnosticEvent({
+        category: 'sync',
+        level: 'error',
+        code: 'RESTORE_POINT_APPLY_EXCEPTION',
+        message: 'Restore point apply exception',
+        context: { error: error instanceof Error ? error.message : String(error) }
+      })
+      throw error
     }
-    return this.restoreData(_event, normalized)
+  }
+
+  private async deleteRestorePoint(
+    _event: Electron.IpcMainInvokeEvent,
+    restorePointPath: string
+  ): Promise<boolean> {
+    try {
+      const normalized = path.normalize(restorePointPath)
+      if (!normalized.startsWith(path.normalize(this.restorePointsDir()))) {
+        throw new Error('Access denied: restore point path is invalid')
+      }
+      if (!fs.existsSync(normalized)) {
+        return true
+      }
+      fs.unlinkSync(normalized)
+      this.appendDiagnosticEvent({
+        category: 'sync',
+        level: 'info',
+        code: 'RESTORE_POINT_DELETED',
+        message: 'Restore point deleted',
+        context: { path: normalized }
+      })
+      return true
+    } catch (error) {
+      log.error('Failed to delete restore point:', error)
+      return false
+    }
+  }
+
+  private async deleteOldRestorePointsKeep(
+    _event: Electron.IpcMainInvokeEvent,
+    keepCount: number
+  ): Promise<{ ok: boolean; deleted: number }> {
+    try {
+      const points = await this.listRestorePoints()
+      const toDelete = points.slice(Math.max(keepCount, 0))
+      let deleted = 0
+      toDelete.forEach((point) => {
+        try {
+          if (fs.existsSync(point.path)) {
+            fs.unlinkSync(point.path)
+            deleted++
+          }
+        } catch (error) {
+          log.warn('Failed to delete old restore point:', error)
+        }
+      })
+      this.appendDiagnosticEvent({
+        category: 'sync',
+        level: 'info',
+        code: 'RESTORE_POINT_PRUNED',
+        message: 'Restore points pruned',
+        context: { keepCount, deleted }
+      })
+      return { ok: true, deleted }
+    } catch (error) {
+      log.error('Failed to prune restore points:', error)
+      return { ok: false, deleted: 0 }
+    }
+  }
+
+  private async deleteRestorePointsOlderThanDays(
+    _event: Electron.IpcMainInvokeEvent,
+    days: number
+  ): Promise<{ ok: boolean; deleted: number }> {
+    try {
+      const threshold = Date.now() - days * 24 * 60 * 60 * 1000
+      const points = await this.listRestorePoints()
+      const toDelete = points.filter((point) => point.createdAt < threshold)
+      let deleted = 0
+      toDelete.forEach((point) => {
+        try {
+          if (fs.existsSync(point.path)) {
+            fs.unlinkSync(point.path)
+            deleted++
+          }
+        } catch (error) {
+          log.warn('Failed to delete outdated restore point:', error)
+        }
+      })
+      this.appendDiagnosticEvent({
+        category: 'sync',
+        level: 'info',
+        code: 'RESTORE_POINT_PRUNED_BY_DAYS',
+        message: 'Restore points pruned by days',
+        context: { days, deleted }
+      })
+      return { ok: true, deleted }
+    } catch (error) {
+      log.error('Failed to prune restore points by days:', error)
+      return { ok: false, deleted: 0 }
+    }
+  }
+
+  private async appendDiagnosticEventFromIPC(
+    _event: Electron.IpcMainInvokeEvent,
+    payload: Omit<DiagnosticEvent, 'id' | 'timestamp'>
+  ): Promise<boolean> {
+    try {
+      this.appendDiagnosticEvent(payload)
+      return true
+    } catch (error) {
+      log.error('Failed to append diagnostic event from IPC:', error)
+      return false
+    }
   }
 
   private diagnosticLogPath(): string {

@@ -1,16 +1,35 @@
 import {
-  GraduationCap, Github, Heart, Shield, Zap, Users, BarChart3,
-  Palette, Keyboard, Globe, Monitor, Code2, Sparkles, BookOpen,
-  Clock, Layers, Camera, FileDown, Type, ImageIcon, ExternalLink
+  GraduationCap,
+  Github,
+  Heart,
+  Shield,
+  Zap,
+  Users,
+  BarChart3,
+  Palette,
+  Keyboard,
+  Globe,
+  Monitor,
+  Code2,
+  Sparkles,
+  BookOpen,
+  Clock,
+  Layers,
+  Camera,
+  FileDown,
+  Type,
+  ImageIcon,
+  ExternalLink
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import type { ReactElement } from 'react'
 
 const features = [
   { icon: Zap, title: '8 种抽选动画', desc: '老虎机、翻转、转盘、逐字揭晓等' },
   { icon: Shield, title: '隐私优先', desc: '数据完全离线，不上传任何信息' },
   { icon: Users, title: '班级管理', desc: '多班级、照片、批量导入导出、复制' },
   { icon: BarChart3, title: '统计分析', desc: '频率分布、趋势图表、课堂报告' },
-  { icon: Palette, title: '高度可定制', desc: '28+ 配色、自定义颜色、9 种设计风格' },
+  { icon: Palette, title: '高度可定制', desc: '28+ 配色、自定义颜色、11 种设计风格' },
   { icon: Keyboard, title: '全局快捷键', desc: '自定义快捷键，一键触发抽选' },
   { icon: Globe, title: '公平算法', desc: 'Fisher-Yates 洗牌 + 加权随机 + 冷却' },
   { icon: Monitor, title: '投屏模式', desc: '大字号高可读布局，适合教室大屏' },
@@ -20,12 +39,13 @@ const features = [
   { icon: Camera, title: '头像展示', desc: '抽选结果展示学生照片' },
   { icon: FileDown, title: '数据导出', desc: '学生列表、统计数据 CSV 导出' },
   { icon: Type, title: '内联编辑', desc: '双击直接修改学生姓名与学号' },
-  { icon: ImageIcon, title: '自定义背景', desc: '设置主页背景图片与动态取色' }
+  { icon: ImageIcon, title: '自定义背景', desc: '设置主页背景图片与动态取色' },
+  { icon: Layers, title: '流程模板中心', desc: '可视化步骤编辑、导入策略、流程复用' }
 ]
 
 const techStack = [
   { name: 'Electron', desc: '跨平台桌面' },
-  { name: 'React 18', desc: '声明式 UI' },
+  { name: 'React 19', desc: '声明式 UI' },
   { name: 'TypeScript', desc: '类型安全' },
   { name: 'Tailwind CSS', desc: '原子化样式' },
   { name: 'Framer Motion', desc: '流畅动画' },
@@ -37,7 +57,7 @@ const techStack = [
 
 const highlights = [
   { value: '28+', label: '主题配色', icon: Palette },
-  { value: '9', label: '设计风格', icon: Layers },
+  { value: '11', label: '设计风格', icon: Layers },
   { value: '8', label: '抽选动画', icon: Sparkles },
   { value: '3', label: '动画速率', icon: Zap }
 ]
@@ -52,14 +72,14 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 0.68, 0, 1.04] as const } }
 }
 
-export function About() {
+export function About(): ReactElement {
   return (
-    <div className="h-full flex flex-col p-5 overflow-y-auto custom-scrollbar">
+    <div className="h-full flex flex-col p-3 sm:p-5 overflow-y-auto custom-scrollbar">
       <motion.div
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="max-w-2xl mx-auto w-full space-y-6 pb-8"
+        className="max-w-4xl mx-auto w-full space-y-6 pb-8"
       >
         {/* Hero */}
         <motion.div variants={fadeUp} className="text-center space-y-4 pt-4">
@@ -78,13 +98,12 @@ export function About() {
             </span>
           </div>
           <p className="text-sm text-on-surface-variant/80 max-w-sm mx-auto leading-relaxed">
-            隐私优先、算法公平、高度可定制的离线课堂随机点名工具。
-            为教师打造流畅的课堂互动体验。
+            隐私优先、算法公平、高度可定制的离线课堂随机点名工具。 为教师打造流畅的课堂互动体验。
           </p>
         </motion.div>
 
         {/* Highlights */}
-        <motion.div variants={fadeUp} className="grid grid-cols-4 gap-3">
+        <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {highlights.map((h) => (
             <motion.div
               key={h.label}
@@ -111,7 +130,7 @@ export function About() {
             variants={stagger}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2"
           >
             {features.map((f) => (
               <motion.div
@@ -125,7 +144,9 @@ export function About() {
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-semibold text-on-surface leading-tight">{f.title}</h3>
-                  <p className="text-[10px] text-on-surface-variant/70 mt-0.5 leading-relaxed">{f.desc}</p>
+                  <p className="text-[10px] text-on-surface-variant/70 mt-0.5 leading-relaxed">
+                    {f.desc}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -140,7 +161,7 @@ export function About() {
             </div>
             技术栈
           </h2>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {techStack.map((tech, i) => (
               <motion.div
                 key={tech.name}
@@ -162,12 +183,14 @@ export function About() {
 
         {/* Links & Credits */}
         <motion.div variants={fadeUp} className="bg-surface-container rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => window.electronAPI.openExternal('https://github.com/BeiChen-CN/Stellarc')}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium text-on-surface bg-surface-container-high rounded-full hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              onClick={() =>
+                window.electronAPI.openExternal('https://github.com/BeiChen-CN/Stellarc')
+              }
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs font-medium text-on-surface bg-surface-container-high rounded-full hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
             >
               <Github className="w-4 h-4" />
               GitHub 仓库
@@ -176,8 +199,10 @@ export function About() {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => window.electronAPI.openExternal('https://github.com/BeiChen-CN/Stellarc/issues')}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium text-on-surface bg-surface-container-high rounded-full hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              onClick={() =>
+                window.electronAPI.openExternal('https://github.com/BeiChen-CN/Stellarc/issues')
+              }
+              className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs font-medium text-on-surface bg-surface-container-high rounded-full hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
             >
               <Layers className="w-4 h-4" />
               反馈问题

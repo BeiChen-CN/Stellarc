@@ -33,6 +33,18 @@ nul
 .skills
 .github/skills
 __pycache__
+.agent/
+.codebuddy/
+.codex/
+.continue/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/
+.github/prompts/
 
 # Misc
 _sw_logic.txt

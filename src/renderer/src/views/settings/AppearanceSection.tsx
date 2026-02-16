@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react'
+import { useState, type ReactElement, type ReactNode } from 'react'
 import {
   Sun,
   Moon,
@@ -21,11 +21,11 @@ import {
   BarChart3,
   TrendingUp
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn, toFileUrl } from '../../lib/utils'
 import { useSettingsStore, ColorTheme } from '../../store/settingsStore'
 import { MD3Switch } from './MD3Switch'
-import { DesignStylePreview, designStyles } from './DesignStylePreview'
+import { DesignStylePreview } from './DesignStylePreview'
+import { designStyles } from './designStyles'
 
 const COLOR_THEMES: { id: ColorTheme; label: string; color: string }[] = [
   { id: 'klein-blue', label: '克莱因蓝', color: 'hsl(223, 100%, 33%)' },
@@ -81,7 +81,10 @@ interface AppearanceSectionProps {
   onSelectBackground: () => void
 }
 
-export function AppearanceSection({ variant, onSelectBackground }: AppearanceSectionProps) {
+export function AppearanceSection({
+  variant,
+  onSelectBackground
+}: AppearanceSectionProps): ReactElement {
   const isAppearance = variant === 'appearance'
   const isExperience = variant === 'experience'
   const [colorsExpanded, setColorsExpanded] = useState(false)
@@ -266,7 +269,7 @@ export function AppearanceSection({ variant, onSelectBackground }: AppearanceSec
                   step="0.05"
                   value={animationDurationScale}
                   onChange={(e) => setAnimationDurationScale(parseFloat(e.target.value) || 1)}
-                  className="w-full accent-primary cursor-pointer"
+                  className="ui-range"
                 />
                 <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-1">
                   <span>更快</span>
@@ -555,7 +558,7 @@ export function AppearanceSection({ variant, onSelectBackground }: AppearanceSec
                 onChange={(e) =>
                   setRevealSettleMs(Math.max(0, Math.min(5000, parseInt(e.target.value) || 0)))
                 }
-                className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
+                className="ui-number w-24 rounded-full text-sm text-center px-3"
               />
             </div>
           </div>
@@ -845,7 +848,7 @@ function CollapsibleGrid({
   expanded: boolean
   onToggle: () => void
   children: ReactNode
-}) {
+}): ReactElement {
   return (
     <div className="p-5 hover:bg-surface-container-high/50 transition-colors">
       <div className="flex items-center justify-between mb-0">
@@ -865,19 +868,7 @@ function CollapsibleGrid({
           />
         </button>
       </div>
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="pt-4">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {expanded && <div className="overflow-hidden pt-4">{children}</div>}
     </div>
   )
 }
@@ -894,7 +885,7 @@ function ToggleRow({
   desc: string
   checked: boolean
   onToggle: () => void
-}) {
+}): ReactElement {
   return (
     <div
       className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors cursor-pointer select-none"
@@ -907,7 +898,12 @@ function ToggleRow({
           <p className="text-xs text-on-surface-variant mt-0.5">{desc}</p>
         </div>
       </div>
-      <MD3Switch checked={checked} onClick={onToggle} label={title} />
+      <div
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <MD3Switch checked={checked} onClick={onToggle} label={title} />
+      </div>
     </div>
   )
 }

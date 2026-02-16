@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/BeiChen-CN/Stellarc/releases/latest"><img src="https://img.shields.io/github/v/release/BeiChen-CN/Stellarc?color=blue" alt="Release"></a>
+  <img src="https://img.shields.io/github/stars/BeiChen-CN/Stellarc?style=social" alt="Stars">
   <img src="https://img.shields.io/github/downloads/BeiChen-CN/Stellarc/total?color=green" alt="Downloads">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platform">
@@ -81,7 +82,7 @@
     <td valign="top">
       <strong>外观</strong>
       <ul>
-        <li>18 种颜色主题，9 种设计风格</li>
+        <li>28+ 种颜色主题，11 种设计风格</li>
         <li>深色 / 浅色模式，M3 色调渗透</li>
         <li>自定义背景图片</li>
         <li>课堂活动模板</li>
@@ -289,7 +290,8 @@ src/
   - `npm run lint`
   - `npm test`
   - `npm run build`
-- 标签发布仍走 `.github/workflows/release.yml` 进行多平台打包与发布。
+- 推送 `v*` 标签会自动触发 `.github/workflows/release.yml`，构建多平台产物并上传到 GitHub Release。
+- Release 描述会优先读取 `CHANGELOG.md` 对应版本章节，自动生成更新日志。
 
 ---
 

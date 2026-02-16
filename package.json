@@ -1,6 +1,6 @@
 {
   "name": "stellarc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "隐私优先、算法公平、高度可定制的离线课堂随机点名工具",
   "main": "./out/main/index.js",
   "author": "Stellarc Team",
@@ -17,6 +17,8 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
+    "analyze:size": "node scripts/report-bundle-size.mjs",
+    "build:report": "npm run build && npm run analyze:size",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",

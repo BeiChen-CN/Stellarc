@@ -35,6 +35,16 @@ declare global {
       ) => Promise<{ ok: boolean; name?: string; message?: string }>
       listRestorePoints: () => Promise<Array<{ name: string; path: string; createdAt: number }>>
       restoreFromPoint: (restorePointPath: string) => Promise<boolean>
+      deleteRestorePoint: (restorePointPath: string) => Promise<boolean>
+      deleteOldRestorePointsKeep: (keepCount: number) => Promise<{ ok: boolean; deleted: number }>
+      deleteRestorePointsOlderThanDays: (days: number) => Promise<{ ok: boolean; deleted: number }>
+      appendDiagnosticEvent: (event: {
+        category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
+        level: 'info' | 'warn' | 'error'
+        code: string
+        message: string
+        context?: Record<string, unknown>
+      }) => Promise<boolean>
       openExternal: (url: string) => Promise<boolean>
       setAutoLaunch: (enabled: boolean) => Promise<boolean>
       getAutoLaunch: () => Promise<boolean>

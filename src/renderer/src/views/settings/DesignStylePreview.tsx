@@ -1,41 +1,7 @@
 import { Check } from 'lucide-react'
-import type { DesignStyle } from '../../store/settingsStore'
+import type { ReactElement } from 'react'
 
-const designStyles: { id: DesignStyle; label: string; desc: string; preview: string }[] = [
-  {
-    id: 'material-design-3',
-    label: 'Material Design 3',
-    desc: '圆润、色调表面、elevation 层级',
-    preview: 'md3'
-  },
-  { id: 'flat', label: 'Flat Design', desc: '无阴影、锐利边框、扁平色块', preview: 'flat' },
-  { id: 'minimalism', label: 'Minimalism', desc: '极简、大留白、细线条', preview: 'minimal' },
-  {
-    id: 'glassmorphism',
-    label: 'Glassmorphism',
-    desc: '毛玻璃、半透明、模糊背景',
-    preview: 'glass'
-  },
-  { id: 'claymorphism', label: 'Claymorphism', desc: '陶土质感、柔和内外阴影', preview: 'clay' },
-  { id: 'neumorphism', label: 'Neumorphism', desc: '新拟态、凸起/凹陷双阴影', preview: 'neu' },
-  {
-    id: 'skeuomorphism',
-    label: 'Skeuomorphism',
-    desc: '拟物化、真实纹理、立体光影',
-    preview: 'skeu'
-  },
-  {
-    id: 'microinteractions',
-    label: 'Microinteractions',
-    desc: '微交互、弹性动效、活力反馈',
-    preview: 'micro'
-  },
-  { id: 'apple-hig', label: 'Apple HIG', desc: 'SF 圆角、毛玻璃层级、精致光影', preview: 'apple' }
-]
-
-export { designStyles }
-
-function DesignStylePreview({ type, isActive }: { type: string; isActive: boolean }) {
+function DesignStylePreview({ type, isActive }: { type: string; isActive: boolean }): ReactElement {
   const base = 'w-full h-12 rounded-lg flex items-center justify-center'
   switch (type) {
     case 'md3':
@@ -168,6 +134,61 @@ function DesignStylePreview({ type, isActive }: { type: string; isActive: boolea
         >
           <div className="w-5 h-5 rounded-[5px] bg-primary/30" />
           {isActive && <Check className="w-3.5 h-3.5 text-primary absolute" />}
+        </div>
+      )
+    case 'brutal':
+      return (
+        <div
+          className={`${base} relative`}
+          style={{
+            borderRadius: 4,
+            border: '2px solid hsl(var(--on-surface))',
+            background: 'hsl(var(--surface-container-high))',
+            boxShadow: '4px 4px 0 hsl(var(--on-surface) / 0.8)'
+          }}
+        >
+          <div className="w-5 h-5" style={{ background: 'hsl(var(--primary) / 0.6)' }} />
+          {isActive && <Check className="w-3.5 h-3.5 text-on-surface absolute" />}
+        </div>
+      )
+    case 'editorial':
+      return (
+        <div
+          className={`${base} relative overflow-hidden`}
+          style={{
+            borderRadius: 8,
+            border: '1px solid hsl(var(--outline-variant))',
+            background:
+              'linear-gradient(180deg, hsl(var(--surface-container-low)), hsl(var(--surface-container)))'
+          }}
+        >
+          <div className="w-8 h-[1px] bg-on-surface-variant/50 absolute top-3" />
+          <div className="w-5 h-5 rounded-full border border-on-surface-variant/40" />
+          {isActive && <Check className="w-3.5 h-3.5 text-primary absolute" />}
+        </div>
+      )
+    case 'cyber':
+      return (
+        <div
+          className={`${base} relative overflow-hidden`}
+          style={{
+            borderRadius: 6,
+            border: '1px solid hsl(var(--primary) / 0.55)',
+            background:
+              'linear-gradient(135deg, hsl(var(--surface-container-low)), hsl(var(--surface-container)))'
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(hsl(var(--primary) / 0.2) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.2) 1px, transparent 1px)',
+              backgroundSize: '8px 8px',
+              opacity: 0.6
+            }}
+          />
+          <div className="w-5 h-5 rounded-sm border border-primary/60 bg-primary/20 z-[1]" />
+          {isActive && <Check className="w-3.5 h-3.5 text-primary absolute z-[1]" />}
         </div>
       )
     default:

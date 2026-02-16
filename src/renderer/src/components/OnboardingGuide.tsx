@@ -36,56 +36,56 @@ const STEPS: Array<{
   view?: AppView
   icon: typeof BookOpen
 }> = [
-    {
-      title: '欢迎使用 Stellarc',
-      description: '30 秒带你熟悉核心流程：导入学生、调整规则、开始点名、查看记录。',
-      checklist: ['了解 5 步主流程', '知道常用入口在左侧导航', '可在设置里重新打开引导'],
-      tip: '建议先完成学生管理，再开始抽选。',
-      icon: BookOpen
-    },
-    {
-      title: '先准备班级和学生',
-      description: '在“学生管理”创建班级并导入名单，支持 CSV、复制班级与批量编辑。',
-      checklist: ['创建至少 1 个班级', '添加或导入学生', '确认学生状态为正常'],
-      tip: '首次建议至少准备 10 人，便于测试抽选和分组。',
-      helper: 'class-student',
-      view: 'students',
-      icon: Users
-    },
-    {
-      title: '先单独设置外观',
-      description: '在“系统设置”里先确认主题、配色、设计风格和抽取动画。',
-      checklist: ['设置主题（浅色/深色）', '选择配色', '选择设计风格与抽取动画'],
-      tip: '先统一视觉，再调整规则，课堂观感更稳定。',
-      helper: 'appearance',
-      view: 'settings',
-      icon: Palette
-    },
-    {
-      title: '再按课堂习惯配置规则',
-      description: '继续在“系统设置”里调整抽选规则、范围筛选、模块显示和积分规则。',
-      checklist: ['选择抽选策略', '设置冷却/防重复', '按需开启模块显示'],
-      tip: '不确定时可先用默认规则，上课中再微调。',
-      view: 'settings',
-      icon: Settings
-    },
-    {
-      title: '开始随机点名',
-      description: '回到“随机点名”，点击开始。可切换单人抽选或分组模式。',
-      checklist: ['确认当前班级', '选择点名或分组', '开始并查看结果'],
-      tip: '大屏授课建议开启投屏模式。',
-      view: 'home',
-      icon: PlayCircle
-    },
-    {
-      title: '课后查看与复盘',
-      description: '在“历史记录”和“数据统计”复盘课堂过程，导出报告。',
-      checklist: ['检查历史记录', '查看统计分布', '导出课堂报告'],
-      tip: '建议每周导出一次报告，便于教学复盘。',
-      view: 'history',
-      icon: History
-    }
-  ]
+  {
+    title: '欢迎使用 Stellarc',
+    description: '30 秒带你熟悉核心流程：导入学生、调整规则、开始点名、查看记录。',
+    checklist: ['了解 5 步主流程', '知道常用入口在左侧导航', '可在设置里重新打开引导'],
+    tip: '建议先完成学生管理，再开始抽选。',
+    icon: BookOpen
+  },
+  {
+    title: '先准备班级和学生',
+    description: '在“学生管理”创建班级并导入名单，支持 CSV、复制班级与批量编辑。',
+    checklist: ['创建至少 1 个班级', '添加或导入学生', '确认学生状态为正常'],
+    tip: '首次建议至少准备 10 人，便于测试抽选和分组。',
+    helper: 'class-student',
+    view: 'students',
+    icon: Users
+  },
+  {
+    title: '先单独设置外观',
+    description: '在“系统设置”里先确认主题、配色、设计风格和抽取动画。',
+    checklist: ['设置主题（浅色/深色）', '选择配色', '选择设计风格与抽取动画'],
+    tip: '先统一视觉，再调整规则，课堂观感更稳定。',
+    helper: 'appearance',
+    view: 'settings',
+    icon: Palette
+  },
+  {
+    title: '再按课堂习惯配置规则',
+    description: '继续在“系统设置”里调整抽选规则、范围筛选、模块显示和积分规则。',
+    checklist: ['选择抽选策略', '设置冷却/防重复', '按需开启模块显示'],
+    tip: '不确定时可先用默认规则，上课中再微调。',
+    view: 'settings',
+    icon: Settings
+  },
+  {
+    title: '开始随机点名',
+    description: '回到“随机点名”，点击开始。可切换单人抽选或分组模式。',
+    checklist: ['确认当前班级', '选择点名或分组', '开始并查看结果'],
+    tip: '大屏授课建议开启投屏模式。',
+    view: 'home',
+    icon: PlayCircle
+  },
+  {
+    title: '课后查看与复盘',
+    description: '在“历史记录”和“数据统计”复盘课堂过程，导出报告。',
+    checklist: ['检查历史记录', '查看统计分布', '导出课堂报告'],
+    tip: '建议每周导出一次报告，便于教学复盘。',
+    view: 'history',
+    icon: History
+  }
+]
 
 export function OnboardingGuide({ open, onClose }: OnboardingGuideProps) {
   const [step, setStep] = useState(0)
@@ -134,7 +134,9 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps) {
     { id: 'material-design-3', label: 'Material 3' },
     { id: 'minimalism', label: '极简' },
     { id: 'glassmorphism', label: '玻璃拟态' },
-    { id: 'apple-hig', label: 'Apple 风格' }
+    { id: 'apple-hig', label: 'Apple 风格' },
+    { id: 'neo-brutalism', label: '粗野几何' },
+    { id: 'editorial', label: '杂志排版' }
   ]
 
   const quickAnimationStyles: Array<{ id: AnimationStyle; label: string }> = [
@@ -152,31 +154,31 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps) {
     style: DesignStyle
     animation: AnimationStyle
   }> = [
-      {
-        id: 'classic-classroom',
-        label: '课堂经典',
-        theme: 'system',
-        color: 'blue',
-        style: 'material-design-3',
-        animation: 'slot'
-      },
-      {
-        id: 'focus-minimal',
-        label: '专注极简',
-        theme: 'light',
-        color: 'forest',
-        style: 'minimalism',
-        animation: 'flip'
-      },
-      {
-        id: 'stage-vivid',
-        label: '投屏活力',
-        theme: 'dark',
-        color: 'hermes',
-        style: 'glassmorphism',
-        animation: 'wheel'
-      }
-    ]
+    {
+      id: 'classic-classroom',
+      label: '课堂经典',
+      theme: 'system',
+      color: 'blue',
+      style: 'material-design-3',
+      animation: 'slot'
+    },
+    {
+      id: 'focus-minimal',
+      label: '专注极简',
+      theme: 'light',
+      color: 'forest',
+      style: 'minimalism',
+      animation: 'flip'
+    },
+    {
+      id: 'stage-vivid',
+      label: '投屏活力',
+      theme: 'dark',
+      color: 'hermes',
+      style: 'glassmorphism',
+      animation: 'wheel'
+    }
+  ]
 
   const parsedQuickNames = useMemo(
     () => parseStudentNamesFromText(quickStudentsText),

@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback } from 'react'
+import { memo, useState, useRef, useCallback, type ReactElement } from 'react'
 import { Plus, Minus, Trash2, UserX, CheckCircle, Camera } from 'lucide-react'
 import { cn, toFileUrl } from '../../lib/utils'
 import type { Student } from '../../types'
@@ -37,7 +37,7 @@ function EditableCell({
   value: string
   placeholder: string
   onSave: (val: string) => void
-}) {
+}): ReactElement {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -297,5 +297,217 @@ export const StudentRow = memo(function StudentRow({
         </button>
       </td>
     </tr>
+  )
+})
+
+export const StudentMobileCard = memo(function StudentMobileCard({
+  student,
+  classId,
+  selected,
+  onToggleSelected,
+  showWeight,
+  showStudentId,
+  onUploadPhoto,
+  onUpdateWeight,
+  onUpdateScore,
+  onUpdateStatus,
+  onUpdateName,
+  onUpdateStudentId,
+  onUpdateGender,
+  onUpdateTags,
+  onRemove
+}: StudentRowProps): ReactElement {
+  const score = student.score || 0
+  const weight = student.weight || 1
+
+  return (
+    <div className="rounded-2xl border border-outline-variant/30 bg-surface-container p-3 space-y-2.5">
+      <div className="flex items-start gap-2.5">
+        <button
+          onClick={() => onToggleSelected(student.id, !selected)}
+          className={cn(
+            'mt-1 w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0',
+            selected
+              ? 'bg-primary border-primary text-primary-foreground'
+              : 'border-outline-variant/70 bg-surface-container'
+          )}
+          title={selected ? '取消选择' : '选择学生'}
+        >
+          {selected && <CheckCircle className="w-3 h-3" />}
+        </button>
+
+        <button
+          onClick={() => onUploadPhoto(classId, student.id)}
+          className="relative w-9 h-9 rounded-full shrink-0 group/avatar cursor-pointer overflow-hidden"
+          title="点击上传照片"
+        >
+          {student.photo ? (
+            <img
+              src={toFileUrl(student.photo)}
+              alt={student.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+              {student.name.slice(0, 1)}
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+            <Camera className="w-3.5 h-3.5 text-white" />
+          </div>
+        </button>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="font-medium text-on-surface truncate">
+              <EditableCell
+                value={student.name}
+                placeholder="姓名"
+                onSave={(name) => onUpdateName(classId, student.id, name)}
+              />
+            </div>
+            <span className="inline-flex items-center justify-center min-w-[1.5rem] px-2 py-0.5 rounded-full bg-secondary-container text-secondary-container-foreground text-[10px] font-medium">
+              {student.pickCount}
+            </span>
+          </div>
+
+          {showStudentId && (
+            <div className="text-xs text-on-surface-variant">
+              <EditableCell
+                value={student.studentId || ''}
+                placeholder="学号"
+                onSave={(sid) => onUpdateStudentId(classId, student.id, sid || undefined)}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onUpdateGender(classId, student.id, 'male')}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] cursor-pointer border',
+                student.gender === 'male'
+                  ? 'bg-secondary-container text-secondary-container-foreground border-transparent'
+                  : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
+              )}
+            >
+              男
+            </button>
+            <button
+              onClick={() => onUpdateGender(classId, student.id, 'female')}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] cursor-pointer border',
+                student.gender === 'female'
+                  ? 'bg-secondary-container text-secondary-container-foreground border-transparent'
+                  : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
+              )}
+            >
+              女
+            </button>
+            <span
+              className={cn(
+                'ml-auto px-2 py-0.5 rounded-full text-[10px] font-medium',
+                student.status === 'active'
+                  ? 'bg-secondary-container text-secondary-container-foreground'
+                  : student.status === 'absent'
+                    ? 'bg-tertiary-container text-tertiary'
+                    : 'bg-destructive/10 text-destructive'
+              )}
+            >
+              {student.status === 'active' ? '正常' : student.status === 'absent' ? '缺席' : '排除'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        {showWeight && (
+          <div className="rounded-xl border border-outline-variant/30 px-2.5 py-2">
+            <div className="text-on-surface-variant mb-1">权重</div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => onUpdateWeight(classId, student.id, Math.max(0, weight - 1))}
+                className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="font-semibold text-on-surface tabular-nums">{weight}</span>
+              <button
+                onClick={() => onUpdateWeight(classId, student.id, weight + 1)}
+                className="p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-xl border border-outline-variant/30 px-2.5 py-2">
+          <div className="text-on-surface-variant mb-1">积分</div>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => onUpdateScore(classId, student.id, score - 1)}
+              className="p-1 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive cursor-pointer"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span
+              className={cn(
+                'font-semibold tabular-nums',
+                score > 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : score < 0
+                    ? 'text-destructive'
+                    : 'text-on-surface-variant'
+              )}
+            >
+              {score}
+            </span>
+            <button
+              onClick={() => onUpdateScore(classId, student.id, score + 1)}
+              className="p-1 rounded-full hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-xs text-on-surface-variant">
+        <EditableCell
+          value={(student.tags || []).join(' / ')}
+          placeholder="标签（/ 分隔）"
+          onSave={(tags) =>
+            onUpdateTags(
+              classId,
+              student.id,
+              tags
+                .split('/')
+                .map((tag) => tag.trim())
+                .filter((tag) => tag.length > 0)
+            )
+          }
+        />
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5 pt-1">
+        <button
+          title={student.status === 'active' ? '设为缺席' : '设为正常'}
+          onClick={() =>
+            onUpdateStatus(classId, student.id, student.status === 'active' ? 'absent' : 'active')
+          }
+          className="h-9 px-3 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
+        >
+          {student.status === 'active' ? '设缺席' : '设正常'}
+        </button>
+        <button
+          title="删除学生"
+          onClick={() => onRemove(classId, student.id)}
+          className="h-9 px-3 rounded-full bg-destructive/10 text-destructive cursor-pointer"
+        >
+          删除
+        </button>
+      </div>
+    </div>
   )
 })

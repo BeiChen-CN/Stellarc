@@ -1,33 +1,27 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { useMemo, useState, lazy, Suspense } from 'react'
+import type { ReactElement } from 'react'
 import { useHistoryStore } from '../store/historyStore'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
 import { getStrategyDescriptor } from '../engine/selection/strategies'
 import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts'
-import { TrendingUp, TrendingDown, PieChart as PieChartIcon, Activity, Award, Download, User, Search, X, ChevronDown, Hash, Users, Scale } from 'lucide-react'
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Award,
+  Download,
+  User,
+  Hash,
+  Users,
+  Scale
+} from 'lucide-react'
 
-const PIE_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--secondary))',
-  'hsl(var(--tertiary))',
-  'hsl(var(--primary) / 0.6)',
-  'hsl(var(--secondary) / 0.6)',
-  'hsl(var(--tertiary) / 0.6)',
-  'hsl(var(--primary) / 0.35)',
-  'hsl(var(--secondary) / 0.35)'
-]
+const StatisticsChartsPanel = lazy(() =>
+  import('./statistics/StatisticsChartsPanel').then((module) => ({
+    default: module.StatisticsChartsPanel
+  }))
+)
 
 type TimeRange = '7d' | '14d' | '30d' | 'semester' | 'all'
 
@@ -39,7 +33,10 @@ const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: 'all', label: '全部' }
 ]
 
-function getTimeRangeStart(range: TimeRange, semesterSetting: { name: string; startDate: string; endDate: string } | null): { start: Date | null; end: Date | null } {
+function getTimeRangeStart(
+  range: TimeRange,
+  semesterSetting: { name: string; startDate: string; endDate: string } | null
+): { start: Date | null; end: Date | null } {
   const now = new Date()
   switch (range) {
     case '7d':
@@ -66,164 +63,7 @@ function getTimeRangeStart(range: TimeRange, semesterSetting: { name: string; st
   }
 }
 
-function ChartTooltip({ active, payload, label, valueLabel }: {
-  active?: boolean
-  payload?: Array<{ value: number; name: string; payload: { name?: string } }>
-  label?: string
-  valueLabel?: string
-}) {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-popover text-popover-foreground rounded-xl p-3 text-sm elevation-2">
-        <p className="font-semibold">{label || payload[0].payload.name || payload[0].name}</p>
-        <p>
-          {valueLabel || '次数'}: <span className="font-bold text-primary">{payload[0].value}</span>
-        </p>
-      </div>
-    )
-  }
-  return null
-}
-
-interface StudentOption {
-  name: string
-  className: string
-  pickCount: number
-}
-
-function StudentPicker({
-  students,
-  value,
-  onChange
-}: {
-  students: StudentOption[]
-  value: string
-  onChange: (name: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const containerRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const filtered = useMemo(() => {
-    if (!query.trim()) return students
-    const q = query.trim().toLowerCase()
-    return students.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.className.toLowerCase().includes(q)
-    )
-  }, [students, query])
-
-  const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-      setOpen(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside)
-      setTimeout(() => inputRef.current?.focus(), 0)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open, handleClickOutside])
-
-  const selected = students.find((s) => s.name === value)
-
-  return (
-    <div ref={containerRef} className="relative mb-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 border border-outline-variant rounded-2xl text-sm bg-surface-container-low hover:bg-surface-container-high/60 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-on-surface cursor-pointer"
-      >
-        {selected ? (
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-              {selected.name.slice(0, 1)}
-            </div>
-            <span className="truncate font-medium">{selected.name}</span>
-            <span className="text-xs text-on-surface-variant shrink-0">{selected.className}</span>
-            <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">
-              {selected.pickCount} 次
-            </span>
-          </div>
-        ) : (
-          <span className="flex-1 text-left text-on-surface-variant">选择学生查看趋势...</span>
-        )}
-        <ChevronDown className={`w-4 h-4 text-on-surface-variant shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {value && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onChange('')
-            setOpen(false)
-          }}
-          className="absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-surface-container-high text-on-surface-variant cursor-pointer"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
-
-      {open && (
-        <div className="absolute z-30 top-full left-0 right-0 mt-1.5 bg-surface-container rounded-2xl elevation-3 border border-outline-variant/30 overflow-hidden">
-          <div className="p-2 border-b border-outline-variant/20">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-on-surface-variant/50" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索姓名或班级..."
-                className="w-full pl-8 pr-3 py-2 text-sm bg-surface-container-high/50 rounded-xl outline-none text-on-surface placeholder:text-on-surface-variant/50"
-              />
-            </div>
-          </div>
-          <div className="max-h-[240px] overflow-auto py-1">
-            {filtered.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-on-surface-variant/60">
-                没有匹配的学生
-              </div>
-            ) : (
-              filtered.map((s) => (
-              <button
-                  key={s.name}
-                  onClick={() => {
-                    onChange(s.name)
-                    setOpen(false)
-                    setQuery('')
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors cursor-pointer ${
-                    value === s.name
-                      ? 'bg-secondary-container/60 text-secondary-container-foreground'
-                      : 'hover:bg-surface-container-high/60 text-on-surface'
-                  }`}
-                >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    value === s.name ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                  }`}>
-                    {s.name.slice(0, 1)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{s.name}</div>
-                    {s.className && (
-                      <div className="text-xs text-on-surface-variant/70 truncate">{s.className}</div>
-                    )}
-                  </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-medium tabular-nums shrink-0">
-                    {s.pickCount} 次
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-export function Statistics() {
+export function Statistics(): ReactElement {
   const { history } = useHistoryStore()
   const { classes } = useClassesStore()
   const { semester } = useSettingsStore()
@@ -405,7 +245,7 @@ export function Statistics() {
     })
   }, [selectedStudent, filteredHistory])
 
-  const handleExportStats = async () => {
+  const handleExportStats = async (): Promise<void> => {
     const filePath = await window.electronAPI.saveFile({
       title: '导出统计数据',
       defaultPath: 'stellarc-statistics.csv',
@@ -440,7 +280,7 @@ export function Statistics() {
     addToast(ok ? '统计数据已导出' : '导出失败', ok ? 'success' : 'error')
   }
 
-  const handleGenerateReport = async () => {
+  const handleGenerateReport = async (): Promise<void> => {
     const filePath = await window.electronAPI.saveFile({
       title: '生成课堂报告',
       defaultPath: 'stellarc-report.html',
@@ -449,9 +289,18 @@ export function Statistics() {
     if (!filePath) return
 
     const rangeLabel = TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label || '全部'
-    const top10Rows = chartData.map((d, i) => `<tr><td>${i + 1}</td><td>${d.name}</td><td>${d.count}</td></tr>`).join('')
-    const classRows = classData.map((d) => `<tr><td>${d.name}</td><td>${d.value}</td></tr>`).join('')
-    const scoreRows = leaderboard.map((s, i) => `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.className}</td><td>${s.score}</td></tr>`).join('')
+    const top10Rows = chartData
+      .map((d, i) => `<tr><td>${i + 1}</td><td>${d.name}</td><td>${d.count}</td></tr>`)
+      .join('')
+    const classRows = classData
+      .map((d) => `<tr><td>${d.name}</td><td>${d.value}</td></tr>`)
+      .join('')
+    const scoreRows = leaderboard
+      .map(
+        (s, i) =>
+          `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.className}</td><td>${s.score}</td></tr>`
+      )
+      .join('')
 
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -491,22 +340,23 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
   }
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col p-5 space-y-5">
-      <header className="flex justify-between items-center">
+    <div className="h-full overflow-y-auto flex flex-col p-3 sm:p-5 space-y-4 sm:space-y-5">
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">数据统计</h2>
           <p className="text-sm text-on-surface-variant mt-1">
             共 {filteredHistory.length} 条抽选记录
-            {timeRange !== 'all' && `（${TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label}）`}
+            {timeRange !== 'all' &&
+              `（${TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label}）`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-full bg-surface-container-high/80 px-1 py-1">
+        <div className="ui-stack-row">
+          <div className="flex flex-wrap items-center gap-1 rounded-2xl bg-surface-container-high/80 px-1 py-1">
             {TIME_RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setTimeRange(opt.value)}
-                className={`px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
                   timeRange === opt.value
                     ? 'bg-secondary-container text-secondary-container-foreground'
                     : 'text-on-surface-variant hover:bg-surface-container'
@@ -518,14 +368,14 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
           </div>
           <button
             onClick={handleExportStats}
-            className="flex items-center px-4 py-2 text-primary bg-primary/10 hover:bg-primary/15 rounded-full transition-all font-medium text-sm cursor-pointer"
+            className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Download className="w-4 h-4 mr-1.5" />
             导出
           </button>
           <button
             onClick={handleGenerateReport}
-            className="flex items-center px-4 py-2 text-primary bg-primary/10 hover:bg-primary/15 rounded-full transition-all font-medium text-sm cursor-pointer"
+            className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Award className="w-4 h-4 mr-1.5" />
             报告
@@ -534,7 +384,7 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
       </header>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <div className="bg-surface-container rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
           <div className="absolute top-3 right-3 p-1.5 rounded-full bg-primary/10">
             <Hash className="w-3.5 h-3.5 text-primary" />
@@ -549,11 +399,23 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
           <div className="text-3xl font-black text-primary">{weeklyComparison.thisWeek}</div>
           <div className="text-xs text-on-surface-variant mt-1">本周抽选</div>
           {weeklyComparison.lastWeek > 0 && (
-            <div className={`flex items-center gap-0.5 text-[10px] mt-1 ${weeklyComparison.thisWeek >= weeklyComparison.lastWeek ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-              {weeklyComparison.thisWeek >= weeklyComparison.lastWeek
-                ? <TrendingUp className="w-3 h-3" />
-                : <TrendingDown className="w-3 h-3" />}
-              较上周 {weeklyComparison.lastWeek > 0 ? Math.round(((weeklyComparison.thisWeek - weeklyComparison.lastWeek) / weeklyComparison.lastWeek) * 100) : 0}%
+            <div
+              className={`flex items-center gap-0.5 text-[10px] mt-1 ${weeklyComparison.thisWeek >= weeklyComparison.lastWeek ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}
+            >
+              {weeklyComparison.thisWeek >= weeklyComparison.lastWeek ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )}
+              较上周{' '}
+              {weeklyComparison.lastWeek > 0
+                ? Math.round(
+                    ((weeklyComparison.thisWeek - weeklyComparison.lastWeek) /
+                      weeklyComparison.lastWeek) *
+                      100
+                  )
+                : 0}
+              %
             </div>
           )}
         </div>
@@ -586,130 +448,25 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
-        {/* Bar Chart — Top 10 */}
-        <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            被抽中次数 Top 10
-          </h3>
-          <div className="flex-1 min-h-[240px]">
-            {chartData.length > 0 ? (
-              <div className="space-y-2">
-                {(() => {
-                  const maxCount = Math.max(...chartData.map((d) => d.count), 1)
-                  return chartData.map((d, i) => (
-                    <div key={d.name} className="flex items-center gap-2.5 group">
-                      <span className={`w-5 text-right text-xs font-bold shrink-0 tabular-nums ${
-                        i < 3 ? 'text-primary' : 'text-on-surface-variant/60'
-                      }`}>
-                        {i + 1}
-                      </span>
-                      <span className="w-16 text-sm text-on-surface truncate shrink-0" title={d.name}>
-                        {d.name}
-                      </span>
-                      <div className="flex-1 h-6 rounded-full bg-surface-container-high/60 overflow-hidden relative">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ease-out ${
-                            i === 0 ? 'bg-primary' : i < 3 ? 'bg-primary/70' : 'bg-primary/40'
-                          }`}
-                          style={{ width: `${Math.max((d.count / maxCount) * 100, 8)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-primary tabular-nums shrink-0 w-8 text-right">
-                        {d.count}
-                      </span>
-                    </div>
-                  ))
-                })()}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-on-surface-variant space-y-4">
-                <TrendingUp className="w-8 h-8 opacity-30" />
-                <p>暂无统计数据</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Line Chart — Daily Frequency */}
-        <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
-            <Activity className="w-5 h-5 text-primary" />近 {dailyDays} 天抽选频率
-          </h3>
-          <div className="flex-1 min-h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dailyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} fontSize={12} />
-                <YAxis allowDecimals={false} axisLine={false} tickLine={false} width={30} />
-                <Tooltip content={<ChartTooltip valueLabel="抽选" />} />
-                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Pie Chart — Class Distribution */}
-        {classData.length > 0 && (
-          <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
-              <PieChartIcon className="w-5 h-5 text-primary" />
-              班级抽选占比
-            </h3>
-            <div className="flex-1 min-h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={classData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value" animationDuration={1000}>
-                    {classData.map((_, index) => (
-                      <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip valueLabel="抽选" />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-3 -mt-2">
-                {classData.map((item, index) => (
-                  <div key={item.name} className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
-                    {item.name}
-                  </div>
-                ))}
-              </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1">
+        <Suspense
+          fallback={
+            <div className="xl:col-span-2 rounded-xl bg-surface-container p-6 text-sm text-on-surface-variant">
+              图表加载中...
             </div>
-          </div>
-        )}
-
-        {/* Student Trend */}
-        <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
-            <User className="w-5 h-5 text-primary" />
-            学生被抽中趋势
-          </h3>
-          <StudentPicker
-            students={allStudentOptions}
-            value={selectedStudent}
-            onChange={setSelectedStudent}
+          }
+        >
+          <StatisticsChartsPanel
+            chartData={chartData}
+            dailyData={dailyData}
+            classData={classData}
+            dailyDays={dailyDays}
+            allStudentOptions={allStudentOptions}
+            selectedStudent={selectedStudent}
+            onSelectStudent={setSelectedStudent}
+            studentTrendData={studentTrendData}
           />
-          <div className="flex-1 min-h-[200px]">
-            {selectedStudent && studentTrendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={studentTrendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} fontSize={11} />
-                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip content={<ChartTooltip valueLabel="被抽中" />} />
-                  <Line type="monotone" dataKey="count" stroke="hsl(var(--tertiary))" strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--tertiary))' }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-on-surface-variant opacity-60">
-                <User className="w-8 h-8 mb-2 opacity-30" />
-                <p className="text-sm">{selectedStudent ? '该时间段内无数据' : '请选择一位学生查看趋势'}</p>
-              </div>
-            )}
-          </div>
-        </div>
+        </Suspense>
 
         {/* Score Leaderboard */}
         {leaderboard.length > 0 && (
@@ -720,18 +477,28 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
             </h3>
             <div className="flex-1 space-y-2 overflow-auto">
               {leaderboard.map((s, i) => {
-                const medalColors = ['bg-amber-400/20 text-amber-600 dark:text-amber-400', 'bg-slate-300/20 text-slate-500 dark:text-slate-300', 'bg-orange-400/20 text-orange-600 dark:text-orange-400']
-                const medalEmoji = ['🥇', '🥈', '🥉']
+                const medalColors = [
+                  'bg-amber-400/20 text-amber-600 dark:text-amber-400',
+                  'bg-slate-300/20 text-slate-500 dark:text-slate-300',
+                  'bg-orange-400/20 text-orange-600 dark:text-orange-400'
+                ]
                 return (
-                  <div key={s.name + s.className} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high transition-colors">
-                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? medalColors[i] : 'bg-surface-container-high text-on-surface-variant'}`}>
-                      {i < 3 ? medalEmoji[i] : i + 1}
+                  <div
+                    key={s.name + s.className}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high transition-colors"
+                  >
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? medalColors[i] : 'bg-surface-container-high text-on-surface-variant'}`}
+                    >
+                      {i < 3 ? <Award className="w-3.5 h-3.5" /> : i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-on-surface text-sm truncate">{s.name}</div>
                       <div className="text-xs text-on-surface-variant">{s.className}</div>
                     </div>
-                    <span className="text-sm font-bold text-primary tabular-nums">{s.score} 分</span>
+                    <span className="text-sm font-bold text-primary tabular-nums">
+                      {s.score} 分
+                    </span>
                   </div>
                 )
               })}
@@ -753,7 +520,9 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
                   <div key={item.name} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-on-surface-variant">{item.name}</span>
-                      <span className="font-semibold text-primary tabular-nums">{item.value} 次</span>
+                      <span className="font-semibold text-primary tabular-nums">
+                        {item.value} 次
+                      </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                       <div
@@ -766,7 +535,9 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
               })()}
               <div className="pt-2 mt-1 border-t border-outline-variant/30 flex items-center justify-between text-sm">
                 <span className="text-on-surface-variant">冷却命中轮次</span>
-                <span className="font-semibold text-primary">{fairnessMetrics.cooldownHitCount}</span>
+                <span className="font-semibold text-primary">
+                  {fairnessMetrics.cooldownHitCount}
+                </span>
               </div>
             </div>
           </div>

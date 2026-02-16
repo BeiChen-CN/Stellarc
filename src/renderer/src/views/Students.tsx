@@ -20,11 +20,12 @@ import {
   Check,
   PencilLine
 } from 'lucide-react'
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect, type ReactElement } from 'react'
 import { cn } from '../lib/utils'
 import { Student } from '../types'
 import { logger } from '../lib/logger'
-import { StudentRow } from './students/StudentRow'
+import { StudentMobileCard, StudentRow } from './students/StudentRow'
+import { StatePanel } from '../components/StatePanel'
 
 interface DropdownOption {
   value: string
@@ -41,13 +42,13 @@ function InlineSelect({
   options: DropdownOption[]
   onChange: (value: string) => void
   placeholder: string
-}) {
+}): ReactElement {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent): void => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
@@ -105,7 +106,7 @@ function parseStudentImportRows(
 
   if (lines.length === 0) return []
 
-  const detectDelimiter = (line: string) => {
+  const detectDelimiter = (line: string): string => {
     if (line.includes('\t')) return '\t'
     if (line.includes('，')) return '，'
     if (line.includes(',')) return ','
@@ -117,7 +118,7 @@ function parseStudentImportRows(
     return lines.map((name) => ({ name, weight: 1, score: 0, status: 'active' as const }))
   }
 
-  const split = (line: string) => line.split(delimiter).map((cell) => cell.trim())
+  const split = (line: string): string[] => line.split(delimiter).map((cell) => cell.trim())
   const first = split(lines[0]).map((h) => h.toLowerCase())
   const hasHeader = first.some((h) =>
     [
@@ -138,7 +139,7 @@ function parseStudentImportRows(
 
   const rows = hasHeader ? lines.slice(1) : lines
   const header = hasHeader ? first : ['name', 'studentId', 'gender', 'weight', 'score', 'status']
-  const indexOf = (keys: string[]) => header.findIndex((h) => keys.includes(h))
+  const indexOf = (keys: string[]): number => header.findIndex((h) => keys.includes(h))
 
   const nameIdx = indexOf(['name', '姓名'])
   const studentIdIdx = indexOf(['studentid', '学号'])
@@ -184,7 +185,7 @@ function parseStudentImportRows(
     .filter((row) => row.name.length > 0)
 }
 
-export function Students() {
+export function Students(): ReactElement {
   const {
     classes,
     currentClassId,
@@ -245,7 +246,25 @@ export function Students() {
   const classNameInputRef = useRef<HTMLInputElement>(null)
 
   const currentClass = classes.find((c) => c.id === currentClassId)
-  const selectedSet = useMemo(() => new Set(selectedStudentIds), [selectedStudentIds])
+  const validStudentIdSet = useMemo(
+    () => new Set((currentClass?.students || []).map((student) => student.id)),
+    [currentClass]
+  )
+  const effectiveSelectedStudentIds = useMemo(
+    () => selectedStudentIds.filter((id) => validStudentIdSet.has(id)),
+    [selectedStudentIds, validStudentIdSet]
+  )
+  const selectedSet = useMemo(
+    () => new Set(effectiveSelectedStudentIds),
+    [effectiveSelectedStudentIds]
+  )
+  const effectiveLogStudentFilter = useMemo(
+    () =>
+      logStudentFilter === 'all' || validStudentIdSet.has(logStudentFilter)
+        ? logStudentFilter
+        : 'all',
+    [logStudentFilter, validStudentIdSet]
+  )
   const classTagOptions = useMemo(() => {
     if (!currentClass) return []
     const counter = new Map<string, number>()
@@ -299,12 +318,14 @@ export function Students() {
   const filteredScoreLogs = useMemo(() => {
     const taskQuery = logTaskFilter.trim().toLowerCase()
     return scoreLogs.filter((item) => {
-      if (logStudentFilter !== 'all' && item.studentId !== logStudentFilter) return false
+      if (effectiveLogStudentFilter !== 'all' && item.studentId !== effectiveLogStudentFilter) {
+        return false
+      }
       if (logSourceFilter !== 'all' && item.source !== logSourceFilter) return false
       if (taskQuery && !item.taskName.toLowerCase().includes(taskQuery)) return false
       return true
     })
-  }, [scoreLogs, logStudentFilter, logSourceFilter, logTaskFilter])
+  }, [scoreLogs, effectiveLogStudentFilter, logSourceFilter, logTaskFilter])
 
   const logStudentOptions = useMemo(
     () => [
@@ -384,7 +405,7 @@ export function Students() {
           ? currentClass.students.map((student) => student.id)
           : target === 'tag'
             ? matchedTagStudentIds
-            : selectedStudentIds
+            : effectiveSelectedStudentIds
       if (ids.length === 0) {
         addToast(target === 'tag' ? '没有匹配标签的学生' : '请先选择至少 1 名学生', 'error')
         return
@@ -399,7 +420,7 @@ export function Students() {
     [
       currentClassId,
       currentClass,
-      selectedStudentIds,
+      effectiveSelectedStudentIds,
       applyTaskScore,
       taskName,
       taskDelta,
@@ -410,12 +431,12 @@ export function Students() {
 
   const toggleSelectAll = useCallback(() => {
     if (!currentClass) return
-    if (selectedStudentIds.length === currentClass.students.length) {
+    if (effectiveSelectedStudentIds.length === currentClass.students.length) {
       setSelectedStudentIds([])
       return
     }
     setSelectedStudentIds(currentClass.students.map((student) => student.id))
-  }, [currentClass, selectedStudentIds.length])
+  }, [currentClass, effectiveSelectedStudentIds.length])
 
   const handleSaveTaskTemplates = useCallback(() => {
     if (!currentClassId) return
@@ -452,7 +473,7 @@ export function Students() {
 
   const handleBatchEditSelected = useCallback(() => {
     if (!currentClassId) return
-    if (selectedStudentIds.length === 0) {
+    if (effectiveSelectedStudentIds.length === 0) {
       addToast('请先选择要批量编辑的学生', 'error')
       return
     }
@@ -460,7 +481,7 @@ export function Students() {
       .split('/')
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0)
-    const result = batchUpdateStudents(currentClassId, selectedStudentIds, {
+    const result = batchUpdateStudents(currentClassId, effectiveSelectedStudentIds, {
       gender: batchGender === 'keep' ? undefined : batchGender,
       status: batchStatus === 'keep' ? undefined : batchStatus,
       weight: batchWeight.trim() ? Math.max(1, Math.trunc(Number(batchWeight) || 1)) : undefined,
@@ -473,7 +494,7 @@ export function Students() {
     )
   }, [
     currentClassId,
-    selectedStudentIds,
+    effectiveSelectedStudentIds,
     batchTags,
     batchGender,
     batchStatus,
@@ -510,7 +531,7 @@ export function Students() {
   )
 
   const handleRemoveStudent = useCallback(
-    (classId: string, studentId: string) => {
+    (classId: string, studentId: string): void => {
       showConfirm('删除学生', '确定要删除这位学生吗？此操作不可撤销。', () =>
         removeStudent(classId, studentId)
       )
@@ -518,7 +539,17 @@ export function Students() {
     [showConfirm, removeStudent]
   )
 
-  const handleImportStudents = useCallback(async () => {
+  const existingStudentKeys = useMemo(
+    () =>
+      new Set(
+        (currentClass?.students || []).map((student) =>
+          `${student.name}::${student.studentId || ''}`.toLowerCase()
+        )
+      ),
+    [currentClass]
+  )
+
+  const handleImportStudents = useCallback(async (): Promise<void> => {
     if (!currentClassId) return
 
     const filePath = await window.electronAPI.selectFile({
@@ -536,11 +567,7 @@ export function Students() {
           return
         }
 
-        const existingSet = new Set(
-          (currentClass?.students || []).map((student) =>
-            `${student.name}::${student.studentId || ''}`.toLowerCase()
-          )
-        )
+        const existingSet = new Set(existingStudentKeys)
 
         const newStudents = parsedRows
           .filter((row) => {
@@ -572,7 +599,7 @@ export function Students() {
         addToast('导入失败，请检查文件格式。', 'error')
       }
     }
-  }, [currentClassId, currentClass?.students, addStudents, addToast])
+  }, [currentClassId, existingStudentKeys, addStudents, addToast])
 
   const handleExportStudents = useCallback(async () => {
     if (!currentClass || currentClass.students.length === 0) return
@@ -633,22 +660,11 @@ export function Students() {
     setEditingClassId(null)
   }, [editingClassId, editingClassName, renameClass])
 
-  useEffect(() => {
-    if (!currentClass) {
-      setSelectedStudentIds([])
-      setLogStudentFilter('all')
-      return
-    }
-    const validIds = new Set(currentClass.students.map((student) => student.id))
-    setSelectedStudentIds((prev) => prev.filter((id) => validIds.has(id)))
-    setLogStudentFilter((prev) => (prev === 'all' || validIds.has(prev) ? prev : 'all'))
-  }, [currentClass])
-
   return (
-    <div className="h-full overflow-y-auto flex flex-col space-y-3 p-5">
-      <header className="flex justify-between items-center pb-4">
+    <div className="h-full overflow-y-auto flex flex-col space-y-3 p-3 sm:p-5">
+      <header className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-on-surface">学生管理</h2>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={undoLastChange}
             disabled={!canUndo}
@@ -661,7 +677,7 @@ export function Students() {
             value={newClassName}
             onChange={(e) => setNewClassName(e.target.value)}
             placeholder="新班级名称"
-            className="px-4 py-2 border border-outline-variant rounded-full text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
+            className="w-full sm:w-52 px-4 py-2 border border-outline-variant rounded-full text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
           />
           <button
             onClick={handleAddClass}
@@ -753,7 +769,7 @@ export function Students() {
                           e.stopPropagation()
                           handleDuplicateClass(c.id)
                         }}
-                        className="text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-primary transition-all duration-200 p-1.5 hover:bg-primary/10 rounded-full shrink-0"
+                        className="text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-primary transition-all duration-200 p-1.5 hover:bg-primary/10 rounded-full shrink-0"
                         title="复制班级"
                       >
                         <Copy className="w-3.5 h-3.5" />
@@ -765,7 +781,7 @@ export function Students() {
                             removeClass(c.id)
                           )
                         }}
-                        className="text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-200 p-1.5 hover:bg-destructive/10 rounded-full shrink-0"
+                        className="text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-destructive transition-all duration-200 p-1.5 hover:bg-destructive/10 rounded-full shrink-0"
                         title="删除班级"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -779,23 +795,23 @@ export function Students() {
             <div className="col-span-4 flex flex-col h-full overflow-hidden">
               {currentClass ? (
                 <>
-                  <div className="mb-4 flex space-x-2 shrink-0">
+                  <div className="mb-4 ui-stack-row shrink-0">
                     <input
                       value={newStudentName}
                       onChange={(e) => setNewStudentName(e.target.value)}
-                      className="flex-1 border border-outline-variant px-4 py-2 rounded-full focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
+                      className="flex-1 min-w-0 sm:min-w-[220px] border border-outline-variant px-4 py-2 rounded-full focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
                       placeholder="输入学生姓名..."
                       onKeyDown={(e) => e.key === 'Enter' && handleAddStudent()}
                     />
                     <button
                       onClick={handleAddStudent}
-                      className="px-5 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors elevation-1 whitespace-nowrap font-medium h-10 cursor-pointer"
+                      className="ui-btn ui-btn-sm bg-primary text-primary-foreground hover:bg-primary/90 elevation-1 whitespace-nowrap"
                     >
                       添加学生
                     </button>
                     <button
                       onClick={handleImportStudents}
-                      className="px-5 py-2 bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 rounded-full flex items-center gap-2 whitespace-nowrap transition-colors font-medium h-10 cursor-pointer"
+                      className="ui-btn ui-btn-sm bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 whitespace-nowrap"
                       title="从文本文件导入（每行一个名字）"
                     >
                       <Upload className="w-4 h-4" />
@@ -804,7 +820,7 @@ export function Students() {
                     <button
                       onClick={handleExportStudents}
                       disabled={!currentClass || currentClass.students.length === 0}
-                      className="px-5 py-2 bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 rounded-full flex items-center gap-2 whitespace-nowrap transition-colors font-medium h-10 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="ui-btn ui-btn-sm bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
                       title="导出学生名单为 CSV"
                     >
                       <Download className="w-4 h-4" />
@@ -846,7 +862,7 @@ export function Students() {
                       <div className="flex items-center gap-2 mb-2">
                         <PencilLine className="w-3.5 h-3.5 text-primary" />
                         <span className="text-xs text-on-surface-variant">
-                          批量编辑（仅已选 {selectedStudentIds.length} 人）
+                          批量编辑（仅已选 {effectiveSelectedStudentIds.length} 人）
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -926,7 +942,7 @@ export function Students() {
                         onClick={() => handleApplyTaskScore('selected')}
                         className="px-3 py-1.5 rounded-xl text-xs bg-primary text-primary-foreground cursor-pointer"
                       >
-                        应用到已选（{selectedStudentIds.length}）
+                        应用到已选（{effectiveSelectedStudentIds.length}）
                       </button>
                       <button
                         onClick={() => handleApplyTaskScore('all')}
@@ -996,7 +1012,7 @@ export function Students() {
 
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <InlineSelect
-                          value={logStudentFilter}
+                          value={effectiveLogStudentFilter}
                           onChange={setLogStudentFilter}
                           options={logStudentOptions}
                           placeholder="全部学生"
@@ -1068,7 +1084,40 @@ export function Students() {
                     </div>
                   )}
 
-                  <div className="rounded-xl bg-surface-container elevation-0 flex-1 overflow-hidden flex flex-col">
+                  <div className="sm:hidden space-y-2 pb-2">
+                    {currentClass.students.map((student) => (
+                      <StudentMobileCard
+                        key={student.id}
+                        student={student}
+                        classId={currentClass.id}
+                        selected={selectedSet.has(student.id)}
+                        onToggleSelected={toggleStudentSelected}
+                        showWeight={fairness.weightedRandom}
+                        showStudentId={showStudentId}
+                        onUploadPhoto={handleUploadPhoto}
+                        onUpdateWeight={updateStudentWeight}
+                        onUpdateScore={updateStudentScore}
+                        onUpdateStatus={updateStudentStatus}
+                        onUpdateName={updateStudentName}
+                        onUpdateStudentId={updateStudentId}
+                        onUpdateGender={updateStudentGender}
+                        onUpdateTags={updateStudentTags}
+                        onRemove={handleRemoveStudent}
+                      />
+                    ))}
+                    {currentClass.students.length === 0 && (
+                      <div className="bg-surface-container rounded-xl">
+                        <StatePanel
+                          icon={UserX}
+                          title="该班级暂无学生"
+                          description="请添加学生或导入名单"
+                          compact
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="hidden sm:flex rounded-xl bg-surface-container elevation-0 flex-1 overflow-hidden flex-col">
                     <div className="overflow-auto flex-1">
                       <table className="w-full text-sm">
                         <thead className="bg-surface-container-high sticky top-0 z-10">
@@ -1079,7 +1128,7 @@ export function Students() {
                                 className="text-xs text-primary hover:underline cursor-pointer"
                               >
                                 {currentClass.students.length > 0 &&
-                                selectedStudentIds.length === currentClass.students.length
+                                effectiveSelectedStudentIds.length === currentClass.students.length
                                   ? '全不选'
                                   : '全选'}
                               </button>
@@ -1144,12 +1193,11 @@ export function Students() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-on-surface-variant space-y-4">
-                  <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center">
-                    <UserX className="w-8 h-8 opacity-50" />
-                  </div>
-                  <p>请选择一个班级以管理学生</p>
-                </div>
+                <StatePanel
+                  icon={UserX}
+                  title="请选择一个班级"
+                  description="选择班级后即可管理学生数据"
+                />
               )}
             </div>
           </div>

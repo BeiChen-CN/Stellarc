@@ -43,6 +43,9 @@ export type DesignStyle =
   | 'skeuomorphism'
   | 'microinteractions'
   | 'apple-hig'
+  | 'neo-brutalism'
+  | 'editorial'
+  | 'cyber-grid'
 
 export type AnimationStyle =
   | 'scroll'

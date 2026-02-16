@@ -1,12 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './views/Home'
-import { Students } from './views/Students'
-import { Settings } from './views/Settings'
-import { History } from './views/History'
-import { About } from './views/About'
-import { Statistics } from './views/Statistics'
 import { ToastContainer } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TitleBar } from './components/TitleBar'
@@ -19,10 +14,24 @@ import { useStrategyStore } from './store/strategyStore'
 import { useSpeedFactor } from './lib/useSpeedFactor'
 import { cn } from './lib/utils'
 
-function App() {
-  const [currentView, setCurrentView] = useState<
-    'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
-  >('home')
+const Students = lazy(() =>
+  import('./views/Students').then((module) => ({ default: module.Students }))
+)
+const Settings = lazy(() =>
+  import('./views/Settings').then((module) => ({ default: module.Settings }))
+)
+const History = lazy(() =>
+  import('./views/History').then((module) => ({ default: module.History }))
+)
+const About = lazy(() => import('./views/About').then((module) => ({ default: module.About })))
+const Statistics = lazy(() =>
+  import('./views/Statistics').then((module) => ({ default: module.Statistics }))
+)
+
+type AppView = 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
+
+function App(): ReactElement {
+  const [currentView, setCurrentView] = useState<AppView>('home')
   const [appReady, setAppReady] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [homeImmersive, setHomeImmersive] = useState(false)
@@ -51,13 +60,14 @@ function App() {
     Promise.all([loadPlugins(), loadSettings(), loadClasses(), loadHistory()]).finally(() =>
       setAppReady(true)
     )
-  }, [])
+  }, [loadPlugins, loadSettings, loadClasses, loadHistory])
 
-  useEffect(() => {
-    if (currentView !== 'home' && homeImmersive) {
+  const handleViewChange = useCallback((view: AppView): void => {
+    setCurrentView(view)
+    if (view !== 'home') {
       setHomeImmersive(false)
     }
-  }, [currentView, homeImmersive])
+  }, [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -198,7 +208,10 @@ function App() {
       'style-neu',
       'style-skeu',
       'style-micro',
-      'style-apple'
+      'style-apple',
+      'style-brutal',
+      'style-editorial',
+      'style-cyber'
     ]
     root.classList.remove(...styleClasses)
 
@@ -210,7 +223,10 @@ function App() {
       neumorphism: 'style-neu',
       skeuomorphism: 'style-skeu',
       microinteractions: 'style-micro',
-      'apple-hig': 'style-apple'
+      'apple-hig': 'style-apple',
+      'neo-brutalism': 'style-brutal',
+      editorial: 'style-editorial',
+      'cyber-grid': 'style-cyber'
     }
     if (designStyle && designStyle !== 'material-design-3' && styleMap[designStyle]) {
       root.classList.add(styleMap[designStyle])
@@ -222,7 +238,7 @@ function App() {
     if (dynamicColor && backgroundImage) {
       extractAndApplyDynamicColor()
     }
-  }, [dynamicColor, backgroundImage])
+  }, [dynamicColor, backgroundImage, extractAndApplyDynamicColor])
 
   // Generate and apply dynamic CSS variables from wallpaper palette
   const generateDynamicCSSVariables = useCallback(
@@ -356,10 +372,10 @@ function App() {
     })
   }, [dynamicColorPalette, theme, m3Mode, generateDynamicCSSVariables])
 
-  const renderView = () => {
+  const renderView = (): ReactElement => {
     switch (currentView) {
       case 'home':
-        return <Home onNavigate={setCurrentView} onImmersiveChange={setHomeImmersive} />
+        return <Home onNavigate={handleViewChange} onImmersiveChange={setHomeImmersive} />
       case 'students':
         return <Students />
       case 'history':
@@ -371,7 +387,7 @@ function App() {
       case 'about':
         return <About />
       default:
-        return <Home onNavigate={setCurrentView} onImmersiveChange={setHomeImmersive} />
+        return <Home onNavigate={handleViewChange} onImmersiveChange={setHomeImmersive} />
     }
   }
 
@@ -403,7 +419,7 @@ function App() {
     >
       {!homeImmersive && <TitleBar />}
       <div className="flex flex-1 min-h-0">
-        {!homeImmersive && <Sidebar currentView={currentView} onViewChange={setCurrentView} />}
+        {!homeImmersive && <Sidebar currentView={currentView} onViewChange={handleViewChange} />}
         <main
           className={cn(
             'flex-1 min-h-0 overflow-hidden relative',
@@ -419,7 +435,15 @@ function App() {
               transition={{ duration: 0.15 * sf, ease: 'easeOut' }}
               className="h-full"
             >
-              {renderView()}
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-on-surface-variant text-sm">
+                    页面加载中...
+                  </div>
+                }
+              >
+                {renderView()}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

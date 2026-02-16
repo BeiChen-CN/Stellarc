@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactElement } from 'react'
 import {
   Scale,
   Target,
@@ -11,14 +11,13 @@ import {
   SlidersHorizontal,
   ShieldCheck
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToastStore } from '../../store/toastStore'
 import { getStrategyDisplayList, useStrategyStore } from '../../store/strategyStore'
 import { MD3Switch } from './MD3Switch'
 
-export function FairnessSection() {
+export function FairnessSection(): ReactElement {
   const { fairness, setFairness, scoreRules, setScoreRules } = useSettingsStore()
   const addToast = useToastStore((state) => state.addToast)
   const { loadedCount, skippedCount, lastErrors, lastDetails, loadPlugins, sourceFile } =
@@ -48,11 +47,16 @@ export function FairnessSection() {
               </p>
             </div>
           </div>
-          <MD3Switch
-            checked={fairness.weightedRandom}
-            onClick={() => setFairness({ ...fairness, weightedRandom: !fairness.weightedRandom })}
-            label="启用权重系统"
-          />
+          <div
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <MD3Switch
+              checked={fairness.weightedRandom}
+              onClick={() => setFairness({ ...fairness, weightedRandom: !fairness.weightedRandom })}
+              label="启用权重系统"
+            />
+          </div>
         </div>
 
         {/* Strategy Presets */}
@@ -81,90 +85,82 @@ export function FairnessSection() {
               />
             </button>
           </div>
-          <AnimatePresence initial={false}>
-            {strategyExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="pl-14 mt-3 grid grid-cols-3 gap-3">
-                  {getStrategyDisplayList().map((item) => {
-                    const iconMap: Record<string, typeof Shuffle> = {
-                      classic: Shuffle,
-                      balanced: BarChart3,
-                      momentum: TrendingUp
-                    }
-                    const descMap: Record<string, string> = {
-                      classic: '按权重随机抽取',
-                      balanced: '降低高频学生权重',
-                      momentum: '提高高分学生权重'
-                    }
-                    const Icon = iconMap[item.id] || Puzzle
-                    const isActive = fairness.strategyPreset === item.id
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setFairness({ ...fairness, strategyPreset: item.id })}
+          {strategyExpanded && (
+            <div className="overflow-hidden">
+              <div className="pl-14 mt-3 grid grid-cols-3 gap-3">
+                {getStrategyDisplayList().map((item) => {
+                  const iconMap: Record<string, typeof Shuffle> = {
+                    classic: Shuffle,
+                    balanced: BarChart3,
+                    momentum: TrendingUp
+                  }
+                  const descMap: Record<string, string> = {
+                    classic: '按权重随机抽取',
+                    balanced: '降低高频学生权重',
+                    momentum: '提高高分学生权重'
+                  }
+                  const Icon = iconMap[item.id] || Puzzle
+                  const isActive = fairness.strategyPreset === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setFairness({ ...fairness, strategyPreset: item.id })}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
+                        isActive
+                          ? 'bg-secondary-container border-2 border-outline'
+                          : 'border-2 border-transparent hover:bg-surface-container-high'
+                      )}
+                    >
+                      <div
                         className={cn(
-                          'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 cursor-pointer',
+                          'w-8 h-8 rounded-full flex items-center justify-center',
                           isActive
-                            ? 'bg-secondary-container border-2 border-outline'
-                            : 'border-2 border-transparent hover:bg-surface-container-high'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-primary/10 text-primary'
                         )}
                       >
-                        <div
-                          className={cn(
-                            'w-8 h-8 rounded-full flex items-center justify-center',
-                            isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-primary/10 text-primary'
-                          )}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-medium text-on-surface">{item.name}</span>
-                        <span className="text-[10px] text-on-surface-variant text-center leading-tight">
-                          {descMap[item.id] || '插件策略'}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className="pl-14 mt-3 flex items-center gap-3 text-xs text-on-surface-variant">
-                  <span>插件策略: {loadedCount}</span>
-                  <span>跳过: {skippedCount}</span>
-                  <button
-                    onClick={async () => {
-                      await loadPlugins()
-                      addToast('策略插件已重新加载', 'success')
-                    }}
-                    className="px-2 py-1 rounded-full bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
-                  >
-                    重新加载
-                  </button>
-                  <span>来源: {sourceFile}</span>
-                </div>
-                {lastErrors.length > 0 && (
-                  <div className="pl-14 mt-2 text-[11px] text-destructive">
-                    {`插件错误: ${lastErrors[0]}`}
-                  </div>
-                )}
-                {lastDetails.length > 0 && (
-                  <div className="pl-14 mt-2 space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
-                    {lastDetails.slice(0, 6).map((detail) => (
-                      <div key={detail.id} className="text-[11px] text-on-surface-variant">
-                        {detail.id} · {detail.status}
-                        {detail.reason ? ` (${detail.reason})` : ''}
+                        <Icon className="w-4 h-4" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      <span className="text-xs font-medium text-on-surface">{item.name}</span>
+                      <span className="text-[10px] text-on-surface-variant text-center leading-tight">
+                        {descMap[item.id] || '插件策略'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="pl-14 mt-3 flex items-center gap-3 text-xs text-on-surface-variant">
+                <span>插件策略: {loadedCount}</span>
+                <span>跳过: {skippedCount}</span>
+                <button
+                  onClick={async () => {
+                    await loadPlugins()
+                    addToast('策略插件已重新加载', 'success')
+                  }}
+                  className="px-2 py-1 rounded-full bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
+                >
+                  重新加载
+                </button>
+                <span>来源: {sourceFile}</span>
+              </div>
+              {lastErrors.length > 0 && (
+                <div className="pl-14 mt-2 text-[11px] text-destructive">
+                  {`插件错误: ${lastErrors[0]}`}
+                </div>
+              )}
+              {lastDetails.length > 0 && (
+                <div className="pl-14 mt-2 space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
+                  {lastDetails.slice(0, 6).map((detail) => (
+                    <div key={detail.id} className="text-[11px] text-on-surface-variant">
+                      {detail.id} · {detail.status}
+                      {detail.reason ? ` (${detail.reason})` : ''}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Prevent Repeat */}
@@ -183,11 +179,16 @@ export function FairnessSection() {
               </p>
             </div>
           </div>
-          <MD3Switch
-            checked={fairness.preventRepeat}
-            onClick={() => setFairness({ ...fairness, preventRepeat: !fairness.preventRepeat })}
-            label="防止重复抽选"
-          />
+          <div
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <MD3Switch
+              checked={fairness.preventRepeat}
+              onClick={() => setFairness({ ...fairness, preventRepeat: !fairness.preventRepeat })}
+              label="防止重复抽选"
+            />
+          </div>
         </div>
 
         {/* Cooldown Rounds */}
@@ -206,7 +207,7 @@ export function FairnessSection() {
               onChange={(e) =>
                 setFairness({ ...fairness, cooldownRounds: parseInt(e.target.value) || 0 })
               }
-              className="w-20 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
+              className="ui-number w-20 rounded-full text-sm text-center px-3"
             />
           </div>
         )}
@@ -342,7 +343,7 @@ export function FairnessSection() {
                   pairAvoidRounds: Math.max(0, Math.min(20, parseInt(e.target.value) || 0))
                 })
               }
-              className="w-20 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
+              className="ui-number w-20 rounded-full text-sm text-center px-3"
             />
           </div>
         )}
@@ -372,7 +373,7 @@ export function FairnessSection() {
                     maxScorePerStudent: parseInt(e.target.value) || 0
                   })
                 }
-                className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low outline-none text-on-surface"
+                className="ui-number w-24 rounded-full text-sm text-center px-3"
               />
             </div>
             <div>
@@ -386,7 +387,7 @@ export function FairnessSection() {
                     minScorePerStudent: parseInt(e.target.value) || 0
                   })
                 }
-                className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low outline-none text-on-surface"
+                className="ui-number w-24 rounded-full text-sm text-center px-3"
               />
             </div>
             <div>
@@ -401,7 +402,7 @@ export function FairnessSection() {
                     maxDeltaPerOperation: parseInt(e.target.value) || 1
                   })
                 }
-                className="w-24 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low outline-none text-on-surface"
+                className="ui-number w-24 rounded-full text-sm text-center px-3"
               />
             </div>
           </div>
@@ -441,7 +442,7 @@ export function FairnessSection() {
                       )
                     })
                   }
-                  className="w-20 px-3 py-1.5 border border-outline-variant rounded-full text-sm text-center bg-surface-container-low outline-none text-on-surface"
+                  className="ui-number w-20 rounded-full text-sm text-center px-3"
                 />
               </div>
               <div>
@@ -457,7 +458,7 @@ export function FairnessSection() {
                         .filter((item) => item.length > 0)
                     })
                   }
-                  className="w-72 px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low outline-none text-on-surface"
+                  className="ui-number w-72 rounded-full text-sm px-3"
                   placeholder="例：课堂纪律,加分挑战"
                 />
               </div>
@@ -474,7 +475,7 @@ export function FairnessSection() {
                         .filter((item) => item.length > 0)
                     })
                   }
-                  className="w-72 px-3 py-1.5 border border-outline-variant rounded-full text-sm bg-surface-container-low outline-none text-on-surface"
+                  className="ui-number w-72 rounded-full text-sm px-3"
                   placeholder="例：临时测试"
                 />
               </div>

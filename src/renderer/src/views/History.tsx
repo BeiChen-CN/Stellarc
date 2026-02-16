@@ -1,9 +1,10 @@
-import { useRef, useState, useMemo, useEffect } from 'react'
+import { useRef, useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useHistoryStore } from '../store/historyStore'
 import { useClassesStore } from '../store/classesStore'
 import { useConfirmStore } from '../store/confirmStore'
 import { useToastStore } from '../store/toastStore'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { StatePanel } from '../components/StatePanel'
 import {
   Trash2,
   History as HistoryIcon,
@@ -25,7 +26,7 @@ function summarizeNames(names: string[], max = 6): string {
   return `${names.slice(0, max).join('、')} 等 ${names.length} 人`
 }
 
-export function History() {
+export function History(): ReactElement {
   const { history, clearHistory, removeHistoryRecord } = useHistoryStore()
   const classes = useClassesStore((state) => state.classes)
   const showConfirm = useConfirmStore((state) => state.show)
@@ -131,6 +132,9 @@ export function History() {
     }
   }, [filteredHistory.length, playbackIndex])
 
+  // TanStack Virtual currently triggers react-hooks/incompatible-library warning in React Compiler lint.
+  // Safe here because virtualizer instance is consumed locally and not memoized across component boundaries.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: filteredHistory.length,
     getItemKey: (index) => filteredHistory[index]?.id || index,
@@ -140,7 +144,7 @@ export function History() {
     overscan: 10
   })
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = async (): Promise<void> => {
     if (history.length === 0) {
       addToast('没有可导出的历史记录。', 'error')
       return
@@ -151,7 +155,7 @@ export function History() {
       filters: [{ name: 'CSV 文件', extensions: ['csv'] }]
     })
     if (filePath) {
-      const escapeCsv = (s: string) => `"${s.replace(/"/g, '""')}"`
+      const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
       const header = '时间,班级,抽中学生'
       const rows = history.map((r) => {
         const time = new Date(r.timestamp).toLocaleString()
@@ -164,7 +168,7 @@ export function History() {
     }
   }
 
-  const handleExportStructuredCSV = async () => {
+  const handleExportStructuredCSV = async (): Promise<void> => {
     if (history.length === 0) {
       addToast('没有可导出的历史记录。', 'error')
       return
@@ -176,7 +180,7 @@ export function History() {
     })
     if (!filePath) return
 
-    const escapeCsv = (s: string) => `"${s.replace(/"/g, '""')}"`
+    const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
     const lines: string[] = []
 
     lines.push('事件时间,事件类型,班级,学生名单,人数,任务名称,任务分值,策略预设,冷却轮次,说明')
@@ -242,7 +246,7 @@ export function History() {
     addToast(success ? '结构化 CSV 导出成功' : '结构化 CSV 导出失败', success ? 'success' : 'error')
   }
 
-  const handleExportClassReport = async () => {
+  const handleExportClassReport = async (): Promise<void> => {
     const filePath = await window.electronAPI.saveFile({
       title: '导出课堂报告',
       defaultPath: 'classroom-report.md',
@@ -364,21 +368,21 @@ export function History() {
     addToast(success ? '课堂报告导出成功' : '课堂报告导出失败', success ? 'success' : 'error')
   }
 
-  const handleDeleteRecord = (id: string) => {
+  const handleDeleteRecord = (id: string): void => {
     showConfirm('删除记录', '确定要删除这条历史记录吗？', () => {
       removeHistoryRecord(id)
     })
   }
 
-  const toggleExpandedRecord = (id: string) => {
+  const toggleExpandedRecord = (id: string): void => {
     setExpandedRecordIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     )
   }
 
   return (
-    <div className="h-full flex flex-col p-5">
-      <header className="flex justify-between items-center pb-4 shrink-0">
+    <div className="h-full flex flex-col p-3 sm:p-5">
+      <header className="flex flex-col gap-3 pb-4 shrink-0 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-on-surface">历史记录</h2>
           <p className="text-sm text-on-surface-variant mt-1">
@@ -386,24 +390,24 @@ export function History() {
             {filteredHistory.length !== history.length && `，已筛选 ${filteredHistory.length} 条`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ui-stack-row">
           <button
             onClick={handleExportStructuredCSV}
-            className="flex items-center px-5 py-2 text-on-surface bg-surface-container-high hover:bg-surface-container-low rounded-full transition-all font-medium text-sm h-10 cursor-pointer"
+            className="ui-btn ui-btn-sm text-on-surface bg-surface-container-high hover:bg-surface-container-low"
           >
             <Download className="w-4 h-4 mr-2" />
             导出结构化 CSV
           </button>
           <button
             onClick={handleExportClassReport}
-            className="flex items-center px-5 py-2 text-secondary-container-foreground bg-secondary-container hover:bg-secondary-container/80 rounded-full transition-all font-medium text-sm h-10 cursor-pointer"
+            className="ui-btn ui-btn-sm text-secondary-container-foreground bg-secondary-container hover:bg-secondary-container/80"
           >
             <FileText className="w-4 h-4 mr-2" />
             导出课堂报告
           </button>
           <button
             onClick={handleExportCSV}
-            className="flex items-center px-5 py-2 text-primary bg-primary/10 hover:bg-primary/15 rounded-full transition-all font-medium text-sm h-10 cursor-pointer"
+            className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Download className="w-4 h-4 mr-2" />
             导出 CSV
@@ -412,7 +416,7 @@ export function History() {
             onClick={() =>
               showConfirm('清空历史', '确定要清空所有历史记录吗？此操作不可撤销。', clearHistory)
             }
-            className="flex items-center px-5 py-2 text-destructive bg-destructive/10 hover:bg-destructive/15 rounded-full transition-all font-medium text-sm h-10 cursor-pointer"
+            className="ui-btn ui-btn-sm text-destructive bg-destructive/10 hover:bg-destructive/15"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             清空历史
@@ -421,8 +425,8 @@ export function History() {
       </header>
 
       {history.length > 0 && (
-        <div className="flex items-center gap-3 pb-4 shrink-0">
-          <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-wrap items-center gap-3 pb-4 shrink-0">
+          <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/60" />
             <input
               value={searchQuery}
@@ -468,7 +472,7 @@ export function History() {
               setPlaybackIndex(0)
             }}
             className={cn(
-              'px-3.5 py-2 rounded-full text-sm border transition-colors cursor-pointer',
+              'px-3 py-2 rounded-full text-xs sm:text-sm border transition-colors cursor-pointer',
               playbackMode
                 ? 'bg-secondary-container text-secondary-container-foreground border-outline-variant/50'
                 : 'bg-surface-container-low text-on-surface border-outline-variant/50'
@@ -479,7 +483,7 @@ export function History() {
           <button
             onClick={() => setGroupBySession((prev) => !prev)}
             className={cn(
-              'px-3.5 py-2 rounded-full text-sm border transition-colors cursor-pointer',
+              'px-3 py-2 rounded-full text-xs sm:text-sm border transition-colors cursor-pointer',
               groupBySession
                 ? 'bg-secondary-container text-secondary-container-foreground border-outline-variant/50'
                 : 'bg-surface-container-low text-on-surface border-outline-variant/50'
@@ -550,13 +554,11 @@ export function History() {
         className="flex-1 overflow-auto custom-scrollbar bg-surface-container rounded-xl"
       >
         {filteredHistory.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-on-surface-variant py-20 opacity-70">
-            <HistoryIcon className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-lg">{history.length === 0 ? '暂无历史记录' : '没有匹配的记录'}</p>
-            <p className="text-sm mt-1">
-              {history.length === 0 ? '开始抽选后，记录将显示在这里' : '尝试调整搜索条件'}
-            </p>
-          </div>
+          <StatePanel
+            icon={HistoryIcon}
+            title={history.length === 0 ? '暂无历史记录' : '没有匹配的记录'}
+            description={history.length === 0 ? '开始抽选后，记录将显示在这里' : '尝试调整搜索条件'}
+          />
         ) : groupBySession ? (
           <div className="p-3 space-y-3">
             {sessionGroups.map((session) => (
@@ -569,8 +571,8 @@ export function History() {
                     {session.className} · {new Date(session.startTime).toLocaleDateString()}
                   </div>
                   <div className="text-xs text-on-surface-variant">
-                    {new Date(session.endTime).toLocaleTimeString()} -{' '}
-                    {new Date(session.startTime).toLocaleTimeString()} · {session.records.length} 条
+                    {new Date(session.startTime).toLocaleTimeString()} -{' '}
+                    {new Date(session.endTime).toLocaleTimeString()} · {session.records.length} 条
                   </div>
                 </div>
 
@@ -671,7 +673,7 @@ export function History() {
                     transform: `translateY(${virtualRow.start}px)`
                   }}
                 >
-                  <div className="group flex justify-between items-center px-5 py-4 hover:bg-surface-container-high transition-all duration-200 border-b border-outline-variant/10">
+                  <div className="group flex justify-between items-center px-3 sm:px-5 py-4 hover:bg-surface-container-high transition-all duration-200 border-b border-outline-variant/10">
                     <div className="flex items-center gap-4 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <span className="text-sm font-bold text-primary">
@@ -685,7 +687,7 @@ export function History() {
                             record.eventType === 'group' ? 10 : 6
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span className="text-xs px-2 py-0.5 rounded-full bg-secondary-container text-secondary-container-foreground font-medium">
                             {record.className}
                           </span>
@@ -789,8 +791,8 @@ export function History() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-4">
-                      <div className="text-xs text-on-surface-variant whitespace-nowrap font-mono">
+                    <div className="flex flex-col items-end sm:flex-row sm:items-center gap-1 sm:gap-3 shrink-0 ml-2 sm:ml-4">
+                      <div className="text-[11px] sm:text-xs text-on-surface-variant whitespace-nowrap font-mono">
                         {new Date(record.timestamp).toLocaleString()}
                       </div>
                       <button
@@ -806,7 +808,7 @@ export function History() {
                       </button>
                       <button
                         onClick={() => handleDeleteRecord(record.id)}
-                        className="p-1.5 rounded-full text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                        className="p-1.5 rounded-full text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
                         title="删除此记录"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -831,13 +833,13 @@ function ClassFilterDropdown({
   value: string
   options: string[]
   onChange: (v: string) => void
-}) {
+}): ReactElement {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent): void => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
@@ -854,7 +856,7 @@ function ClassFilterDropdown({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-full text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
+        className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
       >
         <span>{current?.label || '全部班级'}</span>
         <ChevronDown
@@ -865,7 +867,7 @@ function ClassFilterDropdown({
         />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto">
+        <div className="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto">
           {allOptions.map((opt) => (
             <button
               key={opt.value}
@@ -874,7 +876,7 @@ function ClassFilterDropdown({
                 setOpen(false)
               }}
               className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors cursor-pointer text-left',
+                'w-full flex items-center gap-2 px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left',
                 value === opt.value
                   ? 'bg-secondary-container text-secondary-container-foreground'
                   : 'text-on-surface hover:bg-surface-container-high'

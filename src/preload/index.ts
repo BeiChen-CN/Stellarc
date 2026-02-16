@@ -41,7 +41,7 @@ const api = {
   // System Theme
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
   onSystemThemeChanged: (callback: (theme: string) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, theme: string) => callback(theme)
+    const subscription = (_event: Electron.IpcRendererEvent, theme: string): void => callback(theme)
     ipcRenderer.on('system-theme-changed', subscription)
     return () => ipcRenderer.removeListener('system-theme-changed', subscription)
   },
@@ -50,7 +50,8 @@ const api = {
   registerShortcut: (accelerator: string, action: string) =>
     ipcRenderer.invoke('register-shortcut', accelerator, action),
   onShortcutTriggered: (callback: (action: string) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, action: string) => callback(action)
+    const subscription = (_event: Electron.IpcRendererEvent, action: string): void =>
+      callback(action)
     ipcRenderer.on('shortcut-triggered', subscription)
     return () => ipcRenderer.removeListener('shortcut-triggered', subscription)
   },
@@ -62,6 +63,19 @@ const api = {
   listRestorePoints: () => ipcRenderer.invoke('list-restore-points'),
   restoreFromPoint: (restorePointPath: string) =>
     ipcRenderer.invoke('restore-from-point', restorePointPath),
+  deleteRestorePoint: (restorePointPath: string) =>
+    ipcRenderer.invoke('delete-restore-point', restorePointPath),
+  deleteOldRestorePointsKeep: (keepCount: number) =>
+    ipcRenderer.invoke('delete-old-restore-points-keep', keepCount),
+  deleteRestorePointsOlderThanDays: (days: number) =>
+    ipcRenderer.invoke('delete-restore-points-older-than-days', days),
+  appendDiagnosticEvent: (event: {
+    category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
+    level: 'info' | 'warn' | 'error'
+    code: string
+    message: string
+    context?: Record<string, unknown>
+  }) => ipcRenderer.invoke('append-diagnostic-event', event),
 
   // External Links
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
@@ -87,7 +101,7 @@ const api = {
       _event: Electron.IpcRendererEvent,
       status: string,
       info?: Record<string, unknown>
-    ) => callback(status, info)
+    ): void => callback(status, info)
     ipcRenderer.on('update-status', subscription)
     return () => ipcRenderer.removeListener('update-status', subscription)
   },
@@ -110,6 +124,10 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  ;(window as any).electron = electronAPI
-  ;(window as any).electronAPI = api
+  const legacyWindow = window as unknown as Window & {
+    electron: typeof electronAPI
+    electronAPI: typeof api
+  }
+  legacyWindow.electron = electronAPI
+  legacyWindow.electronAPI = api
 }

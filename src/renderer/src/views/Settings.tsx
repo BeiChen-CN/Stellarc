@@ -8,6 +8,7 @@ import { AppearanceSection } from './settings/AppearanceSection'
 import { FairnessSection } from './settings/FairnessSection'
 import { DataSection } from './settings/DataSection'
 import { RuleTemplateCenterSection } from './settings/RuleTemplateCenterSection'
+import { FlowTemplateCenterSection } from './settings/FlowTemplateCenterSection'
 
 type SettingsCategory = 'appearance' | 'experience' | 'fairness' | 'templates' | 'data'
 
@@ -36,7 +37,7 @@ export function Settings(): ReactElement {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-6xl mx-auto py-6 px-5 space-y-6 pb-16">
+      <div className="max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-5 space-y-5 sm:space-y-6 pb-12 sm:pb-16">
         <div>
           <h2 className="text-3xl font-bold mb-2 text-on-surface">设置</h2>
           <p className="text-on-surface-variant text-sm">
@@ -55,7 +56,7 @@ export function Settings(): ReactElement {
                     key={item.id}
                     onClick={() => setActiveCategory(item.id)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors',
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45',
                       activeCategory === item.id
                         ? 'bg-secondary-container text-secondary-container-foreground'
                         : 'text-on-surface-variant hover:bg-surface-container-high'
@@ -95,7 +96,12 @@ export function Settings(): ReactElement {
 
                 {activeCategory === 'fairness' && <FairnessSection />}
 
-                {activeCategory === 'templates' && <RuleTemplateCenterSection />}
+                {activeCategory === 'templates' && (
+                  <>
+                    <FlowTemplateCenterSection />
+                    <RuleTemplateCenterSection />
+                  </>
+                )}
 
                 {activeCategory === 'data' && <DataSection />}
               </motion.div>
