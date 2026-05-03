@@ -1,7 +1,12 @@
-import { useState, useEffect, useCallback, lazy, Suspense, type ReactElement } from 'react'
+import { useState, useEffect, useCallback, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './views/Home'
+import { Students } from './views/Students'
+import { Settings } from './views/Settings'
+import { History } from './views/History'
+import { Statistics } from './views/Statistics'
+import { About } from './views/About'
 import { ToastContainer } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TitleBar } from './components/TitleBar'
@@ -10,23 +15,8 @@ import { useClassesStore } from './store/classesStore'
 import { useSettingsStore } from './store/settingsStore'
 import type { DynamicColorPalette } from './store/settingsStore'
 import { useHistoryStore } from './store/historyStore'
-import { useStrategyStore } from './store/strategyStore'
 import { useSpeedFactor } from './lib/useSpeedFactor'
 import { cn } from './lib/utils'
-
-const Students = lazy(() =>
-  import('./views/Students').then((module) => ({ default: module.Students }))
-)
-const Settings = lazy(() =>
-  import('./views/Settings').then((module) => ({ default: module.Settings }))
-)
-const History = lazy(() =>
-  import('./views/History').then((module) => ({ default: module.History }))
-)
-const About = lazy(() => import('./views/About').then((module) => ({ default: module.About })))
-const Statistics = lazy(() =>
-  import('./views/Statistics').then((module) => ({ default: module.Statistics }))
-)
 
 type AppView = 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
 
@@ -38,7 +28,6 @@ function App(): ReactElement {
   const loadClasses = useClassesStore((state) => state.loadClasses)
   const loadSettings = useSettingsStore((state) => state.loadSettings)
   const loadHistory = useHistoryStore((state) => state.loadHistory)
-  const loadPlugins = useStrategyStore((state) => state.loadPlugins)
   const sf = useSpeedFactor()
   const {
     theme,
@@ -57,10 +46,8 @@ function App(): ReactElement {
   } = useSettingsStore()
 
   useEffect(() => {
-    Promise.all([loadPlugins(), loadSettings(), loadClasses(), loadHistory()]).finally(() =>
-      setAppReady(true)
-    )
-  }, [loadPlugins, loadSettings, loadClasses, loadHistory])
+    Promise.all([loadSettings(), loadClasses(), loadHistory()]).finally(() => setAppReady(true))
+  }, [loadSettings, loadClasses, loadHistory])
 
   const handleViewChange = useCallback((view: AppView): void => {
     setCurrentView(view)
@@ -435,15 +422,7 @@ function App(): ReactElement {
               transition={{ duration: 0.15 * sf, ease: 'easeOut' }}
               className="h-full"
             >
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center text-on-surface-variant text-sm">
-                    页面加载中...
-                  </div>
-                }
-              >
-                {renderView()}
-              </Suspense>
+              {renderView()}
             </motion.div>
           </AnimatePresence>
         </main>

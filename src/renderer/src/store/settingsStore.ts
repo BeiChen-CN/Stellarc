@@ -61,107 +61,9 @@ export type AnimationSpeed = 'elegant' | 'balanced' | 'fast'
 
 export type SoundIntensity = 'low' | 'medium' | 'high'
 
-export type ActivityPreset = 'quick-pick' | 'deep-focus' | 'group-battle'
-
 export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
 
 export type StrategyPreset = string
-
-export interface RuleTemplateItem {
-  id: string
-  name: string
-  description?: string
-  pickCount: number
-  animationStyle: AnimationStyle
-  fairness: {
-    weightedRandom: boolean
-    preventRepeat: boolean
-    cooldownRounds: number
-    strategyPreset: StrategyPreset
-    balanceByTerm: boolean
-    stageFairnessRounds: number
-    prioritizeUnpickedCount: number
-    groupStrategy: 'random' | 'balanced-score'
-    pairAvoidRounds: number
-    autoRelaxOnConflict: boolean
-  }
-  groupTaskTemplates?: Array<{
-    id: string
-    name: string
-    scoreDelta: number
-  }>
-  createdAt: string
-  updatedAt: string
-}
-
-const activityPresetDefaults: Record<
-  ActivityPreset,
-  {
-    pickCount: number
-    animationStyle: AnimationStyle
-    fairness: {
-      weightedRandom: boolean
-      preventRepeat: boolean
-      cooldownRounds: number
-      strategyPreset: StrategyPreset
-      balanceByTerm: boolean
-      stageFairnessRounds: number
-      prioritizeUnpickedCount: number
-      groupStrategy: 'random' | 'balanced-score'
-      pairAvoidRounds: number
-      autoRelaxOnConflict: boolean
-    }
-  }
-> = {
-  'quick-pick': {
-    pickCount: 1,
-    animationStyle: 'slot',
-    fairness: {
-      weightedRandom: false,
-      preventRepeat: false,
-      cooldownRounds: 0,
-      strategyPreset: 'classic',
-      balanceByTerm: false,
-      stageFairnessRounds: 0,
-      prioritizeUnpickedCount: 0,
-      groupStrategy: 'random',
-      pairAvoidRounds: 0,
-      autoRelaxOnConflict: true
-    }
-  },
-  'deep-focus': {
-    pickCount: 1,
-    animationStyle: 'flip',
-    fairness: {
-      weightedRandom: true,
-      preventRepeat: true,
-      cooldownRounds: 2,
-      strategyPreset: 'balanced',
-      balanceByTerm: true,
-      stageFairnessRounds: 6,
-      prioritizeUnpickedCount: 1,
-      groupStrategy: 'balanced-score',
-      pairAvoidRounds: 6,
-      autoRelaxOnConflict: true
-    }
-  },
-  'group-battle': {
-    pickCount: 2,
-    animationStyle: 'wheel',
-    fairness: {
-      weightedRandom: true,
-      preventRepeat: false,
-      cooldownRounds: 0,
-      strategyPreset: 'momentum',
-      balanceByTerm: false,
-      stageFairnessRounds: 0,
-      prioritizeUnpickedCount: 0,
-      groupStrategy: 'balanced-score',
-      pairAvoidRounds: 4,
-      autoRelaxOnConflict: true
-    }
-  }
-}
 
 interface SettingsData {
   theme: 'light' | 'dark' | 'system'
@@ -176,9 +78,6 @@ interface SettingsData {
   m3Mode: boolean
   backgroundImage?: string
   projectorMode: boolean
-  activityPreset: ActivityPreset
-  showClassroomFlow: boolean
-  showClassroomTemplate: boolean
   showTemporaryExclusion: boolean
   showAutoDraw: boolean
   showSelectionExplanation: boolean
@@ -192,8 +91,6 @@ interface SettingsData {
   showGroupTaskTemplatePanel: boolean
   onboardingCompleted: boolean
   revealSettleMs: number
-  syncEnabled: boolean
-  syncFolder?: string
   animationStyle: AnimationStyle
   animationSpeed: AnimationSpeed
   animationDurationScale: number
@@ -214,7 +111,6 @@ interface SettingsData {
   maxHistoryRecords: number
   shortcutKey: string
   semester: { name: string; startDate: string; endDate: string } | null
-  ruleTemplates: RuleTemplateItem[]
   scoreRules: {
     maxScorePerStudent: number
     minScorePerStudent: number
@@ -245,12 +141,7 @@ interface SettingsState extends SettingsData {
   toggleConfettiEnabled: () => void
   toggleM3Mode: () => void
   setBackgroundImage: (path: string | undefined) => void
-  toggleSyncEnabled: () => void
-  setSyncFolder: (path: string | undefined) => void
   toggleProjectorMode: () => void
-  setActivityPreset: (preset: ActivityPreset) => void
-  toggleShowClassroomFlow: () => void
-  toggleShowClassroomTemplate: () => void
   toggleShowTemporaryExclusion: () => void
   toggleShowAutoDraw: () => void
   toggleShowSelectionExplanation: () => void
@@ -288,11 +179,6 @@ interface SettingsState extends SettingsData {
   setDynamicColorPalette: (palette: DynamicColorPalette | null) => void
   extractAndApplyDynamicColor: () => Promise<void>
   setSemester: (semester: { name: string; startDate: string; endDate: string } | null) => void
-  addRuleTemplate: (template: Omit<RuleTemplateItem, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateRuleTemplate: (id: string, patch: Partial<RuleTemplateItem>) => void
-  removeRuleTemplate: (id: string) => void
-  replaceRuleTemplates: (templates: RuleTemplateItem[]) => void
-  applyRuleTemplate: (id: string) => boolean
   setScoreRules: (rules: {
     maxScorePerStudent: number
     minScorePerStudent: number
@@ -316,9 +202,6 @@ const defaults: SettingsData = {
   confettiEnabled: true,
   m3Mode: false,
   projectorMode: false,
-  activityPreset: 'quick-pick',
-  showClassroomFlow: false,
-  showClassroomTemplate: false,
   showTemporaryExclusion: false,
   showAutoDraw: false,
   showSelectionExplanation: false,
@@ -332,7 +215,6 @@ const defaults: SettingsData = {
   showGroupTaskTemplatePanel: false,
   onboardingCompleted: false,
   revealSettleMs: 900,
-  syncEnabled: false,
   animationStyle: 'slot',
   animationSpeed: 'balanced',
   animationDurationScale: 1,
@@ -341,7 +223,6 @@ const defaults: SettingsData = {
   maxHistoryRecords: 1000,
   shortcutKey: '',
   semester: null,
-  ruleTemplates: [],
   scoreRules: {
     maxScorePerStudent: 100,
     minScorePerStudent: -50,
@@ -365,6 +246,15 @@ const defaults: SettingsData = {
   }
 }
 
+const legacySettingKeys = new Set([
+  'activityPreset',
+  'showClassroomFlow',
+  'showClassroomTemplate',
+  'ruleTemplates',
+  'syncEnabled',
+  'syncFolder'
+])
+
 const saveSettings = async (state: SettingsData): Promise<void> => {
   try {
     const {
@@ -380,9 +270,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       m3Mode,
       backgroundImage,
       projectorMode,
-      activityPreset,
-      showClassroomFlow,
-      showClassroomTemplate,
       showTemporaryExclusion,
       showAutoDraw,
       showSelectionExplanation,
@@ -396,8 +283,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showGroupTaskTemplatePanel,
       onboardingCompleted,
       revealSettleMs,
-      syncEnabled,
-      syncFolder,
       animationStyle,
       animationSpeed,
       animationDurationScale,
@@ -407,7 +292,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       maxHistoryRecords,
       shortcutKey,
       semester,
-      ruleTemplates,
       scoreRules
     } = state
     await window.electronAPI.writeJson('settings.json', {
@@ -423,9 +307,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       m3Mode,
       backgroundImage,
       projectorMode,
-      activityPreset,
-      showClassroomFlow,
-      showClassroomTemplate,
       showTemporaryExclusion,
       showAutoDraw,
       showSelectionExplanation,
@@ -439,8 +320,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showGroupTaskTemplatePanel,
       onboardingCompleted,
       revealSettleMs,
-      syncEnabled,
-      syncFolder,
       animationStyle,
       animationSpeed,
       animationDurationScale,
@@ -450,7 +329,6 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       maxHistoryRecords,
       shortcutKey,
       semester,
-      ruleTemplates,
       scoreRules
     })
   } catch (e) {
@@ -492,12 +370,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             raw.m3Mode = true
           }
         }
+        const rawSettings = Object.fromEntries(
+          Object.entries(raw).filter(([key]) => !legacySettingKeys.has(key))
+        )
         const next = {
           ...defaults,
-          ...raw,
-          ruleTemplates: Array.isArray(raw.ruleTemplates)
-            ? (raw.ruleTemplates as RuleTemplateItem[])
-            : defaults.ruleTemplates,
+          ...rawSettings,
+          showTemporaryExclusion: false,
+          showAutoDraw: false,
+          showSelectionExplanation: false,
+          showPickGenderFilter: false,
+          showPickEligibleCount: false,
+          showPickPreviewPanel: false,
+          showPickMissReasonPanel: false,
           scoreRules:
             typeof raw.scoreRules === 'object' && raw.scoreRules
               ? {
@@ -538,23 +423,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleConfettiEnabled: () => updateAndSave({ confettiEnabled: !get().confettiEnabled }, set, get),
   toggleM3Mode: () => updateAndSave({ m3Mode: !get().m3Mode }, set, get),
   toggleProjectorMode: () => updateAndSave({ projectorMode: !get().projectorMode }, set, get),
-  setActivityPreset: (activityPreset) => {
-    const preset = activityPresetDefaults[activityPreset]
-    updateAndSave(
-      {
-        activityPreset,
-        pickCount: preset.pickCount,
-        animationStyle: preset.animationStyle,
-        fairness: preset.fairness
-      },
-      set,
-      get
-    )
-  },
-  toggleShowClassroomFlow: () =>
-    updateAndSave({ showClassroomFlow: !get().showClassroomFlow }, set, get),
-  toggleShowClassroomTemplate: () =>
-    updateAndSave({ showClassroomTemplate: !get().showClassroomTemplate }, set, get),
   toggleShowTemporaryExclusion: () =>
     updateAndSave({ showTemporaryExclusion: !get().showTemporaryExclusion }, set, get),
   toggleShowAutoDraw: () => updateAndSave({ showAutoDraw: !get().showAutoDraw }, set, get),
@@ -595,8 +463,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ dynamicColorPalette: null })
     }
   },
-  toggleSyncEnabled: () => updateAndSave({ syncEnabled: !get().syncEnabled }, set, get),
-  setSyncFolder: (syncFolder) => updateAndSave({ syncFolder }, set, get),
   setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
   setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
   setAnimationDurationScale: (scale) =>
@@ -643,70 +509,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
   setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
   setSemester: (semester) => updateAndSave({ semester }, set, get),
-  addRuleTemplate: (template) => {
-    const now = new Date().toISOString()
-    const next: RuleTemplateItem = {
-      ...template,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now
-    }
-    updateAndSave({ ruleTemplates: [next, ...get().ruleTemplates].slice(0, 60) }, set, get)
-  },
-  updateRuleTemplate: (id, patch) => {
-    updateAndSave(
-      {
-        ruleTemplates: get().ruleTemplates.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                ...patch,
-                id: item.id,
-                updatedAt: new Date().toISOString()
-              }
-            : item
-        )
-      },
-      set,
-      get
-    )
-  },
-  removeRuleTemplate: (id) => {
-    updateAndSave(
-      {
-        ruleTemplates: get().ruleTemplates.filter((item) => item.id !== id)
-      },
-      set,
-      get
-    )
-  },
-  replaceRuleTemplates: (templates) => {
-    const normalized = templates
-      .filter((item) => item && typeof item.name === 'string' && item.name.trim().length > 0)
-      .map((item) => ({
-        ...item,
-        id: item.id || crypto.randomUUID(),
-        name: item.name.trim(),
-        createdAt: item.createdAt || new Date().toISOString(),
-        updatedAt: item.updatedAt || new Date().toISOString()
-      }))
-      .slice(0, 60)
-    updateAndSave({ ruleTemplates: normalized }, set, get)
-  },
-  applyRuleTemplate: (id) => {
-    const target = get().ruleTemplates.find((item) => item.id === id)
-    if (!target) return false
-    updateAndSave(
-      {
-        pickCount: target.pickCount,
-        animationStyle: target.animationStyle,
-        fairness: target.fairness
-      },
-      set,
-      get
-    )
-    return true
-  },
   setScoreRules: (scoreRules) => {
     const safe = {
       maxScorePerStudent: Math.trunc(

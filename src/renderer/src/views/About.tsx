@@ -29,7 +29,7 @@ const features = [
   { icon: Shield, title: '隐私优先', desc: '数据完全离线，不上传任何信息' },
   { icon: Users, title: '班级管理', desc: '多班级、照片、批量导入导出、复制' },
   { icon: BarChart3, title: '统计分析', desc: '频率分布、趋势图表、课堂报告' },
-  { icon: Palette, title: '高度可定制', desc: '28+ 配色、自定义颜色、11 种设计风格' },
+  { icon: Palette, title: '高度可定制', desc: '28+ 配色、自定义颜色、12 种设计风格' },
   { icon: Keyboard, title: '全局快捷键', desc: '自定义快捷键，一键触发抽选' },
   { icon: Globe, title: '公平算法', desc: 'Fisher-Yates 洗牌 + 加权随机 + 冷却' },
   { icon: Monitor, title: '投屏模式', desc: '大字号高可读布局，适合教室大屏' },
@@ -57,7 +57,7 @@ const techStack = [
 
 const highlights = [
   { value: '28+', label: '主题配色', icon: Palette },
-  { value: '11', label: '设计风格', icon: Layers },
+  { value: '12', label: '设计风格', icon: Layers },
   { value: '8', label: '抽选动画', icon: Sparkles },
   { value: '3', label: '动画速率', icon: Zap }
 ]

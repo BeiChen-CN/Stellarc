@@ -1,10 +1,11 @@
-import { useMemo, useState, lazy, Suspense } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useHistoryStore } from '../store/historyStore'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
 import { getStrategyDescriptor } from '../engine/selection/strategies'
+import { StatisticsChartsPanel } from './statistics/StatisticsChartsPanel'
 import {
   TrendingUp,
   TrendingDown,
@@ -16,12 +17,6 @@ import {
   Users,
   Scale
 } from 'lucide-react'
-
-const StatisticsChartsPanel = lazy(() =>
-  import('./statistics/StatisticsChartsPanel').then((module) => ({
-    default: module.StatisticsChartsPanel
-  }))
-)
 
 type TimeRange = '7d' | '14d' | '30d' | 'semester' | 'all'
 
@@ -449,24 +444,16 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1">
-        <Suspense
-          fallback={
-            <div className="xl:col-span-2 rounded-xl bg-surface-container p-6 text-sm text-on-surface-variant">
-              图表加载中...
-            </div>
-          }
-        >
-          <StatisticsChartsPanel
-            chartData={chartData}
-            dailyData={dailyData}
-            classData={classData}
-            dailyDays={dailyDays}
-            allStudentOptions={allStudentOptions}
-            selectedStudent={selectedStudent}
-            onSelectStudent={setSelectedStudent}
-            studentTrendData={studentTrendData}
-          />
-        </Suspense>
+        <StatisticsChartsPanel
+          chartData={chartData}
+          dailyData={dailyData}
+          classData={classData}
+          dailyDays={dailyDays}
+          allStudentOptions={allStudentOptions}
+          selectedStudent={selectedStudent}
+          onSelectStudent={setSelectedStudent}
+          studentTrendData={studentTrendData}
+        />
 
         {/* Score Leaderboard */}
         {leaderboard.length > 0 && (

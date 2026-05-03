@@ -59,18 +59,8 @@ const api = {
   // Backup & Restore
   backupData: (targetPath: string) => ipcRenderer.invoke('backup-data', targetPath),
   restoreData: (sourcePath: string) => ipcRenderer.invoke('restore-data', sourcePath),
-  createRestorePoint: (name: string) => ipcRenderer.invoke('create-restore-point', name),
-  listRestorePoints: () => ipcRenderer.invoke('list-restore-points'),
-  restoreFromPoint: (restorePointPath: string) =>
-    ipcRenderer.invoke('restore-from-point', restorePointPath),
-  deleteRestorePoint: (restorePointPath: string) =>
-    ipcRenderer.invoke('delete-restore-point', restorePointPath),
-  deleteOldRestorePointsKeep: (keepCount: number) =>
-    ipcRenderer.invoke('delete-old-restore-points-keep', keepCount),
-  deleteRestorePointsOlderThanDays: (days: number) =>
-    ipcRenderer.invoke('delete-restore-points-older-than-days', days),
   appendDiagnosticEvent: (event: {
-    category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
+    category: 'shortcut' | 'self-check'
     level: 'info' | 'warn' | 'error'
     code: string
     message: string
@@ -83,14 +73,6 @@ const api = {
   // Auto Launch
   setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke('set-auto-launch', enabled),
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
-  syncDataToFolder: (folderPath: string) => ipcRenderer.invoke('sync-data-to-folder', folderPath),
-  syncDataFromFolder: (folderPath: string) =>
-    ipcRenderer.invoke('sync-data-from-folder', folderPath),
-  syncDataToFolderV2: (folderPath: string) =>
-    ipcRenderer.invoke('sync-data-to-folder-v2', folderPath),
-  syncDataFromFolderV2: (folderPath: string, force: boolean) =>
-    ipcRenderer.invoke('sync-data-from-folder-v2', folderPath, force),
-  getSyncStatus: (folderPath: string) => ipcRenderer.invoke('get-sync-status', folderPath),
 
   // Auto Update
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

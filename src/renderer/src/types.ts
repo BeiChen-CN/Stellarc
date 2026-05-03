@@ -36,8 +36,6 @@ export interface ClassGroup {
 
 export interface Settings {
   theme: 'light' | 'dark' | 'system'
-  showClassroomFlow?: boolean
-  showClassroomTemplate?: boolean
   showTemporaryExclusion?: boolean
   showAutoDraw?: boolean
   showSelectionExplanation?: boolean
@@ -72,28 +70,6 @@ export interface Settings {
   shortcuts: {
     pick: string
   }
-  ruleTemplates?: Array<{
-    id: string
-    name: string
-    description?: string
-    pickCount: number
-    animationStyle: 'scroll' | 'slot' | 'flip' | 'wheel'
-    fairness: {
-      weightedRandom: boolean
-      preventRepeat: boolean
-      cooldownRounds: number
-      strategyPreset?: string
-      balanceByTerm?: boolean
-      stageFairnessRounds?: number
-      prioritizeUnpickedCount?: number
-      groupStrategy?: 'random' | 'balanced-score'
-      pairAvoidRounds?: number
-      autoRelaxOnConflict?: boolean
-    }
-    groupTaskTemplates?: ClassTaskTemplate[]
-    createdAt: string
-    updatedAt: string
-  }>
   scoreRules?: {
     maxScorePerStudent: number
     minScorePerStudent: number

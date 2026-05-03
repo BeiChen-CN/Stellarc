@@ -82,10 +82,9 @@
     <td valign="top">
       <strong>外观</strong>
       <ul>
-        <li>28+ 种颜色主题，11 种设计风格</li>
+        <li>28+ 种颜色主题，12 种设计风格</li>
         <li>深色 / 浅色模式，M3 色调渗透</li>
         <li>自定义背景图片</li>
-        <li>课堂活动模板</li>
       </ul>
     </td>
   </tr>
@@ -95,9 +94,6 @@
       <ul>
         <li>完全离线，本地存储</li>
         <li>ZIP 备份恢复，失败自动回滚</li>
-        <li>多终端同步（推送 / 拉取）</li>
-        <li>同步冲突检测（支持强制覆盖）</li>
-        <li>恢复点（创建 / 恢复最近快照）</li>
         <li>启动自检修复</li>
       </ul>
     </td>
@@ -164,7 +160,7 @@ src/
 └── renderer/src/          # 渲染进程 (React)
     ├── views/             #   页面（6 个视图）
     ├── components/        #   UI 组件
-    ├── store/             #   Zustand store（7 个）
+    ├── store/             #   Zustand store（核心状态）
     ├── engine/selection/  #   抽选策略引擎
     ├── lib/               #   工具函数 + 音效合成
     └── assets/            #   样式 + 静态资源
@@ -190,53 +186,11 @@ src/
 
 ---
 
-## 策略插件
-
-参考 `strategy-plugins.example.json` 创建 `strategy-plugins.json`，设置页可热重载。
-
-<details>
-<summary>插件格式与字段说明</summary>
-
-```json
-{
-  "id": "my-strategy",
-  "name": "自定义策略",
-  "enabled": true,
-  "minAppVersion": "1.0.0",
-  "signature": "abcdef12",
-  "baseMultiplier": 1.0,
-  "scoreFactor": 0.5,
-  "pickDecayFactor": 0.3,
-  "minWeight": 0.1,
-  "maxWeight": 5.0
-}
-```
-
-| 字段                      | 说明                             |
-| ------------------------- | -------------------------------- |
-| `enabled`                 | 是否启用该插件（默认启用）       |
-| `minAppVersion`           | 最低应用版本，不满足会跳过加载   |
-| `signature`               | 简易签名校验值，不匹配会拒绝加载 |
-| `baseMultiplier`          | 基础权重倍数                     |
-| `scoreFactor`             | 积分加成系数（正分越高权重越高） |
-| `pickDecayFactor`         | 抽中衰减系数（抽中越多权重越低） |
-| `minWeight` / `maxWeight` | 权重下限 / 上限                  |
-
-插件安全策略：
-
-- 未配置 `signature` 的插件默认跳过加载
-- `minAppVersion` 不满足时自动跳过
-- 详情可在设置页「抽选规则」查看（加载 / 跳过 / 错误）
-
----
-
 ## 数据治理与诊断
 
 - 学生管理页支持一键数据治理（规范化 + 去重）
 - 设置页支持诊断面板：迁移状态、自检详情、最近事件日志
-- 关键事件写入 `diagnostics-events.json`（同步 / 快捷键 / 插件）
-
-</details>
+- 关键事件写入 `diagnostics-events.json`（快捷键 / 自检）
 
 ---
 

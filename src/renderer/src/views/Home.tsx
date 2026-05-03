@@ -39,10 +39,8 @@ import { GroupResults } from './home/GroupResults'
 import { WinnerDisplay } from './home/WinnerDisplay'
 import { PickIdleState } from './home/PickIdleState'
 import { ClassTimer } from '../components/ClassTimer'
-import { useFlowStore } from '../store/flowStore'
 import { useImmersiveUI } from './home/hooks/useImmersiveUI'
 import { useTemporaryExclusion } from './home/hooks/useTemporaryExclusion'
-import type { ClassroomFlow } from '../store/flowStore'
 
 const ANIMATION_DURATION_MAP = { elegant: 3200, balanced: 2200, fast: 1300 } as const
 const ANIMATION_DURATION_REDUCED_MS = 300
@@ -69,12 +67,6 @@ function pickUniqueStudents(pool: Student[], count: number): Student[] {
   }
   return copy.slice(0, count)
 }
-
-const ACTIVITY_TEMPLATES = [
-  { id: 'quick-pick' as const, label: '快速点名', hint: '单人高频' },
-  { id: 'deep-focus' as const, label: '深度互动', hint: '均衡优先' },
-  { id: 'group-battle' as const, label: '小组对抗', hint: '分组模式' }
-]
 
 const REASON_LABELS: Record<string, string> = {
   eligible: '可抽取',
@@ -132,61 +124,6 @@ const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
   { id: 'task-review', name: '同伴互评', scoreDelta: 1 }
 ]
 
-const ACTIVITY_PRESET_IDS = ['quick-pick', 'deep-focus', 'group-battle'] as const
-
-function isActivityPreset(value: unknown): value is (typeof ACTIVITY_PRESET_IDS)[number] {
-  return typeof value === 'string' && (ACTIVITY_PRESET_IDS as readonly string[]).includes(value)
-}
-
-function normalizeImportedFlows(payload: unknown): ClassroomFlow[] | null {
-  const root =
-    payload && typeof payload === 'object' && 'flows' in payload
-      ? (payload as { flows?: unknown }).flows
-      : payload
-  if (!Array.isArray(root)) return null
-  const flows: ClassroomFlow[] = []
-  root.forEach((flow, flowIndex) => {
-    if (!flow || typeof flow !== 'object') return
-    const candidate = flow as {
-      id?: unknown
-      name?: unknown
-      steps?: unknown
-    }
-    if (typeof candidate.name !== 'string' || !Array.isArray(candidate.steps)) return
-    const steps = candidate.steps
-      .map((step, stepIndex) => {
-        if (!step || typeof step !== 'object') return null
-        const item = step as {
-          id?: unknown
-          title?: unknown
-          activityPreset?: unknown
-          notes?: unknown
-        }
-        if (typeof item.title !== 'string' || !isActivityPreset(item.activityPreset)) return null
-        return {
-          id:
-            typeof item.id === 'string' && item.id.trim()
-              ? item.id
-              : `step-${flowIndex + 1}-${stepIndex + 1}`,
-          title: item.title.trim(),
-          activityPreset: item.activityPreset,
-          notes: typeof item.notes === 'string' ? item.notes : undefined
-        }
-      })
-      .filter((step): step is NonNullable<typeof step> => !!step)
-    if (steps.length === 0) return
-    flows.push({
-      id:
-        typeof candidate.id === 'string' && candidate.id.trim()
-          ? candidate.id
-          : `flow-${flowIndex + 1}`,
-      name: candidate.name.trim(),
-      steps
-    })
-  })
-  return flows.length > 0 ? flows : null
-}
-
 export function Home({
   onNavigate,
   onImmersiveChange
@@ -214,7 +151,6 @@ export function Home({
     Array<{ groupIndex: number; taskTemplateId: string; taskName: string; scoreDelta: number }>
   >([])
   const [showGroups, setShowGroups] = useState(false)
-  const [flowMenuOpen, setFlowMenuOpen] = useState(false)
   const [autoDrawEnabled, setAutoDrawEnabled] = useState(false)
   const [autoDrawRounds, setAutoDrawRounds] = useState(3)
   const [autoDrawIntervalMs, setAutoDrawIntervalMs] = useState(3600)
@@ -240,26 +176,10 @@ export function Home({
 
   const currentClass = classes.find((c) => c.id === currentClassId)
   const {
-    flows,
-    activeFlowId,
-    activeStepIndex,
-    setActiveFlow,
-    nextStep,
-    resetFlow,
-    setFlows,
-    resetDefaultFlows
-  } = useFlowStore()
-  const activeFlow = flows.find((flow) => flow.id === activeFlowId)
-
-  const {
     fairness,
     pickCount,
     setPickCount,
     projectorMode,
-    activityPreset,
-    setActivityPreset,
-    showClassroomFlow,
-    showClassroomTemplate,
     showTemporaryExclusion,
     showAutoDraw,
     showSelectionExplanation,
@@ -864,19 +784,6 @@ export function Home({
     [setImmersiveMode]
   )
 
-  const applyActivityPreset = useCallback(
-    (preset: 'quick-pick' | 'deep-focus' | 'group-battle'): void => {
-      setActivityPreset(preset)
-      if (preset === 'group-battle') {
-        setMode('group')
-        setGroupCount((prev) => Math.max(prev, 4))
-      } else {
-        setMode('pick')
-      }
-    },
-    [setActivityPreset]
-  )
-
   const handleSelectClass = useCallback(
     (classId: string): void => {
       setCurrentClass(classId)
@@ -896,51 +803,6 @@ export function Home({
       addToast(`班级「${name}」已创建`, 'success')
     })
   }, [addClass, addToast, showPrompt])
-
-  const handleExportFlows = useCallback(async (): Promise<void> => {
-    const filePath = await window.electronAPI.saveFile({
-      title: '导出课堂流程模板',
-      defaultPath: 'classroom-flows.json',
-      filters: [{ name: 'JSON 文件', extensions: ['json'] }]
-    })
-    if (!filePath) return
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      flows
-    }
-    const ok = await window.electronAPI.writeExportFile(filePath, JSON.stringify(payload, null, 2))
-    addToast(ok ? '课堂流程模板导出成功' : '课堂流程模板导出失败', ok ? 'success' : 'error')
-  }, [flows, addToast])
-
-  const handleImportFlows = useCallback(async (): Promise<void> => {
-    const filePath = await window.electronAPI.selectFile({
-      title: '导入课堂流程模板',
-      filters: [{ name: 'JSON 文件', extensions: ['json'] }]
-    })
-    if (!filePath) return
-    try {
-      const raw = await window.electronAPI.readTextFile(filePath)
-      const payload = JSON.parse(raw) as unknown
-      const imported = normalizeImportedFlows(payload)
-      if (!imported) {
-        addToast('模板格式无效，请检查 JSON 内容', 'error')
-        return
-      }
-      setFlows(imported)
-      setActiveFlow(null)
-      addToast(`已导入 ${imported.length} 条课堂流程模板`, 'success')
-    } catch (error) {
-      logger.error('Home', 'Import classroom flows failed', error)
-      addToast('导入失败，请检查模板文件', 'error')
-    }
-  }, [setFlows, setActiveFlow, addToast])
-
-  const handleResetFlows = useCallback((): void => {
-    resetDefaultFlows()
-    setActiveFlow(null)
-    addToast('课堂流程模板已恢复默认', 'info')
-  }, [resetDefaultFlows, setActiveFlow, addToast])
 
   const startAutoDraw = useCallback(() => {
     if (mode !== 'pick') {
@@ -974,7 +836,6 @@ export function Home({
           return
         }
         setExcludedMenuOpen(false)
-        setFlowMenuOpen(false)
       }
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && mode === 'pick') {
         event.preventDefault()
@@ -1164,124 +1025,6 @@ export function Home({
       {/* Main Card */}
       {!immersivePickMode && (
         <div className="absolute inset-0 top-14 flex flex-col items-center justify-center p-4 z-10">
-          {/* Activity template bar — above card */}
-          {(showClassroomFlow || showClassroomTemplate) && (
-            <div className="mb-3 shrink-0 w-full max-w-2xl">
-              {showClassroomFlow && (
-                <div className="mb-2 flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
-                  <span className="text-xs text-on-surface-variant">课堂流程</span>
-                  <div className="relative">
-                    <button
-                      onClick={() => setFlowMenuOpen((v) => !v)}
-                      className="text-xs bg-surface-container-low border border-outline-variant rounded-full pl-2.5 pr-7 py-1 text-on-surface hover:bg-surface-container transition-colors cursor-pointer min-w-[96px] sm:min-w-[120px] text-left"
-                    >
-                      {activeFlow?.name || '未选择流程'}
-                    </button>
-                    <ChevronDown
-                      className={cn(
-                        'w-3 h-3 text-on-surface-variant absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none transition-transform',
-                        flowMenuOpen && 'rotate-180'
-                      )}
-                    />
-
-                    {flowMenuOpen && (
-                      <div className="absolute left-0 mt-1 min-w-[180px] bg-surface-container border border-outline-variant rounded-2xl elevation-2 p-1 z-30">
-                        <button
-                          onClick={() => {
-                            setActiveFlow(null)
-                            setFlowMenuOpen(false)
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs text-on-surface-variant hover:bg-surface-container-high cursor-pointer"
-                        >
-                          未选择流程
-                        </button>
-                        {flows.map((flow) => (
-                          <button
-                            key={flow.id}
-                            onClick={() => {
-                              setActiveFlow(flow.id)
-                              setFlowMenuOpen(false)
-                            }}
-                            className={cn(
-                              'w-full text-left px-3 py-2 rounded-xl text-xs cursor-pointer',
-                              activeFlowId === flow.id
-                                ? 'bg-secondary-container text-secondary-container-foreground'
-                                : 'text-on-surface hover:bg-surface-container-high'
-                            )}
-                          >
-                            {flow.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      const step = nextStep()
-                      if (!step) {
-                        addToast('请先选择课堂流程', 'error')
-                        return
-                      }
-                      applyActivityPreset(step.activityPreset)
-                      addToast(`已切换到步骤 ${activeStepIndex + 1}: ${step.title}`, 'success')
-                    }}
-                    className="px-2.5 py-1 rounded-full text-[11px] bg-primary text-primary-foreground cursor-pointer"
-                  >
-                    下一步
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetFlow()
-                      addToast('流程已重置', 'info')
-                    }}
-                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                  >
-                    重置
-                  </button>
-                  <button
-                    onClick={handleExportFlows}
-                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                  >
-                    导出模板
-                  </button>
-                  <button
-                    onClick={handleImportFlows}
-                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                  >
-                    导入模板
-                  </button>
-                  <button
-                    onClick={handleResetFlows}
-                    className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                  >
-                    默认模板
-                  </button>
-                </div>
-              )}
-
-              {showClassroomTemplate && (
-                <div className="flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high/80 px-3 py-1.5 border border-outline-variant/40">
-                  <span className="text-xs text-on-surface-variant">课堂模板</span>
-                  {ACTIVITY_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => applyActivityPreset(template.id)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-full text-[11px] transition-colors cursor-pointer',
-                        activityPreset === template.id
-                          ? 'bg-secondary-container text-secondary-container-foreground'
-                          : 'text-on-surface-variant hover:bg-surface-container'
-                      )}
-                      title={template.hint}
-                    >
-                      {template.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {mode === 'pick' && (showTemporaryExclusion || showAutoDraw) && (
             <div className="mb-3 shrink-0 w-full max-w-2xl">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-container-high/80 px-3 py-2 border border-outline-variant/40">

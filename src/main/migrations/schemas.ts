@@ -137,9 +137,6 @@ export const settingsV2Schema = z.object({
   m3Mode: z.boolean().default(false),
   backgroundImage: z.string().optional(),
   projectorMode: z.boolean().default(false),
-  activityPreset: z.enum(['quick-pick', 'deep-focus', 'group-battle']).default('quick-pick'),
-  showClassroomFlow: z.boolean().default(false),
-  showClassroomTemplate: z.boolean().default(false),
   showTemporaryExclusion: z.boolean().default(false),
   showAutoDraw: z.boolean().default(false),
   showSelectionExplanation: z.boolean().default(false),
@@ -153,8 +150,6 @@ export const settingsV2Schema = z.object({
   showGroupTaskTemplatePanel: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(false),
   revealSettleMs: z.number().int().min(0).max(5000).default(900),
-  syncEnabled: z.boolean().default(false),
-  syncFolder: z.string().optional(),
   animationStyle: z.string().default('slot'),
   animationSpeed: z.enum(['elegant', 'balanced', 'fast']).default('balanced'),
   animationDurationScale: z.number().min(0.6).max(1.8).default(1),
@@ -174,29 +169,6 @@ export const settingsV2Schema = z.object({
   pickCount: z.number().int().min(1).default(1),
   maxHistoryRecords: z.number().int().min(100).default(1000),
   shortcutKey: z.string().default(''),
-  ruleTemplates: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        name: z.string().min(1),
-        description: z.string().optional(),
-        pickCount: z.number().int().min(1).max(10),
-        animationStyle: z.string().min(1),
-        fairness: fairnessSchema,
-        groupTaskTemplates: z
-          .array(
-            z.object({
-              id: z.string().min(1),
-              name: z.string().min(1),
-              scoreDelta: z.number().int()
-            })
-          )
-          .optional(),
-        createdAt: z.string().min(1),
-        updatedAt: z.string().min(1)
-      })
-    )
-    .default([]),
   scoreRules: z
     .object({
       maxScorePerStudent: z.number().int().default(100),

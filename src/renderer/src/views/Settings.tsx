@@ -1,22 +1,19 @@
 import { useState, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Palette, Sparkles, Scale, BookTemplate, Database } from 'lucide-react'
+import { Palette, Sparkles, Scale, Database } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useSpeedFactor } from '../lib/useSpeedFactor'
 import { useSettingsStore } from '../store/settingsStore'
 import { AppearanceSection } from './settings/AppearanceSection'
 import { FairnessSection } from './settings/FairnessSection'
 import { DataSection } from './settings/DataSection'
-import { RuleTemplateCenterSection } from './settings/RuleTemplateCenterSection'
-import { FlowTemplateCenterSection } from './settings/FlowTemplateCenterSection'
 
-type SettingsCategory = 'appearance' | 'experience' | 'fairness' | 'templates' | 'data'
+type SettingsCategory = 'appearance' | 'experience' | 'fairness' | 'data'
 
 const CATEGORY_ITEMS: Array<{ id: SettingsCategory; label: string; icon: typeof Palette }> = [
   { id: 'appearance', label: '外观', icon: Palette },
   { id: 'experience', label: '体验', icon: Sparkles },
   { id: 'fairness', label: '抽选与规则', icon: Scale },
-  { id: 'templates', label: '规则模板', icon: BookTemplate },
   { id: 'data', label: '数据与系统', icon: Database }
 ]
 
@@ -95,13 +92,6 @@ export function Settings(): ReactElement {
                 )}
 
                 {activeCategory === 'fairness' && <FairnessSection />}
-
-                {activeCategory === 'templates' && (
-                  <>
-                    <FlowTemplateCenterSection />
-                    <RuleTemplateCenterSection />
-                  </>
-                )}
 
                 {activeCategory === 'data' && <DataSection />}
               </motion.div>

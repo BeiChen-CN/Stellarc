@@ -30,16 +30,8 @@ declare global {
       onShortcutTriggered: (callback: (action: string) => void) => () => void
       backupData: (targetPath: string) => Promise<boolean>
       restoreData: (sourcePath: string) => Promise<boolean>
-      createRestorePoint: (
-        name: string
-      ) => Promise<{ ok: boolean; name?: string; message?: string }>
-      listRestorePoints: () => Promise<Array<{ name: string; path: string; createdAt: number }>>
-      restoreFromPoint: (restorePointPath: string) => Promise<boolean>
-      deleteRestorePoint: (restorePointPath: string) => Promise<boolean>
-      deleteOldRestorePointsKeep: (keepCount: number) => Promise<{ ok: boolean; deleted: number }>
-      deleteRestorePointsOlderThanDays: (days: number) => Promise<{ ok: boolean; deleted: number }>
       appendDiagnosticEvent: (event: {
-        category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
+        category: 'shortcut' | 'self-check'
         level: 'info' | 'warn' | 'error'
         code: string
         message: string
@@ -48,32 +40,6 @@ declare global {
       openExternal: (url: string) => Promise<boolean>
       setAutoLaunch: (enabled: boolean) => Promise<boolean>
       getAutoLaunch: () => Promise<boolean>
-      syncDataToFolder: (folderPath: string) => Promise<boolean>
-      syncDataFromFolder: (folderPath: string) => Promise<boolean>
-      syncDataToFolderV2: (folderPath: string) => Promise<{
-        ok: boolean
-        code: string
-        message: string
-        localFingerprint?: string
-        remoteFingerprint?: string
-      }>
-      syncDataFromFolderV2: (
-        folderPath: string,
-        force: boolean
-      ) => Promise<{
-        ok: boolean
-        code: string
-        message: string
-        localFingerprint?: string
-        remoteFingerprint?: string
-      }>
-      getSyncStatus: (folderPath: string) => Promise<{
-        ok: boolean
-        code: string
-        message: string
-        localFingerprint?: string
-        remoteFingerprint?: string
-      }>
       checkForUpdates: () => Promise<boolean>
       downloadUpdate: () => Promise<boolean>
       installUpdate: () => Promise<void>
