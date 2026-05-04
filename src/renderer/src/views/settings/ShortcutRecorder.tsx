@@ -15,7 +15,6 @@ function keyEventToAccelerator(e: KeyboardEvent): string | null {
   let key = e.key
   if (key === ' ') key = 'Space'
   else if (key.length === 1) key = key.toUpperCase()
-  else if (key.startsWith('Arrow')) key = key
   parts.push(key)
   return parts.join('+')
 }
