@@ -18,6 +18,15 @@
   <sub>基于 <a href="https://github.com/BeiChen-CN/spotlight">Spotlight</a> 重构</sub>
 </p>
 
+## 截图
+
+<table>
+  <tr>
+    <td><img src="https://free.picui.cn/free/2026/05/04/69f8a7daeb346.png" alt="首页抽选结果" width="720"></td>
+    <td><img src="https://free.picui.cn/free/2026/05/04/69f8a7dad16d9.png" alt="设置页外观配置" width="720"></td>
+  </tr>
+</table>
+
 ---
 
 ## 下载
@@ -187,6 +196,12 @@ src/
   - `npm run build`
 - 推送 `v*` 标签会触发 `.github/workflows/release.yml`, 构建多平台产物并上传到 GitHub Release。
 - Release 描述优先读取 `CHANGELOG.md` 对应版本章节。
+
+---
+
+## Stars History
+
+[![Stellarc Stars History](https://api.star-history.com/svg?repos=BeiChen-CN/Stellarc&type=Date)](https://www.star-history.com/#BeiChen-CN/Stellarc&Date)
 
 ---
 
