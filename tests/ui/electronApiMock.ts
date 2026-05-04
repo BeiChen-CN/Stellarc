@@ -26,6 +26,8 @@ export async function installElectronApiMock(
       bodyBackground: string
       rootBackground: string
     }> = []
+    let selectFileResult: string | null = null
+    const textFiles = new Map<string, string>()
 
     const getBackgroundSnapshot = (
       phase: string
@@ -50,12 +52,12 @@ export async function installElectronApiMock(
         jsonStore.set(filename, data)
         return true
       },
-      selectFile: async (): Promise<string | null> => null,
+      selectFile: async (): Promise<string | null> => selectFileResult,
       selectFiles: async (): Promise<string[] | null> => null,
       selectFolder: async (): Promise<string | null> => null,
       saveFile: async (): Promise<string | null> => null,
       readFile: async (): Promise<Uint8Array> => new Uint8Array(),
-      readTextFile: async (): Promise<string> => '',
+      readTextFile: async (path: string): Promise<string> => textFiles.get(path) ?? '',
       writeExportFile: async (): Promise<boolean> => true,
       writeBinaryFile: async (): Promise<boolean> => true,
       copyPhoto: async (): Promise<string> => '',
@@ -94,6 +96,8 @@ export async function installElectronApiMock(
       __electronApiMock: {
         setJson: (filename: string, data: unknown) => void
         getJson: (filename: string) => unknown
+        setSelectFileResult: (path: string | null) => void
+        setTextFile: (path: string, content: string) => void
         getImmersivePhases: () => string[]
         getImmersivePhaseSnapshots: () => Array<{
           phase: string
@@ -110,6 +114,12 @@ export async function installElectronApiMock(
         jsonStore.set(filename, data)
       },
       getJson: (filename: string) => jsonStore.get(filename),
+      setSelectFileResult: (path: string | null) => {
+        selectFileResult = path
+      },
+      setTextFile: (path: string, content: string) => {
+        textFiles.set(path, content)
+      },
       getImmersivePhases: () => [...immersivePhases],
       getImmersivePhaseSnapshots: () => immersivePhaseSnapshots.map((snapshot) => ({ ...snapshot }))
     }
