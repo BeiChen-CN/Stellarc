@@ -1,5 +1,8 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
+type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
+type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -31,7 +34,7 @@ declare global {
       backupData: (targetPath: string) => Promise<boolean>
       restoreData: (sourcePath: string) => Promise<boolean>
       appendDiagnosticEvent: (event: {
-        category: 'shortcut' | 'self-check'
+        category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
         level: 'info' | 'warn' | 'error'
         code: string
         message: string
@@ -50,6 +53,10 @@ declare global {
       windowMaximize: () => Promise<void>
       windowClose: () => Promise<void>
       windowIsMaximized: () => Promise<boolean>
+      setImmersiveWindowPhase: (
+        phase: ImmersiveWindowPhase,
+        options?: ImmersiveWindowPhaseOptions
+      ) => Promise<boolean>
     }
   }
 }

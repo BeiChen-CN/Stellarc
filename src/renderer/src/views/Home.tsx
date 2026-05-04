@@ -10,8 +10,7 @@ import {
   ChevronUp,
   Users,
   Check,
-  Maximize2,
-  X
+  Maximize2
 } from 'lucide-react'
 import { Student, ClassTaskTemplate } from '../types'
 import { cn, toFileUrl } from '../lib/utils'
@@ -39,6 +38,7 @@ import { GroupResults } from './home/GroupResults'
 import { WinnerDisplay } from './home/WinnerDisplay'
 import { PickIdleState } from './home/PickIdleState'
 import { ClassTimer } from '../components/ClassTimer'
+import { ImmersiveShell } from './home/ImmersiveShell'
 import { useImmersiveUI } from './home/hooks/useImmersiveUI'
 import { useTemporaryExclusion } from './home/hooks/useTemporaryExclusion'
 
@@ -55,6 +55,10 @@ type PickPlan = {
   traces: ReturnType<typeof selectionEngine.pick>['traces']
   selectionMeta: HistorySelectionMeta
   totalCandidates: number
+}
+
+type DrawOptions = {
+  countOverride?: number
 }
 
 function pickUniqueStudents(pool: Student[], count: number): Student[] {
@@ -196,14 +200,18 @@ export function Home({
     confettiEnabled,
     animationStyle,
     animationSpeed,
-    animationDurationScale
+    animationDurationScale,
+    immersiveIslandStyle
   } = useSettingsStore()
 
   const effectivePickGenderFilter = showPickGenderFilter ? pickGenderFilter : 'all'
-  const { immersiveMode, immersivePickMode, setImmersiveMode } = useImmersiveUI(
-    mode,
-    onImmersiveChange
-  )
+  const {
+    immersiveMode,
+    immersivePickMode,
+    immersivePhase,
+    setImmersiveMode,
+    setImmersivePhase
+  } = useImmersiveUI(mode, onImmersiveChange)
   const {
     excludedMenuOpen,
     setExcludedMenuOpen,
@@ -224,7 +232,7 @@ export function Home({
     effectivePickGenderFilter
   })
 
-  const handleDrawRef = useRef<() => void>(() => {})
+  const handleDrawRef = useRef<(options?: DrawOptions) => void>(() => {})
 
   useEffect(() => {
     setSoundIntensity(soundIntensity)
@@ -241,13 +249,16 @@ export function Home({
   useEffect(() => {
     const cleanup = window.electronAPI.onShortcutTriggered((action) => {
       if (action === 'pick') {
-        handleDrawRef.current()
+        if (immersiveMode) {
+          setImmersivePhase('island')
+        }
+        handleDrawRef.current(immersiveMode ? { countOverride: 1 } : undefined)
       }
     })
     return cleanup
-  }, [])
+  }, [immersiveMode, immersivePhase, setImmersivePhase])
 
-  const getPickPlan = useCallback((): PickPlan | null => {
+  const getPickPlan = useCallback((countOverride?: number): PickPlan | null => {
     if (!currentClass) return null
 
     const genderFilteredStudents =
@@ -260,6 +271,7 @@ export function Home({
         ? currentClass
         : { ...currentClass, students: genderFilteredStudents }
 
+    const requestedCount = countOverride ?? pickCount
     const result = selectionEngine.pick(
       buildPickRequest({
         currentClass: pickClass,
@@ -268,7 +280,7 @@ export function Home({
           ...fairness,
           manualExcludedIds
         },
-        count: pickCount
+        count: requestedCount
       })
     )
 
@@ -469,11 +481,12 @@ export function Home({
     finishDraw(wheelWinnersRef.current)
   }, [finishDraw])
 
-  const handleDraw = useCallback((): void => {
+  const handleDraw = useCallback((options: DrawOptions = {}): void => {
     if (isSpinning) return
     if (!currentClass || currentClass.students.length === 0) return
 
-    const pickPlan = getPickPlan()
+    const requestedCount = options.countOverride ?? pickCount
+    const pickPlan = getPickPlan(requestedCount)
     if (!pickPlan) return
 
     const activeStudents = pickPlan.eligibleStudents
@@ -498,7 +511,7 @@ export function Home({
     tickCountRef.current = 0
     lastSoundAtRef.current = 0
 
-    const countToPick = Math.min(pickCount, activeStudents.length)
+    const countToPick = Math.min(requestedCount, activeStudents.length)
     const uniqueWinners = pickPlan.winners
       .filter((winner, index, arr) => arr.findIndex((item) => item.id === winner.id) === index)
       .slice(0, countToPick)
@@ -611,6 +624,34 @@ export function Home({
   useEffect(() => {
     handleDrawRef.current = handleDraw
   }, [handleDraw])
+
+  const handleImmersiveOpenMenu = useCallback(() => {
+    setImmersivePhase('menu')
+  }, [setImmersivePhase])
+
+  const handleImmersiveDraw = useCallback(() => {
+    if (isSpinning || !currentClass || currentClass.students.length === 0) return
+    setImmersivePhase('island')
+    handleDrawRef.current({ countOverride: 1 })
+  }, [currentClass, isSpinning, setImmersivePhase])
+
+  const handleImmersiveCollapse = useCallback(() => {
+    setImmersivePhase('ball')
+  }, [setImmersivePhase])
+
+  const handleImmersiveExit = useCallback(() => {
+    setImmersiveMode(false)
+  }, [setImmersiveMode])
+
+  useEffect(() => {
+    if (immersivePhase !== 'island') return
+    if (isSpinning || phase !== 'reveal' || winners.length === 0) return
+
+    const timer = setTimeout(() => {
+      setImmersivePhase('ball')
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [immersivePhase, isSpinning, phase, winners.length, setImmersivePhase])
 
   const handleGroup = (): void => {
     if (!currentClass) return
@@ -871,6 +912,24 @@ export function Home({
           groups.map((g, i) => `第${i + 1}组：${g.map((s) => s.name).join('、')}`).join('。')}
       </div>
 
+      {immersivePickMode && (
+        <ImmersiveShell
+          phase={immersivePhase}
+          currentClassName={currentClass?.name}
+          displayCandidates={displayCandidates}
+          winners={winners}
+          candidateKey={candidateKey}
+          drawPhase={phase}
+          islandStyle={immersiveIslandStyle}
+          isSpinning={isSpinning}
+          canDraw={!!currentClass && currentClass.students.length > 0 && !isSpinning}
+          onOpenMenu={handleImmersiveOpenMenu}
+          onDraw={handleImmersiveDraw}
+          onCollapse={handleImmersiveCollapse}
+          onExit={handleImmersiveExit}
+        />
+      )}
+
       {!immersivePickMode && backgroundImage && (
         <img
           src={toFileUrl(backgroundImage)}
@@ -917,109 +976,6 @@ export function Home({
             <ClassTimer />
           </div>
         </>
-      )}
-
-      {immersivePickMode && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 px-4 py-6">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute left-1/2 top-[22%] h-48 w-48 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute bottom-[18%] left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
-          </div>
-
-          <div className="absolute top-4 right-4 z-10 rounded-full border border-outline-variant/45 bg-surface-container/75 backdrop-blur-md px-3 py-1.5 text-[11px] text-on-surface-variant inline-flex items-center gap-2">
-            <span>{currentClass?.name || '未选班级'}</span>
-            <span className="opacity-50">|</span>
-            <span>可抽 {pickRangeEligibleCount}</span>
-            {autoDrawRemaining > 0 && (
-              <>
-                <span className="opacity-50">|</span>
-                <span>连抽剩余 {autoDrawRemaining}</span>
-              </>
-            )}
-          </div>
-
-          <motion.button
-            whileHover={
-              prefersReducedMotion
-                ? undefined
-                : { scale: 1.03, boxShadow: '0 10px 28px -6px hsl(var(--primary) / 0.35)' }
-            }
-            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
-            onClick={handleDraw}
-            disabled={isSpinning || !currentClass || currentClass.students.length === 0}
-            aria-label={isSpinning ? '抽选中' : '开始点名'}
-            aria-busy={isSpinning}
-            title="按 Esc 退出沉浸模式"
-            className={cn(
-              'relative z-10 min-h-12 px-7 sm:px-10 py-3 bg-primary text-primary-foreground rounded-full text-lg sm:text-xl font-bold elevation-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-              projectorMode && 'h-14 text-2xl px-12'
-            )}
-          >
-            {isSpinning ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1 * sf, repeat: Infinity, ease: 'linear' }}
-                >
-                  <Shuffle className="w-6 h-6" />
-                </motion.div>
-                抽选中...
-              </>
-            ) : (
-              <>
-                <Shuffle className="w-6 h-6" />
-                开始点名
-              </>
-            )}
-          </motion.button>
-
-          <div className="relative z-10 shrink-0 flex items-center rounded-full px-2.5 py-1.5 border border-outline-variant/45 bg-surface-container/70 backdrop-blur-md shadow-sm">
-            <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              人数
-            </span>
-            <button
-              onClick={() => setPickCount(Math.max(1, pickCount - 1))}
-              disabled={isSpinning}
-              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-            <span className="w-5 text-center text-sm font-bold text-primary">{pickCount}</span>
-            <button
-              onClick={() => setPickCount(Math.min(10, pickCount + 1))}
-              disabled={isSpinning}
-              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-on-surface/10 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="w-px h-4 mx-1 bg-outline-variant/40" />
-            <button
-              onClick={() => setImmersiveMode(false)}
-              className="px-2.5 py-1 rounded-full text-[11px] text-on-surface-variant hover:text-on-surface hover:bg-on-surface/10 cursor-pointer inline-flex items-center gap-1 transition-colors duration-200"
-              title="退出沉浸模式（Esc）"
-            >
-              <X className="w-3.5 h-3.5" />
-              退出
-            </button>
-          </div>
-
-          <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-outline-variant/45 bg-surface-container/70 backdrop-blur-md px-5 py-4 shadow-sm">
-            <div className="text-xs text-on-surface-variant mb-1.5">抽取结果</div>
-            {phase === 'reveal' && winners.length > 0 ? (
-              <div className="text-on-surface font-semibold text-lg md:text-xl break-words leading-relaxed">
-                {winners.map((winner) => winner.name).join('、')}
-              </div>
-            ) : isSpinning ? (
-              <div className="text-on-surface text-sm">抽选中...</div>
-            ) : !currentClass || currentClass.students.length === 0 ? (
-              <div className="text-on-surface-variant text-sm">请先选择班级并添加学生</div>
-            ) : (
-              <div className="text-on-surface-variant text-sm">等待抽取</div>
-            )}
-          </div>
-        </div>
       )}
 
       {/* Main Card */}
@@ -1324,7 +1280,7 @@ export function Home({
                     boxShadow: '0 8px 24px -4px hsl(var(--primary) / 0.3)'
                   }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleDraw}
+                  onClick={() => handleDraw()}
                   disabled={isSpinning || !currentClass || currentClass.students.length === 0}
                   aria-label={isSpinning ? '抽选中' : '开始点名'}
                   aria-busy={isSpinning}
@@ -1412,6 +1368,7 @@ export function Home({
           {mode === 'pick' && !isSpinning && (
             <div className="mt-3 shrink-0 flex flex-wrap items-center justify-center gap-1 bg-surface-container-high/80 rounded-full px-2.5 py-1 border border-outline-variant/40">
               <button
+                data-testid="enter-immersive-mode"
                 onClick={() => setImmersiveMode(true)}
                 className="mr-2 px-2.5 py-1 rounded-full text-[11px] border border-outline-variant/40 bg-surface-container text-on-surface-variant hover:bg-surface-container-high inline-flex items-center gap-1 cursor-pointer"
                 title="沉浸模式下仅显示点名按钮和人数选项，按 Esc 退出"

@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
+type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+
 // Custom APIs for renderer
 const api = {
   // Data Storage
@@ -60,7 +63,7 @@ const api = {
   backupData: (targetPath: string) => ipcRenderer.invoke('backup-data', targetPath),
   restoreData: (sourcePath: string) => ipcRenderer.invoke('restore-data', sourcePath),
   appendDiagnosticEvent: (event: {
-    category: 'shortcut' | 'self-check'
+    category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
     level: 'info' | 'warn' | 'error'
     code: string
     message: string
@@ -92,7 +95,11 @@ const api = {
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
   windowClose: () => ipcRenderer.invoke('window-close'),
-  windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized')
+  windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+  setImmersiveWindowPhase: (
+    phase: ImmersiveWindowPhase,
+    options?: ImmersiveWindowPhaseOptions
+  ): Promise<boolean> => ipcRenderer.invoke('set-immersive-window-phase', phase, options)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -28,7 +28,7 @@ export function writeJsonAtomic(filePath: string, value: unknown): void {
   fs.renameSync(tempPath, filePath)
 }
 
-export function copyDirectory(sourcePath: string, targetPath: string): void {
+function copyDirectory(sourcePath: string, targetPath: string): void {
   if (!fs.existsSync(sourcePath)) {
     ensureDir(targetPath)
     return
@@ -36,7 +36,7 @@ export function copyDirectory(sourcePath: string, targetPath: string): void {
   fs.cpSync(sourcePath, targetPath, { recursive: true })
 }
 
-export function clearDirectory(dirPath: string): void {
+function clearDirectory(dirPath: string): void {
   if (fs.existsSync(dirPath)) {
     fs.rmSync(dirPath, { recursive: true, force: true })
   }

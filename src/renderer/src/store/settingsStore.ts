@@ -59,11 +59,11 @@ export type AnimationStyle =
 
 export type AnimationSpeed = 'elegant' | 'balanced' | 'fast'
 
-export type SoundIntensity = 'low' | 'medium' | 'high'
+export type ImmersiveIslandStyle = 'classic' | 'beam' | 'slot' | 'pulse'
 
-export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
+type SoundIntensity = 'low' | 'medium' | 'high'
 
-export type StrategyPreset = string
+type StrategyPreset = string
 
 interface SettingsData {
   theme: 'light' | 'dark' | 'system'
@@ -89,11 +89,13 @@ interface SettingsData {
   showBatchEditPanel: boolean
   showScoreLogPanel: boolean
   showGroupTaskTemplatePanel: boolean
+  colorThemesExpanded: boolean
   onboardingCompleted: boolean
   revealSettleMs: number
   animationStyle: AnimationStyle
   animationSpeed: AnimationSpeed
   animationDurationScale: number
+  immersiveIslandStyle: ImmersiveIslandStyle
   dynamicColor: boolean
   fairness: {
     weightedRandom: boolean
@@ -153,12 +155,14 @@ interface SettingsState extends SettingsData {
   toggleShowBatchEditPanel: () => void
   toggleShowScoreLogPanel: () => void
   toggleShowGroupTaskTemplatePanel: () => void
+  setColorThemesExpanded: (expanded: boolean) => void
   completeOnboarding: () => void
   resetOnboarding: () => void
   setRevealSettleMs: (ms: number) => void
   setAnimationStyle: (style: AnimationStyle) => void
   setAnimationSpeed: (speed: AnimationSpeed) => void
   setAnimationDurationScale: (scale: number) => void
+  setImmersiveIslandStyle: (style: ImmersiveIslandStyle) => void
   setCustomColor: (color: string | undefined) => void
   setFairness: (fairness: {
     weightedRandom: boolean
@@ -213,11 +217,13 @@ const defaults: SettingsData = {
   showBatchEditPanel: false,
   showScoreLogPanel: false,
   showGroupTaskTemplatePanel: false,
+  colorThemesExpanded: true,
   onboardingCompleted: false,
   revealSettleMs: 900,
   animationStyle: 'slot',
   animationSpeed: 'balanced',
   animationDurationScale: 1,
+  immersiveIslandStyle: 'classic',
   dynamicColor: false,
   pickCount: 1,
   maxHistoryRecords: 1000,
@@ -281,11 +287,13 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showBatchEditPanel,
       showScoreLogPanel,
       showGroupTaskTemplatePanel,
+      colorThemesExpanded,
       onboardingCompleted,
       revealSettleMs,
       animationStyle,
       animationSpeed,
       animationDurationScale,
+      immersiveIslandStyle,
       dynamicColor,
       fairness,
       pickCount,
@@ -318,11 +326,13 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
       showBatchEditPanel,
       showScoreLogPanel,
       showGroupTaskTemplatePanel,
+      colorThemesExpanded,
       onboardingCompleted,
       revealSettleMs,
       animationStyle,
       animationSpeed,
       animationDurationScale,
+      immersiveIslandStyle,
       dynamicColor,
       fairness,
       pickCount,
@@ -376,6 +386,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const next = {
           ...defaults,
           ...rawSettings,
+          immersiveIslandStyle:
+            typeof rawSettings.immersiveIslandStyle === 'string' &&
+            ['classic', 'beam', 'slot', 'pulse'].includes(rawSettings.immersiveIslandStyle)
+              ? (rawSettings.immersiveIslandStyle as ImmersiveIslandStyle)
+              : defaults.immersiveIslandStyle,
           showTemporaryExclusion: false,
           showAutoDraw: false,
           showSelectionExplanation: false,
@@ -451,6 +466,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     updateAndSave({ showScoreLogPanel: !get().showScoreLogPanel }, set, get),
   toggleShowGroupTaskTemplatePanel: () =>
     updateAndSave({ showGroupTaskTemplatePanel: !get().showGroupTaskTemplatePanel }, set, get),
+  setColorThemesExpanded: (colorThemesExpanded) =>
+    updateAndSave({ colorThemesExpanded }, set, get),
   completeOnboarding: () => updateAndSave({ onboardingCompleted: true }, set, get),
   resetOnboarding: () => updateAndSave({ onboardingCompleted: false }, set, get),
   setRevealSettleMs: (revealSettleMs) =>
@@ -467,6 +484,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
   setAnimationDurationScale: (scale) =>
     updateAndSave({ animationDurationScale: Math.max(0.6, Math.min(1.8, scale)) }, set, get),
+  setImmersiveIslandStyle: (immersiveIslandStyle) =>
+    updateAndSave({ immersiveIslandStyle }, set, get),
   setCustomColor: (color) => updateAndSave({ customColor: color }, set, get),
   setFairness: (fairness) => updateAndSave({ fairness }, set, get),
   setPickCount: (count) => updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),

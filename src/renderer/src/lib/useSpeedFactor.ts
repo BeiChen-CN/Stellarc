@@ -6,8 +6,3 @@ export function useSpeedFactor(): number {
   const animationSpeed = useSettingsStore((s) => s.animationSpeed)
   return SPEED_MAP[animationSpeed]
 }
-
-export function getSpeedFactor(): number {
-  const animationSpeed = useSettingsStore.getState().animationSpeed
-  return SPEED_MAP[animationSpeed]
-}

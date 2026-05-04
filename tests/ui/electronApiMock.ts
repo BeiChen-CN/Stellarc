@@ -1,7 +1,10 @@
 import type { Page } from '@playwright/test'
 
-export async function installElectronApiMock(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+export async function installElectronApiMock(
+  page: Page,
+  seed: Record<string, unknown> = {}
+): Promise<void> {
+  await page.addInitScript((initialSeed: Record<string, unknown>) => {
     const jsonStore = new Map<string, unknown>([
       ['settings.json', { onboardingCompleted: true }],
       ['classes.json', { classes: [], currentClassId: null }],
@@ -13,6 +16,33 @@ export async function installElectronApiMock(page: Page): Promise<void> {
       ],
       ['diagnostics-events.json', []]
     ])
+    Object.entries(initialSeed).forEach(([filename, data]) => {
+      jsonStore.set(filename, data)
+    })
+    const immersivePhases: string[] = []
+    const immersivePhaseSnapshots: Array<{
+      phase: string
+      htmlBackground: string
+      bodyBackground: string
+      rootBackground: string
+    }> = []
+
+    const getBackgroundSnapshot = (
+      phase: string
+    ): {
+      phase: string
+      htmlBackground: string
+      bodyBackground: string
+      rootBackground: string
+    } => {
+      const root = document.getElementById('root')
+      return {
+        phase,
+        htmlBackground: window.getComputedStyle(document.documentElement).backgroundColor,
+        bodyBackground: window.getComputedStyle(document.body).backgroundColor,
+        rootBackground: root ? window.getComputedStyle(root).backgroundColor : ''
+      }
+    }
 
     const api = {
       readJson: async (filename: string): Promise<unknown> => jsonStore.get(filename) ?? null,
@@ -50,14 +80,38 @@ export async function installElectronApiMock(page: Page): Promise<void> {
       windowMinimize: async (): Promise<void> => undefined,
       windowMaximize: async (): Promise<void> => undefined,
       windowClose: async (): Promise<void> => undefined,
-      windowIsMaximized: async (): Promise<boolean> => false
+      windowIsMaximized: async (): Promise<boolean> => false,
+      setImmersiveWindowPhase: async (phase: string): Promise<boolean> => {
+        immersivePhases.push(phase)
+        immersivePhaseSnapshots.push(getBackgroundSnapshot(phase))
+        return true
+      }
     }
 
     const target = window as unknown as {
       electron: Record<string, unknown>
       electronAPI: typeof api
+      __electronApiMock: {
+        setJson: (filename: string, data: unknown) => void
+        getJson: (filename: string) => unknown
+        getImmersivePhases: () => string[]
+        getImmersivePhaseSnapshots: () => Array<{
+          phase: string
+          htmlBackground: string
+          bodyBackground: string
+          rootBackground: string
+        }>
+      }
     }
     target.electron = {}
     target.electronAPI = api
-  })
+    target.__electronApiMock = {
+      setJson: (filename: string, data: unknown) => {
+        jsonStore.set(filename, data)
+      },
+      getJson: (filename: string) => jsonStore.get(filename),
+      getImmersivePhases: () => [...immersivePhases],
+      getImmersivePhaseSnapshots: () => immersivePhaseSnapshots.map((snapshot) => ({ ...snapshot }))
+    }
+  }, seed)
 }

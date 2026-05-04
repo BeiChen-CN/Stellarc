@@ -26,11 +26,16 @@ import {
   type AnimationSpeed,
   type AnimationStyle,
   type ColorTheme,
+  type ImmersiveIslandStyle,
   useSettingsStore
 } from '../../store/settingsStore'
 import { DesignStylePreview } from './DesignStylePreview'
 import { designStyles } from './designStyles'
 import { MD3Switch } from './MD3Switch'
+import {
+  ImmersiveIslandStyleThumbnail,
+  IMMERSIVE_ISLAND_VARIANTS
+} from '../home/immersiveIslandVariants'
 
 const COLOR_THEMES: Array<{ id: ColorTheme; label: string; color: string }> = [
   { id: 'klein-blue', label: '克莱因蓝', color: 'hsl(223, 100%, 33%)' },
@@ -81,6 +86,28 @@ const ANIMATION_SPEEDS: Array<{ id: AnimationSpeed; label: string }> = [
   { id: 'fast', label: '快速' }
 ]
 
+const IMMERSIVE_ISLAND_STYLE_NOTES: Record<
+  ImmersiveIslandStyle,
+  { cue: string; detail: string }
+> = {
+  classic: {
+    cue: '纯黑胶囊',
+    detail: '纵向滚动 · 宽度呼吸 · 最稳重'
+  },
+  beam: {
+    cue: '透明扫光',
+    detail: '白色细束 · 快速洗牌 · 聚焦揭晓'
+  },
+  slot: {
+    cue: '胶囊滚轮',
+    detail: '透明窗口 · 单线定位 · 抽奖感更强'
+  },
+  pulse: {
+    cue: '脉冲徽章',
+    detail: '白色描边 · 左侧状态 · 信息最清楚'
+  }
+}
+
 interface AppearanceSectionProps {
   variant: 'appearance' | 'experience'
   onSelectBackground: () => void
@@ -126,8 +153,6 @@ export function AppearanceSection({
 }: AppearanceSectionProps): ReactElement {
   const isAppearance = variant === 'appearance'
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
-  const [colorsExpanded, setColorsExpanded] = useState(true)
-  const visibleColorThemes = colorsExpanded ? COLOR_THEMES : COLOR_THEMES.slice(0, 9)
   const {
     theme,
     setTheme,
@@ -143,6 +168,8 @@ export function AppearanceSection({
     setAnimationSpeed,
     animationDurationScale,
     setAnimationDurationScale,
+    immersiveIslandStyle,
+    setImmersiveIslandStyle,
     projectorMode,
     toggleProjectorMode,
     backgroundImage,
@@ -180,8 +207,11 @@ export function AppearanceSection({
     showScoreLogPanel,
     toggleShowScoreLogPanel,
     showGroupTaskTemplatePanel,
-    toggleShowGroupTaskTemplatePanel
+    toggleShowGroupTaskTemplatePanel,
+    colorThemesExpanded,
+    setColorThemesExpanded
   } = useSettingsStore()
+  const visibleColorThemes = colorThemesExpanded ? COLOR_THEMES : COLOR_THEMES.slice(0, 9)
 
   if (!isAppearance) {
     return (
@@ -403,16 +433,34 @@ export function AppearanceSection({
         </div>
 
         <div className="border-t border-outline-variant/20 p-5 transition-colors hover:bg-surface-container-high/50">
-          <div className="mb-3 flex items-center space-x-4">
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
-              <Palette className="h-5 w-5" />
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center space-x-4">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <Palette className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-medium text-on-surface">主题颜色</h4>
+                <p className="mt-0.5 text-xs text-on-surface-variant">
+                  选择界面主色调，支持 28+ 配色
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-medium text-on-surface">主题颜色</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">
-                选择界面主色调，支持 28+ 配色
-              </p>
-            </div>
+            <button
+              type="button"
+              aria-label={
+                colorThemesExpanded ? '收起主题颜色' : `展开全部 ${COLOR_THEMES.length} 种配色`
+              }
+              onClick={() => setColorThemesExpanded(!colorThemesExpanded)}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10 hover:text-primary/80"
+            >
+              <ChevronDown
+                className={cn(
+                  'h-3.5 w-3.5 transition-transform duration-200',
+                  colorThemesExpanded && 'rotate-180'
+                )}
+              />
+              {colorThemesExpanded ? '收起' : `展开 ${COLOR_THEMES.length} 色`}
+            </button>
           </div>
           <div className="grid grid-cols-5 gap-2 pl-14">
             {visibleColorThemes.map((item) => (
@@ -485,19 +533,6 @@ export function AppearanceSection({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setColorsExpanded((expanded) => !expanded)}
-            className="ml-14 mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10 hover:text-primary/80"
-          >
-            <ChevronDown
-              className={cn(
-                'h-3.5 w-3.5 transition-transform duration-200',
-                colorsExpanded && 'rotate-180'
-              )}
-            />
-            {colorsExpanded ? '收起主题颜色' : `展开全部 ${COLOR_THEMES.length} 种配色`}
-          </button>
         </div>
 
         <div className="border-t border-outline-variant/20 p-5 transition-colors hover:bg-surface-container-high/50">
@@ -583,6 +618,64 @@ export function AppearanceSection({
                 onChange={(e) => setAnimationDurationScale(Number(e.target.value))}
               />
             </label>
+          </div>
+        </div>
+
+        <div
+          data-testid="immersive-island-style-section"
+          className="border-t border-outline-variant/20 p-5 transition-colors hover:bg-surface-container-high/50"
+        >
+          <div className="mb-3 flex items-center space-x-4">
+            <div className="rounded-full bg-primary/10 p-2 text-primary">
+              <Shuffle className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-medium text-on-surface">沉浸灵动岛</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                选择沉浸模式抽取时的顶部岛样式
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2 pl-14">
+            {IMMERSIVE_ISLAND_VARIANTS.map((item) => {
+              const selected = immersiveIslandStyle === item.id
+              const note = IMMERSIVE_ISLAND_STYLE_NOTES[item.id]
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-testid={`immersive-island-style-${item.id}`}
+                  onClick={() => setImmersiveIslandStyle(item.id as ImmersiveIslandStyle)}
+                  className={cn(
+                    'group relative flex w-full cursor-pointer items-center gap-3 rounded-[8px] border p-3 text-left transition-all duration-200',
+                    selected
+                      ? 'border-outline bg-secondary-container text-secondary-container-foreground'
+                      : 'border-outline-variant/30 text-on-surface hover:bg-surface-container-high'
+                  )}
+                >
+                  <ImmersiveIslandStyleThumbnail
+                    style={item.id}
+                    testId={`immersive-island-style-thumb-${item.id}`}
+                    className="h-12 w-[92px] shrink-0"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-semibold leading-5">{item.title}</span>
+                      <span className="shrink-0 rounded-full border border-outline-variant/40 px-2 py-0.5 text-[10px] font-medium leading-none text-on-surface-variant">
+                        {note.cue}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-4 text-on-surface-variant">
+                      {note.detail}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-4 text-on-surface-variant/80">
+                      {item.subtitle}
+                    </span>
+                  </span>
+                  {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                </button>
+              )
+            })}
           </div>
         </div>
 

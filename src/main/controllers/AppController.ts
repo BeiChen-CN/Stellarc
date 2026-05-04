@@ -14,7 +14,7 @@ const urlSchema = z.tuple([z.string().url()])
 const boolSchema = z.tuple([z.boolean()])
 const diagnosticEventSchema = z.tuple([
   z.object({
-    category: z.enum(['shortcut', 'self-check']),
+    category: z.enum(['sync', 'shortcut', 'plugin', 'self-check']),
     level: z.enum(['info', 'warn', 'error']),
     code: z.string().min(1).max(80),
     message: z.string().min(1).max(200),
@@ -25,7 +25,7 @@ const diagnosticEventSchema = z.tuple([
 interface DiagnosticEvent {
   id: string
   timestamp: string
-  category: 'shortcut' | 'self-check'
+  category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
   level: 'info' | 'warn' | 'error'
   code: string
   message: string

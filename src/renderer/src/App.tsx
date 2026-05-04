@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactElement } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, type ReactElement } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './views/Home'
@@ -7,6 +7,7 @@ import { Settings } from './views/Settings'
 import { History } from './views/History'
 import { Statistics } from './views/Statistics'
 import { About } from './views/About'
+import { ImmersiveIslandPreview } from './views/dev/ImmersiveIslandPreview'
 import { ToastContainer } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { TitleBar } from './components/TitleBar'
@@ -20,7 +21,25 @@ import { cn } from './lib/utils'
 
 type AppView = 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
 
-function App(): ReactElement {
+function applyImmersiveDocumentBackground(immersive: boolean): void {
+  const root = document.documentElement
+  const body = document.body
+  const mountNode = document.getElementById('root')
+
+  if (immersive) {
+    root.classList.add('immersive-mode')
+    root.style.background = 'transparent'
+    body.style.background = 'transparent'
+    mountNode?.style.setProperty('background', 'transparent')
+  } else {
+    root.classList.remove('immersive-mode')
+    root.style.removeProperty('background')
+    body.style.removeProperty('background')
+    mountNode?.style.removeProperty('background')
+  }
+}
+
+function MainApp(): ReactElement {
   const [currentView, setCurrentView] = useState<AppView>('home')
   const [appReady, setAppReady] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
@@ -45,6 +64,11 @@ function App(): ReactElement {
     completeOnboarding
   } = useSettingsStore()
 
+  const handleHomeImmersiveChange = useCallback((immersive: boolean): void => {
+    applyImmersiveDocumentBackground(immersive)
+    setHomeImmersive(immersive)
+  }, [])
+
   useEffect(() => {
     Promise.all([loadSettings(), loadClasses(), loadHistory()]).finally(() => setAppReady(true))
   }, [loadSettings, loadClasses, loadHistory])
@@ -52,26 +76,12 @@ function App(): ReactElement {
   const handleViewChange = useCallback((view: AppView): void => {
     setCurrentView(view)
     if (view !== 'home') {
-      setHomeImmersive(false)
+      handleHomeImmersiveChange(false)
     }
-  }, [])
+  }, [handleHomeImmersiveChange])
 
-  useEffect(() => {
-    const root = document.documentElement
-    const body = document.body
-    const mountNode = document.getElementById('root')
-
-    if (homeImmersive) {
-      root.classList.add('immersive-mode')
-      root.style.background = 'transparent'
-      body.style.background = 'transparent'
-      mountNode?.style.setProperty('background', 'transparent')
-    } else {
-      root.classList.remove('immersive-mode')
-      root.style.removeProperty('background')
-      body.style.removeProperty('background')
-      mountNode?.style.removeProperty('background')
-    }
+  useLayoutEffect(() => {
+    applyImmersiveDocumentBackground(homeImmersive)
   }, [homeImmersive])
 
   // Register global shortcut when shortcutKey changes
@@ -362,7 +372,7 @@ function App(): ReactElement {
   const renderView = (): ReactElement => {
     switch (currentView) {
       case 'home':
-        return <Home onNavigate={handleViewChange} onImmersiveChange={setHomeImmersive} />
+        return <Home onNavigate={handleViewChange} onImmersiveChange={handleHomeImmersiveChange} />
       case 'students':
         return <Students />
       case 'history':
@@ -374,7 +384,7 @@ function App(): ReactElement {
       case 'about':
         return <About />
       default:
-        return <Home onNavigate={handleViewChange} onImmersiveChange={setHomeImmersive} />
+        return <Home onNavigate={handleViewChange} onImmersiveChange={handleHomeImmersiveChange} />
     }
   }
 
@@ -438,6 +448,15 @@ function App(): ReactElement {
       />
     </div>
   )
+}
+
+function App(): ReactElement {
+  const previewMode = new URLSearchParams(window.location.search).get('preview')
+  if (previewMode === 'immersive-island') {
+    return <ImmersiveIslandPreview />
+  }
+
+  return <MainApp />
 }
 
 export default App

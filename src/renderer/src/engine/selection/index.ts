@@ -10,7 +10,7 @@ import type {
   SelectionTrace
 } from './types'
 
-export const ENGINE_VERSION = '1.1.0'
+const ENGINE_VERSION = '1.1.0'
 
 function createTrace(student: CandidateSnapshot): SelectionTrace {
   return {

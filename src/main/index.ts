@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, session, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, session, ipcMain, protocol, net, screen } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import fs from 'fs'
@@ -11,9 +11,29 @@ import { FileController } from './controllers/FileController'
 import { DialogController } from './controllers/DialogController'
 import { runDataMigrations } from './migrations'
 import { runDataSelfCheck } from './health/selfCheck'
+import {
+  createImmersiveWindowController,
+  isImmersiveWindowPhase,
+  type ImmersiveWindowPhaseOptions
+} from './immersiveWindow'
 
 log.transports.file.level = 'info'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
+
+const immersiveWindowControllers = new WeakMap<
+  BrowserWindow,
+  ReturnType<typeof createImmersiveWindowController>
+>()
+
+function getImmersiveWindowController(
+  win: BrowserWindow
+): ReturnType<typeof createImmersiveWindowController> {
+  const existing = immersiveWindowControllers.get(win)
+  if (existing) return existing
+  const controller = createImmersiveWindowController(win)
+  immersiveWindowControllers.set(win, controller)
+  return controller
+}
 
 function getDataPath(): string {
   const userDataPath = join(app.getPath('userData'), 'data')
@@ -33,7 +53,7 @@ function getDataPath(): string {
   return userDataPath
 }
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   // Set Content Security Policy (production only)
   if (!is.dev) {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -92,6 +112,9 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  getImmersiveWindowController(mainWindow)
+  return mainWindow
 }
 
 // This method will be called when Electron has finished
@@ -155,6 +178,21 @@ app.whenReady().then(() => {
   ipcMain.handle('window-is-maximized', () => {
     return BrowserWindow.getFocusedWindow()?.isMaximized() ?? false
   })
+  ipcMain.handle(
+    'set-immersive-window-phase',
+    (event, phase: unknown, options?: ImmersiveWindowPhaseOptions) => {
+      if (!isImmersiveWindowPhase(phase)) return false
+      const win =
+        BrowserWindow.fromWebContents(event.sender) ??
+        BrowserWindow.getFocusedWindow() ??
+        BrowserWindow.getAllWindows()[0]
+      if (!win || win.isDestroyed()) return false
+
+      const workArea = screen.getDisplayMatching(win.getBounds()).workArea
+      getImmersiveWindowController(win).setPhase(phase, workArea, options)
+      return true
+    }
+  )
 
   // Auto-updater setup
   autoUpdater.logger = log

@@ -2,7 +2,7 @@ import { z } from 'zod/v4'
 
 const statusSchema = z.enum(['active', 'absent', 'excluded'])
 
-export const studentSchema = z.object({
+const studentSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   studentId: z.string().optional(),
@@ -27,7 +27,7 @@ export const studentSchema = z.object({
   lastPickedAt: z.string().optional()
 })
 
-export const classGroupSchema = z.object({
+const classGroupSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   students: z.array(studentSchema).default([]),
@@ -54,7 +54,7 @@ export const classesV2Schema = z.object({
   currentClassId: z.string().nullable().default(null)
 })
 
-export const historyRecordSchema = z.object({
+const historyRecordSchema = z.object({
   id: z.string().min(1),
   timestamp: z.string().min(1),
   classId: z.string().min(1),
@@ -105,7 +105,7 @@ export const historyV2Schema = z.object({
   records: z.array(historyRecordSchema).default([])
 })
 
-export const fairnessSchema = z.object({
+const fairnessSchema = z.object({
   weightedRandom: z.boolean().default(false),
   preventRepeat: z.boolean().default(false),
   cooldownRounds: z.number().int().min(0).default(0),
@@ -153,6 +153,7 @@ export const settingsV2Schema = z.object({
   animationStyle: z.string().default('slot'),
   animationSpeed: z.enum(['elegant', 'balanced', 'fast']).default('balanced'),
   animationDurationScale: z.number().min(0.6).max(1.8).default(1),
+  immersiveIslandStyle: z.enum(['classic', 'beam', 'slot', 'pulse']).default('classic'),
   dynamicColor: z.boolean().default(false),
   fairness: fairnessSchema.default({
     weightedRandom: false,

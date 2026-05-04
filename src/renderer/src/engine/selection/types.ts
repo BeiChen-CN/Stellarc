@@ -1,7 +1,5 @@
 import type { Student } from '@renderer/types'
 
-export type SelectionMode = 'pick' | 'group'
-
 export type SelectionReasonCode =
   | 'eligible'
   | 'excluded_by_status'
@@ -38,13 +36,13 @@ export interface CandidateSnapshot extends Student {
   className: string
 }
 
-export interface PickedStudentRef {
+interface PickedStudentRef {
   id: string
   name: string
   studentId?: string
 }
 
-export interface HistoricalPickRecord {
+interface HistoricalPickRecord {
   id: string
   timestamp: string
   classId: string
