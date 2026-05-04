@@ -4,7 +4,7 @@
 
 <h1 align="center">Stellarc</h1>
 
-<p align="center">离线课堂随机点名工具</p>
+<p align="center">隐私优先、算法公平、高度可定制的离线课堂随机点名工具</p>
 
 <p align="center">
   <a href="https://github.com/BeiChen-CN/Stellarc/releases/latest"><img src="https://img.shields.io/github/v/release/BeiChen-CN/Stellarc?color=blue" alt="Release"></a>
@@ -22,89 +22,32 @@
 
 ## 下载
 
-<table>
-  <tr>
-    <th>平台</th>
-    <th>格式</th>
-    <th>下载</th>
-  </tr>
-  <tr>
-    <td>Windows</td>
-    <td><code>.exe</code></td>
-    <td rowspan="3"><a href="https://github.com/BeiChen-CN/Stellarc/releases/latest">前往 Releases</a></td>
-  </tr>
-  <tr>
-    <td>macOS</td>
-    <td><code>.dmg</code></td>
-  </tr>
-  <tr>
-    <td>Linux</td>
-    <td><code>.AppImage</code> / <code>.deb</code></td>
-  </tr>
-</table>
+| 平台 | 格式 | 下载 |
+| --- | --- | --- |
+| Windows | `.exe` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
+| macOS | `.dmg` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
+| Linux | `.AppImage` / `.deb` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
 
 ---
 
 ## 功能
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>抽选</strong>
-      <ul>
-        <li>加权随机抽选，内置经典 / 均衡 / 动量三种策略</li>
-        <li>冷却机制，防止连续抽中同一人</li>
-        <li>单人或多人抽选，随机分组</li>
-        <li>8 种动画风格，3 档速率</li>
-      </ul>
-    </td>
-    <td width="50%" valign="top">
-      <strong>班级管理</strong>
-      <ul>
-        <li>多班级切换，学生增删改查</li>
-        <li>照片管理，拖拽上传</li>
-        <li>积分系统，权重调节</li>
-        <li>撤销操作</li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <strong>统计</strong>
-      <ul>
-        <li>抽选历史记录</li>
-        <li>Top 10、频率趋势、班级分布、积分排行</li>
-        <li>均衡指数</li>
-        <li>CSV 导出，HTML 课堂报告</li>
-        <li>按学期筛选</li>
-      </ul>
-    </td>
-    <td valign="top">
-      <strong>外观</strong>
-      <ul>
-        <li>28+ 种颜色主题，12 种设计风格</li>
-        <li>深色 / 浅色模式，M3 色调渗透</li>
-        <li>自定义背景图片</li>
-      </ul>
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2" valign="top">
-      <strong>数据</strong>
-      <ul>
-        <li>完全离线，本地存储</li>
-        <li>ZIP 备份恢复，失败自动回滚</li>
-        <li>启动自检修复</li>
-      </ul>
-    </td>
-  </tr>
-</table>
+| 模块 | 能力 |
+| --- | --- |
+| 随机点名 | 加权随机、冷却防连抽、单人/多人抽选、随机分组、8 种抽取动画、3 档速率。 |
+| 沉浸模式 | 进入后缩为悬浮球, 点击展开小浮球动作; 沉浸抽取固定单人, 结果展示在顶部灵动岛。 |
+| 灵动岛样式 | 内置 Classic Island、Focus Beam、Capsule Slot、Pulse Badge 四套样式, 设置页可用迷你预览卡片切换。 |
+| 班级管理 | 多班级切换, 学生增删改查, 照片管理, 学号展示, 积分与权重调整。 |
+| 历史与统计 | 抽选历史、Top 10、频率趋势、班级分布、积分排行、均衡指数、CSV 与课堂报告导出。 |
+| 外观设置 | 28+ 主题色、12 种设计风格、深浅色模式、投屏模式、自定义背景、动态取色。 |
+| 新手引导 | 精简为 3 个核心步骤: 准备班级、开始点名、按需调整和复盘。 |
+| 数据安全 | 完全离线、本地存储、ZIP 备份恢复、启动自检、失败自动回滚。 |
 
 ---
 
 ## 开发
 
-**环境要求：** Node.js >= 18，npm >= 9
+**环境要求:** Node.js >= 18, npm >= 9
 
 ```bash
 git clone https://github.com/BeiChen-CN/Stellarc.git
@@ -113,8 +56,24 @@ npm install
 npm run dev
 ```
 
-<details>
-<summary>构建安装包</summary>
+开发服务默认使用 `http://127.0.0.1:4173`。如果端口被旧进程占用, 先结束残留的 `electron-vite dev` 进程再启动。
+
+### 常用命令
+
+| 命令 | 说明 |
+| --- | --- |
+| `npm run dev` | 启动 Electron + Vite 开发环境。 |
+| `npm run start` | 预览已构建产物。 |
+| `npm run typecheck` | 同时检查主进程与渲染进程 TypeScript。 |
+| `npm run test` | 运行 Vitest 单元测试。 |
+| `npm run test:ui` | 运行 Playwright UI 回归测试。 |
+| `npm run lint` | 运行 ESLint。 |
+| `npm run format` | 使用 Prettier 格式化。 |
+| `npm run build` | 类型检查并生成生产构建。 |
+| `npm run build:report` | 构建后输出 bundle 体积报告。 |
+| `npm run assets:installer` | 生成 NSIS 安装器 bitmap 资源。 |
+
+### 构建安装包
 
 ```bash
 npm run build:win      # Windows (NSIS)
@@ -122,130 +81,112 @@ npm run build:mac      # macOS (DMG)
 npm run build:linux    # Linux (AppImage + deb)
 ```
 
-</details>
+### 质量检查
 
-<details>
-<summary>全部命令</summary>
+```bash
+npm run typecheck
+npm run test
+npm run test:ui -- tests/ui/immersive-mode.spec.ts
+npm run build
+npx knip --no-exit-code
+```
 
-| 命令                | 说明                    |
-| ------------------- | ----------------------- |
-| `npm run dev`       | 启动开发服务器（HMR）   |
-| `npm run build`     | 类型检查 + 生产构建     |
-| `npm run typecheck` | TypeScript 全量类型检查 |
-| `npm run lint`      | ESLint 检查             |
-| `npm run format`    | Prettier 格式化         |
-| `npm test`          | 运行测试                |
-| `npm run test:ui`   | 运行 Playwright UI 回归 |
-
-</details>
+`knip.json` 已配置 Electron、Vite、Playwright 与 Vitest 的入口, 用于辅助检查未使用文件和导出。不要仅凭无配置的 knip 结果删除入口文件或打包资源。
 
 ---
 
 ## 架构
 
-三进程 Electron 架构，主进程通过控制器模式处理 IPC 请求，渲染进程为 React SPA，Zustand 管理状态。
+Stellarc 是三进程 Electron 应用:
 
-新增 IPC 功能需同步修改三处：控制器（`src/main/controllers/`）、桥接层（`src/preload/index.ts`）、类型声明（`src/preload/index.d.ts`）。
+- 主进程: `src/main/`, 负责窗口、IPC、数据迁移、自检和本地文件访问。
+- 预加载层: `src/preload/`, 暴露受控的 `electronAPI` 给渲染进程。
+- 渲染进程: `src/renderer/src/`, React SPA, 使用 Zustand 管理状态。
 
-<details>
-<summary>项目结构</summary>
+新增 IPC 功能通常需要同步修改:
 
-```
+- `src/main/index.ts` 或 `src/main/controllers/`
+- `src/preload/index.ts`
+- `src/preload/index.d.ts`
+
+### 项目结构
+
+```text
 src/
-├── main/                  # 主进程 (Node.js)
-│   ├── controllers/       #   IPC 控制器
-│   ├── migrations/        #   数据迁移
-│   └── health/            #   启动自检
+├── main/                  # Electron 主进程
+│   ├── controllers/       # IPC 控制器
+│   ├── health/            # 启动自检
+│   ├── migrations/        # 数据迁移
+│   └── immersiveWindow.ts # 沉浸模式窗口壳状态
 ├── preload/               # IPC 桥接层
-└── renderer/src/          # 渲染进程 (React)
-    ├── views/             #   页面（6 个视图）
-    ├── components/        #   UI 组件
-    ├── store/             #   Zustand store（核心状态）
-    ├── engine/selection/  #   抽选策略引擎
-    ├── lib/               #   工具函数 + 音效合成
-    └── assets/            #   样式 + 静态资源
+└── renderer/src/          # React 渲染进程
+    ├── components/        # 通用 UI 组件
+    ├── engine/selection/  # 抽选策略引擎
+    ├── store/             # Zustand store
+    ├── views/             # 页面
+    └── lib/               # 工具函数
 ```
 
-</details>
+### 沉浸模式
 
-<details>
-<summary>数据存储</summary>
+沉浸模式只作用于随机点名页的 `pick` 模式:
 
-运行时数据位于系统用户数据目录（`%APPDATA%` / `~/Library/Application Support` / `~/.config`）：
+- `src/main/immersiveWindow.ts` 负责 `normal / ball / menu / island / expanded` 窗口壳计算。
+- `src/renderer/src/views/home/hooks/useImmersiveUI.ts` 维护沉浸 UI 状态机。
+- `src/renderer/src/views/home/ImmersiveShell.tsx` 渲染悬浮球、小浮球菜单、顶部灵动岛和展开态。
+- `src/renderer/src/views/home/immersiveIslandVariants.tsx` 集中维护四套灵动岛视觉样式。
+- 开发预览页: `http://127.0.0.1:4173/?preview=immersive-island`。
 
-| 路径                 | 内容           |
-| -------------------- | -------------- |
-| `data/classes.json`  | 班级与学生数据 |
-| `data/history.json`  | 抽选历史记录   |
-| `data/settings.json` | 应用设置       |
-| `data/photos/`       | 学生照片       |
+### 数据存储
 
-所有文件操作通过路径校验限制在 `data/` 目录内。
+运行时数据位于系统用户数据目录:
 
-</details>
+| 路径 | 内容 |
+| --- | --- |
+| `data/classes.json` | 班级与学生数据 |
+| `data/history.json` | 抽选历史记录 |
+| `data/settings.json` | 应用设置 |
+| `data/photos/` | 学生照片 |
+| `data/diagnostics-events.json` | 诊断事件日志 |
+
+所有文件操作都通过路径校验限制在应用数据目录内。
 
 ---
 
 ## 数据治理与诊断
 
-- 学生管理页支持一键数据治理（规范化 + 去重）
-- 设置页支持诊断面板：迁移状态、自检详情、最近事件日志
-- 关键事件写入 `diagnostics-events.json`（快捷键 / 自检）
+- 学生管理页支持一键数据治理: 规范化、去重和数据修复。
+- 设置页提供诊断信息: 迁移状态、自检详情和最近事件。
+- 快捷键、自检等关键事件会写入 `diagnostics-events.json`。
+- 数据迁移失败时保留回滚路径, 避免破坏用户数据。
 
 ---
 
 ## 技术栈
 
-<table>
-  <tr>
-    <td><strong>框架</strong></td>
-    <td>Electron 39 + electron-vite</td>
-  </tr>
-  <tr>
-    <td><strong>前端</strong></td>
-    <td>React 19 + TypeScript 5.9</td>
-  </tr>
-  <tr>
-    <td><strong>样式</strong></td>
-    <td>Tailwind CSS + CSS Variables（shadcn/ui 风格）</td>
-  </tr>
-  <tr>
-    <td><strong>状态</strong></td>
-    <td>Zustand</td>
-  </tr>
-  <tr>
-    <td><strong>动画</strong></td>
-    <td>Framer Motion</td>
-  </tr>
-  <tr>
-    <td><strong>图表</strong></td>
-    <td>Recharts</td>
-  </tr>
-  <tr>
-    <td><strong>验证</strong></td>
-    <td>Zod v4</td>
-  </tr>
-  <tr>
-    <td><strong>测试</strong></td>
-    <td>Vitest</td>
-  </tr>
-  <tr>
-    <td><strong>规范</strong></td>
-    <td>ESLint + Prettier</td>
-  </tr>
-</table>
+| 类型 | 技术 |
+| --- | --- |
+| 框架 | Electron 39 + electron-vite |
+| 前端 | React 19 + TypeScript 5.9 |
+| 样式 | Tailwind CSS + CSS Variables |
+| 状态 | Zustand |
+| 动画 | Framer Motion |
+| 图表 | Recharts |
+| 验证 | Zod v4 |
+| 测试 | Vitest + Playwright |
+| 规范 | ESLint + Prettier + knip |
 
 ---
 
-## CI / 发布门禁
+## CI / 发布
 
-- PR 与主分支推送会执行 `.github/workflows/ci.yml`：
+- PR 与主分支推送会执行 `.github/workflows/ci.yml`:
   - `npm run typecheck`
   - `npm run lint`
   - `npm test`
   - `npm run build`
-- 推送 `v*` 标签会自动触发 `.github/workflows/release.yml`，构建多平台产物并上传到 GitHub Release。
-- Release 描述会优先读取 `CHANGELOG.md` 对应版本章节，自动生成更新日志。
+- 推送 `v*` 标签会触发 `.github/workflows/release.yml`, 构建多平台产物并上传到 GitHub Release。
+- Release 描述优先读取 `CHANGELOG.md` 对应版本章节。
 
 ---
 
