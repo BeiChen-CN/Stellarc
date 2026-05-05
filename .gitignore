@@ -26,30 +26,6 @@ nul
 
 # Logs
 *.log*
-
-# Local config
-.claude
-.cursor
-.skills
-.github/skills
-__pycache__
-.agent/
-.codebuddy/
 .codex/
-.continue/
-.gemini/
-.kiro/
-.opencode/
-.qoder/
-.roo/
-.trae/
-.windsurf/
-.github/prompts/
-
-# Misc
-_sw_logic.txt
-_sw_part1.txt
-_write.js
-CLAUDE.md
-AGENTS.md
 .ace-tool/
+AGENTS.md
