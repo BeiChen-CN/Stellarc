@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useToastStore } from './toastStore'
 import { logger } from '../lib/logger'
+import { COLOR_THEMES } from '../lib/appearance'
 import type { SoundIntensity } from '../types'
 
 export type { SoundIntensity }
@@ -257,14 +258,8 @@ const defaults: SettingsData = {
   }
 }
 
-const legacySettingKeys = new Set([
-  'activityPreset',
-  'showClassroomFlow',
-  'showClassroomTemplate',
-  'ruleTemplates',
-  'syncEnabled',
-  'syncFolder'
-])
+/** 主题 id 运行时白名单：未知值（含旧版迁移 bug 产生的无效值）回退默认 */
+const VALID_THEME_IDS = new Set<string>(COLOR_THEMES.map((theme) => theme.id))
 
 const saveSettings = async (state: SettingsData): Promise<void> => {
   try {
@@ -311,25 +306,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       try {
         const data = await window.electronAPI.readJson('settings.json')
         if (data && typeof data === 'object' && !Array.isArray(data)) {
-          const raw = data as Record<string, unknown>
-          // Migrate old m3-* color themes to new names
-          const m3Migration: Record<string, ColorTheme> = {
-            'm3-indigo': 'blue',
-            'm3-sakura': 'sakura',
-            'm3-forest': 'forest',
-            'm3-ocean': 'ocean',
-            'm3-mocha': 'mocha'
-          }
-          if (typeof raw.colorTheme === 'string' && raw.colorTheme in m3Migration) {
-            raw.colorTheme = m3Migration[raw.colorTheme]
-            // Auto-enable m3Mode when migrating from old m3 themes
-            if (raw.m3Mode === undefined) {
-              raw.m3Mode = true
-            }
-          }
-          const rawSettings = Object.fromEntries(
-            Object.entries(raw).filter(([key]) => !legacySettingKeys.has(key))
-          )
+        const raw = data as Record<string, unknown>
+        // 未知主题值回退默认。m3-* 旧主题名的迁移由主进程负责
+        // （migrations/versions/settings.v2.ts），渲染层不再重复维护映射
+        if (typeof raw.colorTheme === 'string' && !VALID_THEME_IDS.has(raw.colorTheme)) {
+          raw.colorTheme = defaults.colorTheme
+        }
+        // 只采纳已知键（v2 文件携带的 _meta 等元数据不进入 store 状态）
+        const rawSettings = Object.fromEntries(
+          Object.entries(raw).filter(([key]) => key in defaults)
+        ) as Partial<SettingsData>
           const next = {
             ...defaults,
             ...rawSettings,

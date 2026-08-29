@@ -16,6 +16,12 @@ describe('migrateSettingsToV2', () => {
     expect(result._meta?.schemaVersion).toBe(2)
   })
 
+  it('maps m3-indigo to the existing blue theme (no indigo theme exists)', () => {
+    const result = migrateSettingsToV2({ colorTheme: 'm3-indigo' }, '1.0.0')
+
+    expect(result.colorTheme).toBe('blue')
+  })
+
   it('defaults immersive island style to classic', () => {
     const result = migrateSettingsToV2({}, '1.0.0')
 

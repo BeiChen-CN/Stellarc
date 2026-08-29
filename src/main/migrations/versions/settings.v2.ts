@@ -3,7 +3,7 @@ import { settingsV2Schema, type SettingsV2 } from '../schemas'
 const SCHEMA_VERSION = 2
 
 const m3ThemeMigration: Record<string, string> = {
-  'm3-indigo': 'indigo',
+  'm3-indigo': 'blue',
   'm3-sakura': 'sakura',
   'm3-forest': 'forest',
   'm3-ocean': 'ocean',
