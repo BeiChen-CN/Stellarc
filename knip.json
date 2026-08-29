@@ -6,13 +6,6 @@
     "src/preload/index.ts",
     "src/renderer/src/main.tsx"
   ],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "tests/**/*.{ts,tsx}",
-    "scripts/**/*.{js,mjs}"
-  ],
-  "ignore": [
-    "src/preload/index.d.ts",
-    "src/renderer/src/env.d.ts"
-  ]
+  "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}", "scripts/**/*.{js,mjs}"],
+  "ignore": ["src/preload/index.d.ts", "src/renderer/src/env.d.ts"]
 }

@@ -49,8 +49,12 @@ export function ConfirmDialog() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className={`p-2 rounded-full ${promptMode ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-                <AlertTriangle className={`w-5 h-5 ${promptMode ? 'text-primary' : 'text-destructive'}`} />
+              <div
+                className={`p-2 rounded-full ${promptMode ? 'bg-primary/10' : 'bg-destructive/10'}`}
+              >
+                <AlertTriangle
+                  className={`w-5 h-5 ${promptMode ? 'text-primary' : 'text-destructive'}`}
+                />
               </div>
               <h3 className="text-lg font-semibold text-on-surface">{title}</h3>
             </div>

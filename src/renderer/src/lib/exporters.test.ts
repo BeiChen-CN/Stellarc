@@ -22,7 +22,15 @@ const classes: ClassGroup[] = [
     id: 'c1',
     name: '三年二班',
     students: [
-      { id: 's1', name: '张三', pickCount: 2, score: 5, weight: 1, status: 'active', tags: ['组长'] }
+      {
+        id: 's1',
+        name: '张三',
+        pickCount: 2,
+        score: 5,
+        weight: 1,
+        status: 'active',
+        tags: ['组长']
+      }
     ]
   }
 ]

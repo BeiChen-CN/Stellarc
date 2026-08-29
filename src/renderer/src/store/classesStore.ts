@@ -715,7 +715,6 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
   }
 }))
 
-
 // 高频操作的落盘有 300ms 防抖窗口；窗口关闭/刷新前尽力把未落盘的
 // 变更冲出去（Electron 退出期间 IPC 可能来不及完成，此为尽力而为的兜底）
 if (typeof window !== 'undefined') {

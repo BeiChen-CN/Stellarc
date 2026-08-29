@@ -185,7 +185,14 @@ function MultiWinnerGrid({
   showStudentId: boolean
   photoMode: boolean
 }) {
-  const cols = winners.length <= 2 ? 'grid-cols-2' : winners.length <= 4 ? 'grid-cols-2' : winners.length <= 6 ? 'grid-cols-3' : 'grid-cols-4'
+  const cols =
+    winners.length <= 2
+      ? 'grid-cols-2'
+      : winners.length <= 4
+        ? 'grid-cols-2'
+        : winners.length <= 6
+          ? 'grid-cols-3'
+          : 'grid-cols-4'
   const isCompact = winners.length > 4
   const avatarSize = isCompact ? 'w-12 h-12' : 'w-16 h-16'
   const avatarInner = isCompact ? 'w-6 h-6' : 'w-8 h-8'
@@ -193,12 +200,7 @@ function MultiWinnerGrid({
   const cardPad = isCompact ? 'p-2' : 'p-3'
 
   return (
-    <div
-      className={cn(
-        'grid gap-3 w-full max-w-2xl mx-auto',
-        cols
-      )}
-    >
+    <div className={cn('grid gap-3 w-full max-w-2xl mx-auto', cols)}>
       {winners.map((student, i) => {
         const liveStudent = currentClass.students.find((s) => s.id === student.id)
         const score = liveStudent?.score || 0
@@ -214,7 +216,10 @@ function MultiWinnerGrid({
               stiffness: 260,
               damping: 18
             }}
-            className={cn('flex flex-col items-center gap-1.5 bg-surface-container-high/60 rounded-2xl relative', cardPad)}
+            className={cn(
+              'flex flex-col items-center gap-1.5 bg-surface-container-high/60 rounded-2xl relative',
+              cardPad
+            )}
           >
             <div className="absolute -inset-1 bg-primary/5 rounded-2xl blur-xl" />
             {photoMode && (
@@ -223,17 +228,27 @@ function MultiWinnerGrid({
                   <img
                     src={toFileUrl(student.photo)}
                     alt={student.name}
-                    className={cn(avatarSize, 'rounded-full object-cover border-2 border-primary/40')}
+                    className={cn(
+                      avatarSize,
+                      'rounded-full object-cover border-2 border-primary/40'
+                    )}
                   />
                 ) : (
-                  <div className={cn(avatarSize, 'rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border-2 border-primary/20')}>
+                  <div
+                    className={cn(
+                      avatarSize,
+                      'rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border-2 border-primary/20'
+                    )}
+                  >
                     <User className={cn(avatarInner, 'text-primary/40')} />
                   </div>
                 )}
               </div>
             )}
             <div className="text-center relative w-full min-w-0">
-              <div className={cn(nameSize, 'font-bold text-primary truncate')} title={student.name}>{student.name}</div>
+              <div className={cn(nameSize, 'font-bold text-primary truncate')} title={student.name}>
+                {student.name}
+              </div>
               {showStudentId && student.studentId && (
                 <div className="text-xs text-on-surface-variant font-mono mt-0.5 truncate">
                   {student.studentId}

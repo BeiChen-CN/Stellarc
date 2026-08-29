@@ -23,45 +23,34 @@ import {
 } from 'lucide-react'
 
 import { cn, toFileUrl } from '../../lib/utils'
-import {
-  type ImmersiveIslandStyle,
-  useSettingsStore
-} from '../../store/settingsStore'
+import { type ImmersiveIslandStyle, useSettingsStore } from '../../store/settingsStore'
 import { DesignStylePreview } from './DesignStylePreview'
 import { designStyles } from './designStyles'
 import { MD3Switch } from './MD3Switch'
-import {
-  ImmersiveIslandStyleThumbnail,
-  IMMERSIVE_ISLAND_VARIANTS
-} from '../home/immersiveIslandVariants'
+import { ImmersiveIslandStyleThumbnail } from '../home/immersiveIslandVariants'
+import { IMMERSIVE_ISLAND_VARIANTS } from '../home/immersiveIslandRegistry'
 
-import {
-  COLOR_THEMES,
-  ANIMATION_STYLES,
-  ANIMATION_SPEEDS
-} from '../../lib/appearance'
+import { COLOR_THEMES, ANIMATION_STYLES, ANIMATION_SPEEDS } from '../../lib/appearance'
 
-const IMMERSIVE_ISLAND_STYLE_NOTES: Record<
-  ImmersiveIslandStyle,
-  { cue: string; detail: string }
-> = {
-  classic: {
-    cue: '纯黑胶囊',
-    detail: '纵向滚动 · 宽度呼吸 · 最稳重'
-  },
-  beam: {
-    cue: '透明扫光',
-    detail: '白色细束 · 快速洗牌 · 聚焦揭晓'
-  },
-  slot: {
-    cue: '胶囊滚轮',
-    detail: '透明窗口 · 单线定位 · 抽奖感更强'
-  },
-  pulse: {
-    cue: '脉冲徽章',
-    detail: '白色描边 · 左侧状态 · 信息最清楚'
+const IMMERSIVE_ISLAND_STYLE_NOTES: Record<ImmersiveIslandStyle, { cue: string; detail: string }> =
+  {
+    classic: {
+      cue: '纯黑胶囊',
+      detail: '纵向滚动 · 宽度呼吸 · 最稳重'
+    },
+    beam: {
+      cue: '透明扫光',
+      detail: '白色细束 · 快速洗牌 · 聚焦揭晓'
+    },
+    slot: {
+      cue: '胶囊滚轮',
+      detail: '透明窗口 · 单线定位 · 抽奖感更强'
+    },
+    pulse: {
+      cue: '脉冲徽章',
+      detail: '白色描边 · 左侧状态 · 信息最清楚'
+    }
   }
-}
 
 interface AppearanceSectionProps {
   variant: 'appearance' | 'experience'
@@ -77,7 +66,14 @@ interface ToggleRowProps {
   onToggle: () => void
 }
 
-function ToggleRow({ icon, title, desc, checked, disabled, onToggle }: ToggleRowProps): ReactElement {
+function ToggleRow({
+  icon,
+  title,
+  desc,
+  checked,
+  disabled,
+  onToggle
+}: ToggleRowProps): ReactElement {
   return (
     <button
       type="button"
@@ -164,7 +160,8 @@ export function AppearanceSection({
     showGroupTaskTemplatePanel,
     toggleShowGroupTaskTemplatePanel,
     colorThemesExpanded,
-    setColorThemesExpanded} = useSettingsStore(
+    setColorThemesExpanded
+  } = useSettingsStore(
     useShallow((state) => ({
       theme: state.theme,
       setTheme: state.setTheme,
@@ -268,7 +265,9 @@ export function AppearanceSection({
                 onToggle={toggleProjectorMode}
               />
               <ToggleRow
-                icon={soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                icon={
+                  soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />
+                }
                 title="启用音效"
                 desc="抽选时播放声音反馈"
                 checked={soundEnabled}
@@ -420,11 +419,13 @@ export function AppearanceSection({
             </div>
           </div>
           <div className="flex overflow-hidden rounded-full border border-outline-variant">
-            {([
-              { value: 'light', label: '浅色', icon: Sun },
-              { value: 'system', label: '系统', icon: Monitor },
-              { value: 'dark', label: '深色', icon: Moon }
-            ] as const).map((opt) => {
+            {(
+              [
+                { value: 'light', label: '浅色', icon: Sun },
+                { value: 'system', label: '系统', icon: Monitor },
+                { value: 'dark', label: '深色', icon: Moon }
+              ] as const
+            ).map((opt) => {
               const Icon = opt.icon
               return (
                 <button
@@ -584,7 +585,9 @@ export function AppearanceSection({
             </div>
             <div>
               <h4 className="font-medium text-on-surface">抽选动画</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">动画保留为单一区块，避免散落成多个开关</p>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                动画保留为单一区块，避免散落成多个开关
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 pl-14 md:grid-cols-4">
@@ -719,7 +722,11 @@ export function AppearanceSection({
             )}
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-surface-container-high">
               {backgroundImage ? (
-                <img src={toFileUrl(backgroundImage)} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={toFileUrl(backgroundImage)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <span className="text-xs text-on-surface-variant">默认</span>
               )}

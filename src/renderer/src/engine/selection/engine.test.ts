@@ -118,13 +118,7 @@ describe('DefaultSelectionEngine.pick', () => {
   })
 
   it('produces deterministic results with fixed rng', () => {
-    let callCount = 0
-    const rng = () => {
-      callCount++
-      return 0.1
-    }
-    const r1 = engine.pick(makePickRequest({ rng }))
-    callCount = 0
+    const r1 = engine.pick(makePickRequest({ rng: () => 0.1 }))
     const r2 = engine.pick(makePickRequest({ rng: () => 0.1 }))
     expect(r1.winners[0].id).toBe(r2.winners[0].id)
   })

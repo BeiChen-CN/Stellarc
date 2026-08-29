@@ -30,10 +30,7 @@ export class SystemController extends BaseController {
     this.handleValidated('open-external', urlSchema, this.openExternal)
   }
 
-  private async openExternal(
-    _event: Electron.IpcMainInvokeEvent,
-    url: string
-  ): Promise<boolean> {
+  private async openExternal(_event: Electron.IpcMainInvokeEvent, url: string): Promise<boolean> {
     try {
       await shell.openExternal(url)
       return true

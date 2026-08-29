@@ -40,9 +40,7 @@ test('settings keeps redundant classroom and removed admin features hidden', asy
 
   await themeColorSection.getByRole('button', { name: '收起主题颜色' }).click()
   await expect(themeColorButtons).toHaveCount(9)
-  await expect(
-    themeColorSection.getByRole('button', { name: '展开全部 29 种配色' })
-  ).toBeVisible()
+  await expect(themeColorSection.getByRole('button', { name: '展开全部 29 种配色' })).toBeVisible()
   await expect(themeColorSection.getByText('自定义', { exact: true })).toBeVisible()
 
   const designStyleButtons = page.locator(

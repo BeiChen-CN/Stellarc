@@ -44,7 +44,9 @@ function createFakeWindow(initial: {
     getBounds: () => ({ ...state.bounds }),
     setBounds: (bounds) => {
       state.bounds = { ...state.bounds, ...bounds }
-      calls.push(`setBounds:${state.bounds.x},${state.bounds.y},${state.bounds.width},${state.bounds.height}`)
+      calls.push(
+        `setBounds:${state.bounds.x},${state.bounds.y},${state.bounds.width},${state.bounds.height}`
+      )
     },
     getMinimumSize: () => [...state.minimumSize],
     setMinimumSize: (width, height) => {

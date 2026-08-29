@@ -90,7 +90,9 @@ export function ClassTimer() {
         onClick={() => setOpen(!open)}
         className={cn(
           'flex items-center gap-1.5 bg-surface-container-high rounded-full px-3 py-1.5 elevation-1 text-sm font-medium transition-colors cursor-pointer',
-          remaining > 0 && remaining <= 10 ? 'text-destructive animate-pulse' : 'text-on-surface-variant hover:text-on-surface'
+          remaining > 0 && remaining <= 10
+            ? 'text-destructive animate-pulse'
+            : 'text-on-surface-variant hover:text-on-surface'
         )}
       >
         <Timer className="w-4 h-4" />
@@ -109,7 +111,10 @@ export function ClassTimer() {
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-on-surface">课堂计时器</span>
-              <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-on-surface/10 cursor-pointer">
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1 rounded-full hover:bg-on-surface/10 cursor-pointer"
+              >
                 <X className="w-3.5 h-3.5 text-on-surface-variant" />
               </button>
             </div>
@@ -119,10 +124,25 @@ export function ClassTimer() {
               <div className="flex flex-col items-center mb-4">
                 <div className="relative w-24 h-24">
                   <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="hsl(var(--outline-variant))" strokeWidth="6" opacity="0.3" />
                     <circle
-                      cx="50" cy="50" r="42" fill="none"
-                      stroke={remaining <= 10 && remaining > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke="hsl(var(--outline-variant))"
+                      strokeWidth="6"
+                      opacity="0.3"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke={
+                        remaining <= 10 && remaining > 0
+                          ? 'hsl(var(--destructive))'
+                          : 'hsl(var(--primary))'
+                      }
                       strokeWidth="6"
                       strokeLinecap="round"
                       strokeDasharray={`${2 * Math.PI * 42}`}
@@ -131,19 +151,27 @@ export function ClassTimer() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={cn(
-                      'text-xl font-bold font-mono',
-                      remaining <= 10 && remaining > 0 ? 'text-destructive' : 'text-on-surface'
-                    )}>
+                    <span
+                      className={cn(
+                        'text-xl font-bold font-mono',
+                        remaining <= 10 && remaining > 0 ? 'text-destructive' : 'text-on-surface'
+                      )}
+                    >
                       {formatTime(remaining)}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-3">
-                  <button onClick={togglePause} className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
+                  <button
+                    onClick={togglePause}
+                    className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                  >
                     {running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
-                  <button onClick={reset} className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high cursor-pointer">
+                  <button
+                    onClick={reset}
+                    className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high cursor-pointer"
+                  >
                     <RotateCcw className="w-4 h-4 text-on-surface-variant" />
                   </button>
                 </div>

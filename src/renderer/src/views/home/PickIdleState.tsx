@@ -17,7 +17,11 @@ export function PickIdleState({
 }: PickIdleStateProps) {
   if (classes.length === 0) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center space-y-4"
+      >
         <motion.div
           animate={{ scale: [1, 1.05, 1], opacity: [0.15, 0.25, 0.15] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -51,7 +55,11 @@ export function PickIdleState({
 
   if (!currentClass) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center space-y-4"
+      >
         <motion.div
           animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.3, 0.2] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -66,7 +74,11 @@ export function PickIdleState({
 
   if (currentClass.students.length === 0) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center space-y-4"
+      >
         <motion.div
           animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.3, 0.2] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}

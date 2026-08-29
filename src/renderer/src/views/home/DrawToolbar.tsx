@@ -181,7 +181,9 @@ export function AutoDrawBar({
               min={1}
               max={20}
               value={autoDrawRounds}
-              onChange={(e) => onRoundsChange(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+              onChange={(e) =>
+                onRoundsChange(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
+              }
               className="w-12 bg-transparent text-xs text-on-surface text-center outline-none"
             />
           </div>

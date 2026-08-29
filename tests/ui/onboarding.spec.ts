@@ -51,8 +51,12 @@ test('onboarding can create a class, import students, and finish the setup flow'
 
   await expect(onboarding).toBeHidden()
 
-  const settings = await page.evaluate(() => (window as any).__electronApiMock.getJson('settings.json'))
-  const classes = await page.evaluate(() => (window as any).__electronApiMock.getJson('classes.json'))
+  const settings = await page.evaluate(() =>
+    (window as any).__electronApiMock.getJson('settings.json')
+  )
+  const classes = await page.evaluate(() =>
+    (window as any).__electronApiMock.getJson('classes.json')
+  )
 
   expect(settings).toMatchObject({
     onboardingCompleted: true,

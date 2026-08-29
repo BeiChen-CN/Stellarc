@@ -16,7 +16,11 @@ const SEGMENT_COLORS = [
 ]
 
 export function SpinWheel({
-  students, winners, isSpinning, soundEnabled, onSpinComplete
+  students,
+  winners,
+  isSpinning,
+  soundEnabled,
+  onSpinComplete
 }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0)
   const [done, setDone] = useState(false)
@@ -100,7 +104,15 @@ export function SpinWheel({
       return {
         student,
         path: `M100,100 L${x1},${y1} A98,98 0 ${largeArc},1 ${x2},${y2} Z`,
-        tx, ty, textRotation, displayName, palette, divIx, divIy, divOx, divOy
+        tx,
+        ty,
+        textRotation,
+        displayName,
+        palette,
+        divIx,
+        divIy,
+        divOx,
+        divOy
       }
     })
   }, [students, count, segAngle])
@@ -122,15 +134,8 @@ export function SpinWheel({
             opacity="0.12"
             transform="translate(0, 1)"
           />
-          <path
-            d="M14 30 L4 6 Q3 2 7 1 L14 1 L21 1 Q25 2 24 6 Z"
-            fill="hsl(var(--primary))"
-          />
-          <path
-            d="M14 24 L7 6 Q6.5 4 8 3 L14 3 L14 24 Z"
-            fill="white"
-            opacity="0.2"
-          />
+          <path d="M14 30 L4 6 Q3 2 7 1 L14 1 L21 1 Q25 2 24 6 Z" fill="hsl(var(--primary))" />
+          <path d="M14 24 L7 6 Q6.5 4 8 3 L14 3 L14 24 Z" fill="white" opacity="0.2" />
           <circle cx="14" cy="30" r="2" fill="hsl(var(--primary-foreground))" opacity="0.9" />
         </svg>
       </div>
@@ -167,37 +172,55 @@ export function SpinWheel({
               </radialGradient>
             </defs>
 
-            {segments.map(({ student, path, tx, ty, textRotation, displayName, palette, divIx, divIy, divOx, divOy }) => {
-              const isWinner = done && winnerIds.has(student.id)
-              return (
-                <g key={student.id}>
-                  <path
-                    d={path}
-                    fill={isWinner ? 'hsl(var(--primary))' : palette.bg}
-                    stroke="hsl(var(--surface-container) / 0.6)"
-                    strokeWidth="0.4"
-                  />
-                  <line
-                    x1={divIx} y1={divIy} x2={divOx} y2={divOy}
-                    stroke="hsl(var(--surface-container-high) / 0.4)"
-                    strokeWidth="0.3"
-                  />
-                  <text
-                    x={tx} y={ty}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={isWinner ? 'hsl(var(--primary-foreground))' : palette.fg}
-                    fontSize={fontSize}
-                    fontWeight="700"
-                    fontFamily="system-ui, -apple-system, sans-serif"
-                    letterSpacing="0.02em"
-                    transform={`rotate(${textRotation}, ${tx}, ${ty})`}
-                  >
-                    {displayName}
-                  </text>
-                </g>
-              )
-            })}
+            {segments.map(
+              ({
+                student,
+                path,
+                tx,
+                ty,
+                textRotation,
+                displayName,
+                palette,
+                divIx,
+                divIy,
+                divOx,
+                divOy
+              }) => {
+                const isWinner = done && winnerIds.has(student.id)
+                return (
+                  <g key={student.id}>
+                    <path
+                      d={path}
+                      fill={isWinner ? 'hsl(var(--primary))' : palette.bg}
+                      stroke="hsl(var(--surface-container) / 0.6)"
+                      strokeWidth="0.4"
+                    />
+                    <line
+                      x1={divIx}
+                      y1={divIy}
+                      x2={divOx}
+                      y2={divOy}
+                      stroke="hsl(var(--surface-container-high) / 0.4)"
+                      strokeWidth="0.3"
+                    />
+                    <text
+                      x={tx}
+                      y={ty}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill={isWinner ? 'hsl(var(--primary-foreground))' : palette.fg}
+                      fontSize={fontSize}
+                      fontWeight="700"
+                      fontFamily="system-ui, -apple-system, sans-serif"
+                      letterSpacing="0.02em"
+                      transform={`rotate(${textRotation}, ${tx}, ${ty})`}
+                    >
+                      {displayName}
+                    </text>
+                  </g>
+                )
+              }
+            )}
 
             <circle cx="100" cy="100" r="98" fill="url(#wheelSheen)" />
 
@@ -211,7 +234,10 @@ export function SpinWheel({
               return (
                 <line
                   key={`tick-${i}`}
-                  x1={ix} y1={iy} x2={ox} y2={oy}
+                  x1={ix}
+                  y1={iy}
+                  x2={ox}
+                  y2={oy}
                   stroke="hsl(var(--on-surface) / 0.15)"
                   strokeWidth="0.5"
                   strokeLinecap="round"
@@ -235,9 +261,7 @@ export function SpinWheel({
             className="text-sm font-bold text-center leading-tight"
             style={{ color: 'hsl(var(--primary))' }}
           >
-            {winners.length === 1
-              ? winners[0].name.slice(0, 1)
-              : `${winners.length}人`}
+            {winners.length === 1 ? winners[0].name.slice(0, 1) : `${winners.length}人`}
           </span>
         ) : (
           <div

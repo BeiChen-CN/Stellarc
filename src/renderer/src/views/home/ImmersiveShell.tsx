@@ -6,7 +6,7 @@ import type { Student } from '../../types'
 import { cn } from '../../lib/utils'
 import type { ImmersiveIslandStyle } from '../../store/settingsStore'
 import type { ImmersivePhase } from './hooks/useImmersiveUI'
-import { getImmersiveIslandVariant } from './immersiveIslandVariants'
+import { getImmersiveIslandVariant } from './immersiveIslandRegistry'
 
 type DrawPhase = 'idle' | 'spinning' | 'slowing' | 'reveal'
 

@@ -28,7 +28,8 @@ export function ToastContainer() {
               transition={{ duration: 0.2 * sf }}
               className={cn(
                 'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl elevation-2 min-w-[280px] max-w-[400px]',
-                toast.type === 'success' && 'bg-secondary-container text-secondary-container-foreground',
+                toast.type === 'success' &&
+                  'bg-secondary-container text-secondary-container-foreground',
                 toast.type === 'error' && 'bg-destructive/10 text-destructive',
                 toast.type === 'info' && 'bg-surface-container-high text-on-surface'
               )}

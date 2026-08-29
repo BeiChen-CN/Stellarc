@@ -163,12 +163,17 @@ export function FairnessSection(): ReactElement {
             <div className="flex items-center space-x-4">
               <div className="rounded-full bg-primary/10 p-2 text-primary">
                 <ChevronDown
-                  className={cn('h-5 w-5 transition-transform duration-200', advancedExpanded && 'rotate-180')}
+                  className={cn(
+                    'h-5 w-5 transition-transform duration-200',
+                    advancedExpanded && 'rotate-180'
+                  )}
                 />
               </div>
               <div className="text-left">
                 <h4 className="font-medium text-on-surface">高级公平</h4>
-                <p className="mt-0.5 text-xs text-on-surface-variant">默认折叠，只有需要细调时再展开</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">
+                  默认折叠，只有需要细调时再展开
+                </p>
               </div>
             </div>
           </button>
@@ -189,7 +194,10 @@ export function FairnessSection(): ReactElement {
                     onChange={(e) =>
                       setFairness({
                         ...fairness,
-                        stageFairnessRounds: Math.max(0, Math.min(20, parseInt(e.target.value) || 0))
+                        stageFairnessRounds: Math.max(
+                          0,
+                          Math.min(20, parseInt(e.target.value) || 0)
+                        )
                       })
                     }
                     className="ui-number mt-2 w-24 rounded-full px-3 text-center text-sm"
@@ -209,7 +217,10 @@ export function FairnessSection(): ReactElement {
                     onChange={(e) =>
                       setFairness({
                         ...fairness,
-                        prioritizeUnpickedCount: Math.max(0, Math.min(5, parseInt(e.target.value) || 0))
+                        prioritizeUnpickedCount: Math.max(
+                          0,
+                          Math.min(5, parseInt(e.target.value) || 0)
+                        )
                       })
                     }
                     className="ui-number mt-2 w-24 rounded-full px-3 text-center text-sm"
@@ -219,7 +230,9 @@ export function FairnessSection(): ReactElement {
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={() => setFairness({ ...fairness, balanceByTerm: !fairness.balanceByTerm })}
+                  onClick={() =>
+                    setFairness({ ...fairness, balanceByTerm: !fairness.balanceByTerm })
+                  }
                   className={cn(
                     'cursor-pointer rounded-full border border-outline-variant/50 px-3 py-1.5 text-xs',
                     fairness.balanceByTerm
@@ -405,7 +418,9 @@ export function FairnessSection(): ReactElement {
                       />
                     </div>
                     <div>
-                      <div className="mb-1 text-xs text-on-surface-variant">可重复任务（逗号分隔）</div>
+                      <div className="mb-1 text-xs text-on-surface-variant">
+                        可重复任务（逗号分隔）
+                      </div>
                       <input
                         value={(scoreRules.allowRepeatTasks || []).join(',')}
                         onChange={(e) =>
@@ -422,7 +437,9 @@ export function FairnessSection(): ReactElement {
                       />
                     </div>
                     <div>
-                      <div className="mb-1 text-xs text-on-surface-variant">禁用任务（逗号分隔）</div>
+                      <div className="mb-1 text-xs text-on-surface-variant">
+                        禁用任务（逗号分隔）
+                      </div>
                       <input
                         value={(scoreRules.blockedTasks || []).join(',')}
                         onChange={(e) =>

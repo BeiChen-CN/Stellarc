@@ -31,26 +31,26 @@
 
 ## 下载
 
-| 平台 | 格式 | 下载 |
-| --- | --- | --- |
-| Windows | `.exe` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
-| macOS | `.dmg` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
-| Linux | `.AppImage` / `.deb` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
+| 平台    | 格式                 | 下载                                                                    |
+| ------- | -------------------- | ----------------------------------------------------------------------- |
+| Windows | `.exe`               | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
+| macOS   | `.dmg`               | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
+| Linux   | `.AppImage` / `.deb` | [前往 Releases](https://github.com/BeiChen-CN/Stellarc/releases/latest) |
 
 ---
 
 ## 功能
 
-| 模块 | 能力 |
-| --- | --- |
-| 随机点名 | 加权随机、冷却防连抽、单人/多人抽选、随机分组、8 种抽取动画、3 档速率。 |
-| 沉浸模式 | 进入后缩为悬浮球, 点击展开小浮球动作; 沉浸抽取固定单人, 结果展示在顶部灵动岛。 |
+| 模块       | 能力                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| 随机点名   | 加权随机、冷却防连抽、单人/多人抽选、随机分组、8 种抽取动画、3 档速率。                           |
+| 沉浸模式   | 进入后缩为悬浮球, 点击展开小浮球动作; 沉浸抽取固定单人, 结果展示在顶部灵动岛。                    |
 | 灵动岛样式 | 内置 Classic Island、Focus Beam、Capsule Slot、Pulse Badge 四套样式, 设置页可用迷你预览卡片切换。 |
-| 班级管理 | 多班级切换, 学生增删改查, 照片管理, 学号展示, 积分与权重调整。 |
-| 历史与统计 | 抽选历史、Top 10、频率趋势、班级分布、积分排行、均衡指数、CSV 与课堂报告导出。 |
-| 外观设置 | 28+ 主题色、12 种设计风格、深浅色模式、投屏模式、自定义背景、动态取色。 |
-| 新手引导 | 精简为 3 个核心步骤: 准备班级、开始点名、按需调整和复盘。 |
-| 数据安全 | 完全离线、本地存储、ZIP 备份恢复、启动自检、失败自动回滚。 |
+| 班级管理   | 多班级切换, 学生增删改查, 照片管理, 学号展示, 积分与权重调整。                                    |
+| 历史与统计 | 抽选历史、Top 10、频率趋势、班级分布、积分排行、均衡指数、CSV 与课堂报告导出。                    |
+| 外观设置   | 28+ 主题色、12 种设计风格、深浅色模式、投屏模式、自定义背景、动态取色。                           |
+| 新手引导   | 精简为 3 个核心步骤: 准备班级、开始点名、按需调整和复盘。                                         |
+| 数据安全   | 完全离线、本地存储、ZIP 备份恢复、启动自检、失败自动回滚。                                        |
 
 ---
 
@@ -69,18 +69,18 @@ npm run dev
 
 ### 常用命令
 
-| 命令 | 说明 |
-| --- | --- |
-| `npm run dev` | 启动 Electron + Vite 开发环境。 |
-| `npm run start` | 预览已构建产物。 |
-| `npm run typecheck` | 同时检查主进程与渲染进程 TypeScript。 |
-| `npm run test` | 运行 Vitest 单元测试。 |
-| `npm run test:ui` | 运行 Playwright UI 回归测试。 |
-| `npm run lint` | 运行 ESLint。 |
-| `npm run format` | 使用 Prettier 格式化。 |
-| `npm run build` | 类型检查并生成生产构建。 |
-| `npm run build:report` | 构建后输出 bundle 体积报告。 |
-| `npm run assets:installer` | 生成 NSIS 安装器 bitmap 资源。 |
+| 命令                       | 说明                                  |
+| -------------------------- | ------------------------------------- |
+| `npm run dev`              | 启动 Electron + Vite 开发环境。       |
+| `npm run start`            | 预览已构建产物。                      |
+| `npm run typecheck`        | 同时检查主进程与渲染进程 TypeScript。 |
+| `npm run test`             | 运行 Vitest 单元测试。                |
+| `npm run test:ui`          | 运行 Playwright UI 回归测试。         |
+| `npm run lint`             | 运行 ESLint。                         |
+| `npm run format`           | 使用 Prettier 格式化。                |
+| `npm run build`            | 类型检查并生成生产构建。              |
+| `npm run build:report`     | 构建后输出 bundle 体积报告。          |
+| `npm run assets:installer` | 生成 NSIS 安装器 bitmap 资源。        |
 
 ### 构建安装包
 
@@ -150,13 +150,13 @@ src/
 
 运行时数据位于系统用户数据目录:
 
-| 路径 | 内容 |
-| --- | --- |
-| `data/classes.json` | 班级与学生数据 |
-| `data/history.json` | 抽选历史记录 |
-| `data/settings.json` | 应用设置 |
-| `data/photos/` | 学生照片 |
-| `data/diagnostics-events.json` | 诊断事件日志 |
+| 路径                           | 内容           |
+| ------------------------------ | -------------- |
+| `data/classes.json`            | 班级与学生数据 |
+| `data/history.json`            | 抽选历史记录   |
+| `data/settings.json`           | 应用设置       |
+| `data/photos/`                 | 学生照片       |
+| `data/diagnostics-events.json` | 诊断事件日志   |
 
 所有文件操作都通过路径校验限制在应用数据目录内。
 
@@ -173,17 +173,17 @@ src/
 
 ## 技术栈
 
-| 类型 | 技术 |
-| --- | --- |
-| 框架 | Electron 39 + electron-vite |
-| 前端 | React 19 + TypeScript 5.9 |
+| 类型 | 技术                         |
+| ---- | ---------------------------- |
+| 框架 | Electron 39 + electron-vite  |
+| 前端 | React 19 + TypeScript 5.9    |
 | 样式 | Tailwind CSS + CSS Variables |
-| 状态 | Zustand |
-| 动画 | Framer Motion |
-| 图表 | Recharts |
-| 验证 | Zod v4 |
-| 测试 | Vitest + Playwright |
-| 规范 | ESLint + Prettier + knip |
+| 状态 | Zustand                      |
+| 动画 | Framer Motion                |
+| 图表 | Recharts                     |
+| 验证 | Zod v4                       |
+| 测试 | Vitest + Playwright          |
+| 规范 | ESLint + Prettier + knip     |
 
 ---
 

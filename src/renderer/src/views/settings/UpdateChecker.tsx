@@ -36,7 +36,7 @@ export function UpdateChecker() {
       if (s === 'downloaded') addToast('更新已下载，重启后生效', 'success')
     })
     return cleanup
-  }, [])
+  }, [addToast])
 
   const handleCheck = () => {
     setStatus('checking')

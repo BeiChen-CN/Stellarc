@@ -7,13 +7,6 @@ import type { Student } from '../../types'
  * 两处布局容器不同，但每个控件的状态着色与交互完全一致。
  */
 
-export function splitTagInput(input: string): string[] {
-  return input
-    .split('/')
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0)
-}
-
 export function SelectCheckbox({
   studentId,
   selected,
@@ -63,7 +56,11 @@ export function AvatarButton({
       title="点击上传照片"
     >
       {student.photo ? (
-        <img src={toFileUrl(student.photo)} alt={student.name} className="w-full h-full object-cover" />
+        <img
+          src={toFileUrl(student.photo)}
+          alt={student.name}
+          className="w-full h-full object-cover"
+        />
       ) : (
         <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
           {student.name.slice(0, 1)}
@@ -86,7 +83,11 @@ export function GenderToggle({
   classId: string
   studentId: string
   gender: 'male' | 'female' | undefined
-  onUpdateGender: (classId: string, studentId: string, gender: 'male' | 'female' | undefined) => void
+  onUpdateGender: (
+    classId: string,
+    studentId: string,
+    gender: 'male' | 'female' | undefined
+  ) => void
   padClass?: string
 }): React.ReactElement {
   return (
@@ -117,7 +118,13 @@ export function GenderToggle({
   )
 }
 
-export function StatusBadge({ status, className }: { status: Student['status']; className?: string }): React.ReactElement {
+export function StatusBadge({
+  status,
+  className
+}: {
+  status: Student['status']
+  className?: string
+}): React.ReactElement {
   const label = status === 'active' ? '正常' : status === 'absent' ? '缺席' : '排除'
   return (
     <span
@@ -136,7 +143,13 @@ export function StatusBadge({ status, className }: { status: Student['status']; 
   )
 }
 
-export function ScoreValue({ score, className }: { score: number; className?: string }): React.ReactElement {
+export function ScoreValue({
+  score,
+  className
+}: {
+  score: number
+  className?: string
+}): React.ReactElement {
   return (
     <span
       className={cn(

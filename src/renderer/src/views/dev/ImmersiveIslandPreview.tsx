@@ -3,12 +3,12 @@ import { Check } from 'lucide-react'
 
 import { cn } from '../../lib/utils'
 import type { ImmersiveIslandStyle } from '../../store/settingsStore'
+import { ImmersiveIslandStyleThumbnail } from '../home/immersiveIslandVariants'
 import {
   getImmersiveIslandVariant,
-  ImmersiveIslandStyleThumbnail,
-  IMMERSIVE_ISLAND_VARIANTS,
-  type ImmersiveIslandRenderPhase
-} from '../home/immersiveIslandVariants'
+  IMMERSIVE_ISLAND_VARIANTS
+} from '../home/immersiveIslandRegistry'
+import type { ImmersiveIslandRenderPhase } from '../home/immersiveIslandVariants'
 
 const previewCandidates = ['林小夏', '周明宇', '陈安然']
 const previewWinner = ['周明宇']

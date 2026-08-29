@@ -5,7 +5,6 @@ import { BaseController } from './BaseController'
 import { authorizePath } from '../fileAuth'
 
 export class DialogController extends BaseController {
-
   constructor() {
     super()
   }
@@ -23,7 +22,10 @@ export class DialogController extends BaseController {
     authorizePath(path.normalize(filePath))
   }
 
-  private async selectFile(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string | null> {
+  private async selectFile(
+    _event: Electron.IpcMainInvokeEvent,
+    options: OpenDialogOptions
+  ): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await this.showDialog(() =>
@@ -34,9 +36,10 @@ export class DialogController extends BaseController {
     return result.filePaths[0]
   }
 
-
-
-  private async saveFile(_event: Electron.IpcMainInvokeEvent, options: SaveDialogOptions): Promise<string | null> {
+  private async saveFile(
+    _event: Electron.IpcMainInvokeEvent,
+    options: SaveDialogOptions
+  ): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
     const result = await this.showDialog(() => dialog.showSaveDialog(win, options))

@@ -14,8 +14,11 @@ export abstract class BaseController {
 
   protected abstract init(): void
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected handle(channel: string, handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>): void {
+  protected handle(
+    channel: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>
+  ): void {
     ipcMain.handle(channel, async (event, ...args) => {
       try {
         return await handler.call(this, event, ...args)

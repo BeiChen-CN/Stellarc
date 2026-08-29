@@ -16,13 +16,6 @@ export interface ImmersiveIslandRenderProps {
   isSpinning: boolean
 }
 
-export interface ImmersiveIslandVariant {
-  id: ImmersiveIslandStyle
-  title: string
-  subtitle: string
-  render: (props: ImmersiveIslandRenderProps) => ReactElement
-}
-
 function classCaption(currentClassName?: string): string {
   return currentClassName ? `Dynamic Island · ${currentClassName}` : 'Dynamic Island'
 }
@@ -99,7 +92,7 @@ export function ImmersiveIslandStyleThumbnail({
   )
 }
 
-function ClassicIsland({
+export function ClassicIsland({
   phase,
   currentClassName,
   displayNames,
@@ -124,7 +117,11 @@ function ClassicIsland({
             animate={isReveal ? { scale: [1, 1.08, 1] } : { rotate: 360 }}
             transition={{ duration: isReveal ? 1.2 : 0.9, repeat: Infinity, ease: 'linear' }}
           >
-            {isReveal ? <Trophy className="h-5 w-5 text-amber-200" /> : <Shuffle className="h-5 w-5" />}
+            {isReveal ? (
+              <Trophy className="h-5 w-5 text-amber-200" />
+            ) : (
+              <Shuffle className="h-5 w-5" />
+            )}
           </motion.div>
           {isSpinning && !isReveal && (
             <motion.span
@@ -177,7 +174,7 @@ function ClassicIsland({
   )
 }
 
-function FocusBeamIsland({
+export function FocusBeamIsland({
   phase,
   currentClassName,
   displayNames,
@@ -197,7 +194,11 @@ function FocusBeamIsland({
       <motion.div
         className="absolute inset-y-1 w-24 rounded-full bg-white/16 blur-lg"
         animate={{ x: isReveal ? 190 : [-80, 328] }}
-        transition={{ duration: isReveal ? 0.55 : 1.1, repeat: isReveal ? 0 : Infinity, ease: 'easeInOut' }}
+        transition={{
+          duration: isReveal ? 0.55 : 1.1,
+          repeat: isReveal ? 0 : Infinity,
+          ease: 'easeInOut'
+        }}
       />
       <div className="relative z-10 flex h-full min-w-0 items-center gap-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white/85">
@@ -253,7 +254,7 @@ function FocusBeamIsland({
   )
 }
 
-function CapsuleSlotIsland({
+export function CapsuleSlotIsland({
   phase,
   displayNames,
   winnerNames,
@@ -315,7 +316,7 @@ function CapsuleSlotIsland({
   )
 }
 
-function PulseBadgeIsland({
+export function PulseBadgeIsland({
   phase,
   currentClassName,
   displayNames,
@@ -371,39 +372,5 @@ function PulseBadgeIsland({
         </AnimatePresence>
       </div>
     </div>
-  )
-}
-
-export const IMMERSIVE_ISLAND_VARIANTS: ImmersiveIslandVariant[] = [
-  {
-    id: 'classic',
-    title: 'Classic Island',
-    subtitle: '纯黑胶囊, 姓名纵向滚动, 揭晓时宽度呼吸。',
-    render: (props) => <ClassicIsland {...props} />
-  },
-  {
-    id: 'beam',
-    title: 'Focus Beam',
-    subtitle: '扫描光束快速扫过候选, 揭晓时停在姓名上。',
-    render: (props) => <FocusBeamIsland {...props} />
-  },
-  {
-    id: 'slot',
-    title: 'Capsule Slot',
-    subtitle: '胶囊老虎机滚轮, 抽奖感最强, 最终只留一个姓名。',
-    render: (props) => <CapsuleSlotIsland {...props} />
-  },
-  {
-    id: 'pulse',
-    title: 'Pulse Badge',
-    subtitle: '左侧脉冲徽章, 右侧结果条, 轻量且信息清楚。',
-    render: (props) => <PulseBadgeIsland {...props} />
-  }
-]
-
-export function getImmersiveIslandVariant(style: ImmersiveIslandStyle): ImmersiveIslandVariant {
-  return (
-    IMMERSIVE_ISLAND_VARIANTS.find((variant) => variant.id === style) ??
-    IMMERSIVE_ISLAND_VARIANTS[0]
   )
 }

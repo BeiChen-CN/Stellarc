@@ -138,9 +138,6 @@ export function History(): ReactElement {
     }
   }, [filteredHistory.length, playbackIndex])
 
-  // TanStack Virtual currently triggers react-hooks/incompatible-library warning in React Compiler lint.
-  // Safe here because virtualizer instance is consumed locally and not memoized across component boundaries.
-  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: filteredHistory.length,
     getItemKey: (index) => filteredHistory[index]?.id || index,
@@ -184,10 +181,7 @@ export function History(): ReactElement {
     if (!filePath) return
 
     try {
-      await window.electronAPI.writeExportFile(
-        filePath,
-        buildStructuredReportCsv(history, classes)
-      )
+      await window.electronAPI.writeExportFile(filePath, buildStructuredReportCsv(history, classes))
       addToast('结构化 CSV 导出成功', 'success')
     } catch (error) {
       logger.error('History', 'Structured CSV export failed:', error)
@@ -204,10 +198,7 @@ export function History(): ReactElement {
     if (!filePath) return
 
     try {
-      await window.electronAPI.writeExportFile(
-        filePath,
-        buildClassReportMarkdown(history, classes)
-      )
+      await window.electronAPI.writeExportFile(filePath, buildClassReportMarkdown(history, classes))
       addToast('课堂报告导出成功', 'success')
     } catch (error) {
       logger.error('History', 'Class report export failed:', error)

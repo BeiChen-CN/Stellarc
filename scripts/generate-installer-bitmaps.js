@@ -40,26 +40,25 @@ function createBMP(width, height, pixelData) {
   return buf
 }
 
-function lerp(a, b, t) { return Math.round(a + (b - a) * t) }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
+function lerp(a, b, t) {
+  return Math.round(a + (b - a) * t)
+}
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v))
+}
 
 function lerpColor(c1, c2, t) {
   return [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)]
 }
 
 function setPixel(data, w, h, x, y, color, alpha = 1) {
-  x = Math.round(x); y = Math.round(y)
+  x = Math.round(x)
+  y = Math.round(y)
   if (x < 0 || x >= w || y < 0 || y >= h) return
   const idx = (y * w + x) * 3
   data[idx] = lerp(data[idx], color[0], alpha)
   data[idx + 1] = lerp(data[idx + 1], color[1], alpha)
   data[idx + 2] = lerp(data[idx + 2], color[2], alpha)
-}
-
-function fillRect(data, w, h, x0, y0, rw, rh, color, alpha = 1) {
-  for (let y = y0; y < y0 + rh; y++)
-    for (let x = x0; x < x0 + rw; x++)
-      setPixel(data, w, h, x, y, color, alpha)
 }
 
 function drawCircleAA(data, w, h, cx, cy, radius, color, alpha = 1) {
@@ -111,7 +110,7 @@ function fillGradient(data, w, h, topColor, bottomColor, angle = 0) {
         t = y / (h - 1)
       } else {
         // Diagonal gradient
-        t = (x / w * 0.3 + y / h * 0.7)
+        t = (x / w) * 0.3 + (y / h) * 0.7
       }
       const idx = (y * w + x) * 3
       data[idx] = lerp(topColor[0], bottomColor[0], t)
@@ -155,16 +154,16 @@ function drawDotPattern(data, w, h, color, alpha, spacing, radius) {
 const buildDir = path.join(__dirname, '..', 'build')
 
 // Color palette
-const PRIMARY = [79, 70, 229]       // indigo-600
+const PRIMARY = [79, 70, 229] // indigo-600
 const PRIMARY_LIGHT = [129, 140, 248] // indigo-400
-const PRIMARY_DARK = [55, 48, 163]   // indigo-800
-const ACCENT = [168, 85, 247]        // purple-500
+const PRIMARY_DARK = [55, 48, 163] // indigo-800
+const ACCENT = [168, 85, 247] // purple-500
 const WHITE = [255, 255, 255]
-const WHITE_90 = [245, 245, 255]
 
 // ============ HEADER: 150x57 ============
 function generateHeader() {
-  const w = 150, h = 57
+  const w = 150,
+    h = 57
   const data = Buffer.alloc(w * h * 3)
 
   // Gradient background: white to very light indigo
@@ -206,7 +205,8 @@ function generateHeader() {
 
 // ============ SIDEBAR: 164x314 ============
 function generateSidebar(filename) {
-  const w = 164, h = 314
+  const w = 164,
+    h = 314
   const data = Buffer.alloc(w * h * 3)
 
   // Rich gradient background
@@ -221,7 +221,9 @@ function generateSidebar(filename) {
         tx * 0.4
       )
       const idx = (y * w + x) * 3
-      data[idx] = c[0]; data[idx + 1] = c[1]; data[idx + 2] = c[2]
+      data[idx] = c[0]
+      data[idx + 1] = c[1]
+      data[idx + 2] = c[2]
     }
   }
 

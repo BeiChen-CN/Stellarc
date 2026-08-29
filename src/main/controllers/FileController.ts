@@ -9,7 +9,7 @@ import { BaseController } from './BaseController'
 import { assertPathAuthorized } from '../fileAuth'
 
 const filenameSchema = z.tuple([z.string().min(1)])
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC payload is untyped JSON
+// IPC payload 为未类型化 JSON，故用 z.any()
 const filenameDataSchema = z.tuple([z.string().min(1), z.any()])
 const filePathSchema = z.tuple([z.string().min(1)])
 const filePathContentSchema = z.tuple([z.string().min(1), z.string()])

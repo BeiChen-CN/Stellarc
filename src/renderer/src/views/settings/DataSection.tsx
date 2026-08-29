@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-  type ReactElement
-} from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactElement } from 'react'
 import {
   Database,
   Save,
@@ -25,11 +18,11 @@ import { useConfirmStore } from '../../store/confirmStore'
 import { useDiagnosticsStore } from '../../store/diagnosticsStore'
 import { MD3Switch } from './MD3Switch'
 import { UpdateChecker } from './UpdateChecker'
-import { ShortcutRecorder, formatAccelerator } from './ShortcutRecorder'
+import { ShortcutRecorder } from './ShortcutRecorder'
+import { formatAccelerator } from '../../lib/accelerator'
 import { DatePicker } from '../../components/DatePicker'
 
 type DiagnosticEventFilter = 'all' | 'error' | 'warn'
-
 
 export function DataSection(): ReactElement {
   const {
@@ -225,9 +218,7 @@ export function DataSection(): ReactElement {
           >
             <div>
               <div className="text-sm font-semibold text-destructive">危险操作</div>
-              <div className="text-xs text-on-surface-variant mt-0.5">
-                清空本地数据
-              </div>
+              <div className="text-xs text-on-surface-variant mt-0.5">清空本地数据</div>
             </div>
             <ChevronDown
               className={cn(

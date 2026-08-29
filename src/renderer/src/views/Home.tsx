@@ -151,7 +151,8 @@ export function Home({
     animationStyle,
     animationSpeed,
     animationDurationScale,
-    immersiveIslandStyle} = useSettingsStore(
+    immersiveIslandStyle
+  } = useSettingsStore(
     useShallow((state) => ({
       fairness: state.fairness,
       pickCount: state.pickCount,
@@ -936,7 +937,10 @@ export function Home({
             <div className="mb-3 shrink-0 w-full max-w-2xl">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-container-high/80 px-3 py-2 border border-outline-variant/40">
                 {showTemporaryExclusion && (
-                  <TemporaryExclusionMenu currentClass={currentClass} exclusion={temporaryExclusion} />
+                  <TemporaryExclusionMenu
+                    currentClass={currentClass}
+                    exclusion={temporaryExclusion}
+                  />
                 )}
 
                 {showAutoDraw && (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Keyboard } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { formatAccelerator } from '../../lib/accelerator'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 
@@ -17,14 +18,6 @@ function keyEventToAccelerator(e: KeyboardEvent): string | null {
   else if (key.length === 1) key = key.toUpperCase()
   parts.push(key)
   return parts.join('+')
-}
-
-export function formatAccelerator(acc: string): string {
-  return acc
-    .replace(/Ctrl/g, 'Ctrl')
-    .replace(/Alt/g, 'Alt')
-    .replace(/Shift/g, 'Shift')
-    .replace(/\+/g, ' + ')
 }
 
 export function ShortcutRecorder({

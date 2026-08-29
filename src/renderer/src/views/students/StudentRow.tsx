@@ -1,4 +1,5 @@
 import { memo, useState, useRef, useCallback, type ReactElement } from 'react'
+import { splitTagInput } from '../../lib/utils'
 import { Plus, Minus, Trash2, UserX, CheckCircle } from 'lucide-react'
 import type { Student } from '../../types'
 import {
@@ -7,8 +8,7 @@ import {
   ScoreValue,
   SelectCheckbox,
   StatusBadge,
-  StepperButton,
-  splitTagInput
+  StepperButton
 } from './StudentBits'
 
 interface StudentRowProps {
@@ -310,10 +310,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
               onUpdateGender={onUpdateGender}
               padClass="px-2"
             />
-            <StatusBadge
-              status={student.status}
-              className="ml-auto px-2 py-0.5 text-[10px]"
-            />
+            <StatusBadge status={student.status} className="ml-auto px-2 py-0.5 text-[10px]" />
           </div>
         </div>
       </div>
