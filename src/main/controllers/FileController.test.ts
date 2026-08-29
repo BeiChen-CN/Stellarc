@@ -85,7 +85,7 @@ describe('FileController IPC 错误契约', () => {
     const file = path.join(tmpDir, 'roster.txt')
     fs.writeFileSync(file, '张三,李四', 'utf-8')
     authorizePath(file)
-    const result = await handlers().get('read-file')!(null, file)
+    const result = (await handlers().get('read-file')!(null, file)) as Buffer
     expect(result.toString()).toBe('张三,李四')
   })
 

@@ -10,14 +10,7 @@ import { cn, toFileUrl } from '../lib/utils'
 import { useToastStore } from '../store/toastStore'
 import { useConfirmStore } from '../store/confirmStore'
 import { useSpeedFactor } from '../lib/useSpeedFactor'
-import {
-  playTick,
-  playSlowTick,
-  playReveal,
-  playTypewriterKey,
-  playBounceTick,
-  setSoundIntensity
-} from '../lib/sounds'
+import { playReveal, setSoundIntensity } from '../lib/sounds'
 import { Confetti } from '../components/Confetti'
 import { logger } from '../lib/logger'
 import { SpinWheel } from '../components/SpinWheel'
@@ -34,6 +27,8 @@ import { ClassTimer } from '../components/ClassTimer'
 import { ImmersiveShell } from './home/ImmersiveShell'
 import { useImmersiveUI } from './home/hooks/useImmersiveUI'
 import { useTemporaryExclusion } from './home/hooks/useTemporaryExclusion'
+import { usePickAnimation, pickUniqueStudents } from './home/hooks/usePickAnimation'
+import { AUTO_DRAW_MIN_INTERVAL_MS, useAutoDraw } from './home/hooks/useAutoDraw'
 import { TemporaryExclusionMenu, AutoDrawBar } from './home/DrawToolbar'
 import {
   PickPreviewPanel,
@@ -41,13 +36,6 @@ import {
   SelectionExplainPanel
 } from './home/SelectionExplainPanels'
 
-const ANIMATION_DURATION_MAP = { elegant: 3200, balanced: 2200, fast: 1300 } as const
-const ANIMATION_DURATION_REDUCED_MS = 300
-const TICK_INTERVAL_MIN_MS = 38
-const TICK_INTERVAL_RANGE_MS = 145
-const LOCK_IN_PROGRESS = 0.85
-const SLOW_DOWN_PROGRESS = 0.6
-const SOUND_GAP_BASE_MS = { elegant: 120, balanced: 145, fast: 180 } as const
 type PickPlan = {
   eligibleStudents: Student[]
   winners: Student[]
@@ -58,17 +46,6 @@ type PickPlan = {
 
 type DrawOptions = {
   countOverride?: number
-}
-
-function pickUniqueStudents(pool: Student[], count: number): Student[] {
-  if (count <= 0 || pool.length === 0) return []
-  if (count >= pool.length) return [...pool]
-  const copy = [...pool]
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
-  }
-  return copy.slice(0, count)
 }
 
 const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
@@ -105,28 +82,13 @@ export function Home({
     Array<{ groupIndex: number; taskTemplateId: string; taskName: string; scoreDelta: number }>
   >([])
   const [showGroups, setShowGroups] = useState(false)
-  const [autoDrawEnabled, setAutoDrawEnabled] = useState(false)
-  const [autoDrawRounds, setAutoDrawRounds] = useState(3)
-  const [autoDrawIntervalMs, setAutoDrawIntervalMs] = useState(3600)
-  const [autoDrawRemaining, setAutoDrawRemaining] = useState(0)
-  const animationRef = useRef<number | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const tickCountRef = useRef(0)
-  const lastSoundAtRef = useRef(0)
   const wheelWinnersRef = useRef<Student[]>([])
   const lastSelectionMetaRef = useRef<HistorySelectionMeta | null>(null)
   const [lastSelectionMeta, setLastSelectionMeta] = useState<HistorySelectionMeta | null>(null)
   const [candidateKey, setCandidateKey] = useState(0)
-  const autoDrawTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoDrawRemainingRef = useRef(0)
   const [lastGroupSnapshot, setLastGroupSnapshot] = useState<Student[][]>([])
   const [pickGenderFilter, setPickGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const [previewStudentQuery, setPreviewStudentQuery] = useState('')
-
-  const prefersReducedMotion = useMemo(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  )
 
   const currentClass = classes.find((c) => c.id === currentClassId)
   const {
@@ -197,17 +159,19 @@ export function Home({
 
   const handleDrawRef = useRef<(options?: DrawOptions) => void>(() => {})
 
+  const autoDraw = useAutoDraw({
+    ensureCanStart: () => {
+      if (mode !== 'pick') return { ok: false, message: '请先切换到抽选模式' }
+      if (isSpinning) return { ok: false }
+      return { ok: true }
+    },
+    onRoundStart: () => handleDrawRef.current(),
+    onError: (message) => addToast(message, 'error')
+  })
+
   useEffect(() => {
     setSoundIntensity(soundIntensity)
   }, [soundIntensity])
-
-  useEffect(() => {
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current)
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      if (autoDrawTimerRef.current) clearTimeout(autoDrawTimerRef.current)
-    }
-  }, [])
 
   useEffect(() => {
     const cleanup = window.electronAPI.onShortcutTriggered((action) => {
@@ -362,6 +326,15 @@ export function Home({
     }
   }, [currentClass, mode, previewStudentQuery, getPickPlan])
 
+  const { runSpinAnimation, runCharByCharReveal, prefersReducedMotion } = usePickAnimation({
+    onTick: (students) => {
+      setDisplayCandidates(students)
+      setCandidateKey((k) => k + 1)
+    },
+    onSlowDown: () => setPhase('slowing'),
+    onComplete: (winners) => finishDraw(winners)
+  })
+
   const finishDraw = useCallback(
     (preSelectedWinners: Student[]) => {
       if (!currentClass) return
@@ -392,21 +365,14 @@ export function Home({
           addToast(fallbackNotes.join('；'), 'info')
         }
 
-        const remaining = autoDrawRemainingRef.current
+        const remaining = autoDraw.getRemaining()
         if (mode === 'pick' && remaining > 1) {
-          const nextRemaining = remaining - 1
-          autoDrawRemainingRef.current = nextRemaining
-          setAutoDrawRemaining(nextRemaining)
-          if (autoDrawTimerRef.current) clearTimeout(autoDrawTimerRef.current)
-          autoDrawTimerRef.current = setTimeout(
-            () => {
-              handleDrawRef.current()
-            },
-            Math.max(2500, autoDrawIntervalMs) + (prefersReducedMotion ? 120 : revealSettleMs)
+          autoDraw.scheduleNextRound(
+            Math.max(AUTO_DRAW_MIN_INTERVAL_MS, autoDraw.autoDrawIntervalMs) +
+              (prefersReducedMotion ? 120 : revealSettleMs)
           )
         } else if (remaining > 0) {
-          autoDrawRemainingRef.current = 0
-          setAutoDrawRemaining(0)
+          autoDraw.resetRemaining()
         }
       } catch (err) {
         logger.error('Home', 'Failed to update stats or history', err)
@@ -420,7 +386,7 @@ export function Home({
       addHistoryRecord,
       addToast,
       mode,
-      autoDrawIntervalMs,
+      autoDraw,
       prefersReducedMotion,
       revealSettleMs
     ]
@@ -458,8 +424,6 @@ export function Home({
       setDisplayCandidates([])
       setShowConfetti(false)
       setPhase('spinning')
-      tickCountRef.current = 0
-      lastSoundAtRef.current = 0
 
       const countToPick = Math.min(requestedCount, activeStudents.length)
       const uniqueWinners = pickPlan.winners
@@ -483,77 +447,30 @@ export function Home({
       }
 
       if (animationStyle === 'charByChar') {
-        setDisplayCandidates(preSelectedWinners)
-        setCandidateKey((k) => k + 1)
-        setPhase('spinning')
-        // Keep char-by-char concise to avoid dragging
-        const maxChars = Math.max(...preSelectedWinners.map((w) => w.name.length), 1)
-        const revealDuration = Math.min(
-          2200 * sf * animationDurationScale,
-          (maxChars * 120 + 420) * sf * animationDurationScale
+        runCharByCharReveal(
+          { winners: preSelectedWinners, speedFactor: sf, durationScale: animationDurationScale },
+          {
+            onRevealStart: () => {
+              setDisplayCandidates(preSelectedWinners)
+              setCandidateKey((k) => k + 1)
+              setPhase('spinning')
+            },
+            onComplete: () => finishDraw(preSelectedWinners)
+          }
         )
-        timeoutRef.current = setTimeout(() => {
-          finishDraw(preSelectedWinners)
-        }, revealDuration)
         return
       }
 
-      const duration = prefersReducedMotion
-        ? ANIMATION_DURATION_REDUCED_MS
-        : ANIMATION_DURATION_MAP[animationSpeed] * sf * animationDurationScale
-      const startTime = performance.now()
-      let lastTickAt = startTime
-
-      const animate = (time: number): void => {
-        const elapsed = time - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        const eased = 1 - Math.pow(1 - progress, 4)
-        const interval = TICK_INTERVAL_MIN_MS + eased * TICK_INTERVAL_RANGE_MS
-
-        if (time - lastTickAt >= interval || progress >= 1) {
-          const currentRandoms =
-            progress > LOCK_IN_PROGRESS
-              ? preSelectedWinners
-              : pickUniqueStudents(activeStudents, countToPick)
-          setDisplayCandidates(currentRandoms)
-          setCandidateKey((k) => k + 1)
-          lastTickAt = time
-        }
-
-        if (soundEnabled && !prefersReducedMotion && progress < 1) {
-          const now = performance.now()
-          const baseGap = SOUND_GAP_BASE_MS[animationSpeed]
-          const effectiveGap = Math.max(
-            95,
-            Math.min(280, baseGap / Math.max(0.6, animationDurationScale))
-          )
-          if (now - lastSoundAtRef.current >= effectiveGap) {
-            tickCountRef.current++
-            if (animationStyle === 'typewriter') {
-              playTypewriterKey()
-            } else if (animationStyle === 'bounce') {
-              playBounceTick()
-            } else if (progress >= SLOW_DOWN_PROGRESS) {
-              playSlowTick()
-            } else {
-              playTick()
-            }
-            lastSoundAtRef.current = now
-          }
-        }
-
-        if (progress > SLOW_DOWN_PROGRESS && phase !== 'slowing') {
-          setPhase('slowing')
-        }
-
-        if (progress < 1) {
-          animationRef.current = requestAnimationFrame(animate)
-        } else {
-          finishDraw(preSelectedWinners)
-        }
-      }
-
-      animationRef.current = requestAnimationFrame(animate)
+      runSpinAnimation({
+        activeStudents,
+        preSelectedWinners,
+        countToPick,
+        animationStyle,
+        animationSpeed,
+        animationDurationScale,
+        soundEnabled,
+        speedFactor: sf
+      })
     },
     [
       isSpinning,
@@ -566,10 +483,10 @@ export function Home({
       sf,
       animationDurationScale,
       finishDraw,
-      prefersReducedMotion,
+      runSpinAnimation,
+      runCharByCharReveal,
       animationSpeed,
-      soundEnabled,
-      phase
+      soundEnabled
     ]
   )
 
@@ -766,15 +683,10 @@ export function Home({
         setImmersiveMode(false)
         setPhase('idle')
         setWinners([])
-        autoDrawRemainingRef.current = 0
-        setAutoDrawRemaining(0)
-        if (autoDrawTimerRef.current) {
-          clearTimeout(autoDrawTimerRef.current)
-          autoDrawTimerRef.current = null
-        }
+        autoDraw.resetRemaining()
       }
     },
-    [setImmersiveMode]
+    [setImmersiveMode, autoDraw]
   )
 
   const handleSelectClass = useCallback(
@@ -797,30 +709,6 @@ export function Home({
     })
   }, [addClass, addToast, showPrompt])
 
-  const startAutoDraw = useCallback(() => {
-    if (mode !== 'pick') {
-      addToast('请先切换到抽选模式', 'error')
-      return
-    }
-    if (isSpinning) return
-    const rounds = Math.max(1, autoDrawRounds)
-    autoDrawRemainingRef.current = rounds
-    setAutoDrawRemaining(rounds)
-    setAutoDrawEnabled(true)
-    setTimeout(() => {
-      handleDrawRef.current()
-    }, 0)
-  }, [mode, isSpinning, autoDrawRounds, addToast])
-
-  const stopAutoDraw = useCallback(() => {
-    autoDrawRemainingRef.current = 0
-    setAutoDrawRemaining(0)
-    if (autoDrawTimerRef.current) {
-      clearTimeout(autoDrawTimerRef.current)
-      autoDrawTimerRef.current = null
-    }
-  }, [])
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
@@ -832,16 +720,16 @@ export function Home({
       }
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && mode === 'pick') {
         event.preventDefault()
-        if (autoDrawRemainingRef.current > 0) {
-          stopAutoDraw()
+        if (autoDraw.isRunning()) {
+          autoDraw.stopAutoDraw()
         } else {
-          startAutoDraw()
+          autoDraw.startAutoDraw()
         }
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [mode, immersiveMode, startAutoDraw, stopAutoDraw, setExcludedMenuOpen, setImmersiveMode])
+  }, [mode, immersiveMode, autoDraw, setExcludedMenuOpen, setImmersiveMode])
 
   return (
     <div
@@ -945,15 +833,15 @@ export function Home({
 
                 {showAutoDraw && (
                   <AutoDrawBar
-                    autoDrawEnabled={autoDrawEnabled}
-                    onToggleEnabled={() => setAutoDrawEnabled((v) => !v)}
-                    autoDrawRounds={autoDrawRounds}
-                    onRoundsChange={setAutoDrawRounds}
-                    autoDrawIntervalMs={autoDrawIntervalMs}
-                    onIntervalChange={setAutoDrawIntervalMs}
-                    autoDrawRemaining={autoDrawRemaining}
-                    onStart={startAutoDraw}
-                    onStop={stopAutoDraw}
+                    autoDrawEnabled={autoDraw.autoDrawEnabled}
+                    onToggleEnabled={autoDraw.toggleEnabled}
+                    autoDrawRounds={autoDraw.autoDrawRounds}
+                    onRoundsChange={autoDraw.setAutoDrawRounds}
+                    autoDrawIntervalMs={autoDraw.autoDrawIntervalMs}
+                    onIntervalChange={autoDraw.setAutoDrawIntervalMs}
+                    autoDrawRemaining={autoDraw.autoDrawRemaining}
+                    onStart={autoDraw.startAutoDraw}
+                    onStop={autoDraw.stopAutoDraw}
                     isSpinning={isSpinning}
                     canDraw={!!currentClass && currentClass.students.length > 0}
                   />

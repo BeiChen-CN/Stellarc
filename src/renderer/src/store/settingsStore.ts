@@ -306,16 +306,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       try {
         const data = await window.electronAPI.readJson('settings.json')
         if (data && typeof data === 'object' && !Array.isArray(data)) {
-        const raw = data as Record<string, unknown>
-        // 未知主题值回退默认。m3-* 旧主题名的迁移由主进程负责
-        // （migrations/versions/settings.v2.ts），渲染层不再重复维护映射
-        if (typeof raw.colorTheme === 'string' && !VALID_THEME_IDS.has(raw.colorTheme)) {
-          raw.colorTheme = defaults.colorTheme
-        }
-        // 只采纳已知键（v2 文件携带的 _meta 等元数据不进入 store 状态）
-        const rawSettings = Object.fromEntries(
-          Object.entries(raw).filter(([key]) => key in defaults)
-        ) as Partial<SettingsData>
+          const raw = data as Record<string, unknown>
+          // 未知主题值回退默认。m3-* 旧主题名的迁移由主进程负责
+          // （migrations/versions/settings.v2.ts），渲染层不再重复维护映射
+          if (typeof raw.colorTheme === 'string' && !VALID_THEME_IDS.has(raw.colorTheme)) {
+            raw.colorTheme = defaults.colorTheme
+          }
+          // 只采纳已知键（v2 文件携带的 _meta 等元数据不进入 store 状态）
+          const rawSettings = Object.fromEntries(
+            Object.entries(raw).filter(([key]) => key in defaults)
+          ) as Partial<SettingsData>
           const next = {
             ...defaults,
             ...rawSettings,
