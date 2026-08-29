@@ -108,10 +108,10 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(filePath).href)
   })
 
-  // Set app user model id for windows
-  // Windows 通知/任务栏分组身份。沿用旧 com.spotlight.classroom 会导致
-  // 已安装用户升级后通知归属变化，计划随下一个大版本迁移到 com.stellarc.app
-  electronApp.setAppUserModelId('com.spotlight.classroom')
+  // Windows 通知/任务栏分组的应用身份。
+  // 由旧项目遗留的 com.spotlight.classroom 迁移而来：已安装用户升级后
+  // 该应用的系统通知将归入新的身份（属一次性可感知变化，见 CHANGELOG）
+  electronApp.setAppUserModelId('com.stellarc.app')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
