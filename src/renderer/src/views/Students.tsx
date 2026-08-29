@@ -16,22 +16,21 @@ import {
   BadgeCheck,
   Undo2,
   Clock3,
-  ChevronDown,
-  Check,
   PencilLine
 } from 'lucide-react'
-import { useState, useCallback, useRef, useMemo, useEffect, type ReactElement } from 'react'
+import { useState, useCallback, useRef, useMemo, type ReactElement } from 'react'
 import { cn } from '../lib/utils'
-import { Student } from '../types'
 import { logger } from '../lib/logger'
+import {
+  parseStudentImportRows,
+  buildUniqueImportedStudents,
+  createStudent
+} from '../lib/studentImport'
 import { StudentMobileCard, StudentRow } from './students/StudentRow'
 import { StatePanel } from '../components/StatePanel'
+import { Dropdown, type DropdownOption } from '../components/Dropdown'
 
-interface DropdownOption {
-  value: string
-  label: string
-}
-
+/** 表格行内紧凑下拉（交互逻辑复用 components/Dropdown） */
 function InlineSelect({
   value,
   options,
@@ -43,146 +42,17 @@ function InlineSelect({
   onChange: (value: string) => void
   placeholder: string
 }): ReactElement {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const current = options.find((item) => item.value === value)
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        className="px-2.5 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none cursor-pointer inline-flex items-center gap-1.5"
-      >
-        <span>{current?.label || placeholder}</span>
-        <ChevronDown className={cn('w-3.5 h-3.5 text-on-surface-variant', open && 'rotate-180')} />
-      </button>
-      {open && (
-        <div className="absolute z-30 mt-1 min-w-[150px] max-h-56 overflow-y-auto custom-scrollbar rounded-xl border border-outline-variant/30 bg-surface-container p-1 elevation-2">
-          {options.map((item) => (
-            <button
-              key={item.value}
-              onClick={() => {
-                onChange(item.value)
-                setOpen(false)
-              }}
-              className={cn(
-                'w-full text-left px-2 py-1.5 text-xs rounded-lg inline-flex items-center gap-1.5 cursor-pointer',
-                value === item.value
-                  ? 'bg-secondary-container text-secondary-container-foreground'
-                  : 'text-on-surface hover:bg-surface-container-high'
-              )}
-            >
-              <span className="w-3.5 h-3.5 inline-flex items-center justify-center shrink-0">
-                {value === item.value ? <Check className="w-3.5 h-3.5" /> : null}
-              </span>
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Dropdown
+      value={value}
+      options={options}
+      onChange={onChange}
+      placeholder={placeholder}
+      triggerClassName="px-2.5 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none cursor-pointer inline-flex items-center gap-1.5"
+      panelClassName="absolute z-30 mt-1 min-w-[150px] max-h-56 overflow-y-auto custom-scrollbar rounded-xl border border-outline-variant/30 bg-surface-container p-1 elevation-2"
+      itemClassName="w-full text-left px-2 py-1.5 text-xs rounded-lg cursor-pointer"
+    />
   )
-}
-
-function parseStudentImportRows(
-  content: string
-): Array<Pick<Student, 'name' | 'studentId' | 'gender' | 'weight' | 'score' | 'status'>> {
-  const lines = content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-
-  if (lines.length === 0) return []
-
-  const detectDelimiter = (line: string): string => {
-    if (line.includes('\t')) return '\t'
-    if (line.includes('，')) return '，'
-    if (line.includes(',')) return ','
-    return ''
-  }
-
-  const delimiter = detectDelimiter(lines[0])
-  if (!delimiter) {
-    return lines.map((name) => ({ name, weight: 1, score: 0, status: 'active' as const }))
-  }
-
-  const split = (line: string): string[] => line.split(delimiter).map((cell) => cell.trim())
-  const first = split(lines[0]).map((h) => h.toLowerCase())
-  const hasHeader = first.some((h) =>
-    [
-      'name',
-      '姓名',
-      'studentid',
-      '学号',
-      'gender',
-      '性别',
-      'weight',
-      '权重',
-      'score',
-      '积分',
-      'status',
-      '状态'
-    ].includes(h)
-  )
-
-  const rows = hasHeader ? lines.slice(1) : lines
-  const header = hasHeader ? first : ['name', 'studentId', 'gender', 'weight', 'score', 'status']
-  const indexOf = (keys: string[]): number => header.findIndex((h) => keys.includes(h))
-
-  const nameIdx = indexOf(['name', '姓名'])
-  const studentIdIdx = indexOf(['studentid', '学号'])
-  const genderIdx = indexOf(['gender', '性别'])
-  const weightIdx = indexOf(['weight', '权重'])
-  const scoreIdx = indexOf(['score', '积分'])
-  const statusIdx = indexOf(['status', '状态'])
-
-  return rows
-    .map((line) => split(line))
-    .map((cells) => {
-      const rawName = ((nameIdx >= 0 ? cells[nameIdx] : cells[0]) || '').slice(0, 50)
-      const name = rawName.replace(/[<>"'&]/g, '')
-      const rawStudentId = studentIdIdx >= 0 ? cells[studentIdIdx] : undefined
-      const studentId = rawStudentId?.slice(0, 30)
-      const genderRaw = ((genderIdx >= 0 ? cells[genderIdx] : '') || '').toLowerCase()
-      const gender: 'male' | 'female' | undefined =
-        genderRaw === 'male' || genderRaw === '男' || genderRaw === 'm'
-          ? 'male'
-          : genderRaw === 'female' || genderRaw === '女' || genderRaw === 'f'
-            ? 'female'
-            : undefined
-      const weightRaw = weightIdx >= 0 ? Number(cells[weightIdx]) : 1
-      const scoreRaw = scoreIdx >= 0 ? Number(cells[scoreIdx]) : 0
-      const statusRaw = (statusIdx >= 0 ? cells[statusIdx] : 'active') || 'active'
-
-      const normalizedStatus =
-        statusRaw === 'absent' || statusRaw === '缺席'
-          ? 'absent'
-          : statusRaw === 'excluded' || statusRaw === '排除'
-            ? 'excluded'
-            : 'active'
-
-      return {
-        name,
-        studentId: studentId || undefined,
-        gender,
-        weight: Number.isFinite(weightRaw) && weightRaw > 0 ? Math.floor(weightRaw) : 1,
-        score: Number.isFinite(scoreRaw) ? Math.floor(scoreRaw) : 0,
-        status: normalizedStatus as 'active' | 'absent' | 'excluded'
-      }
-    })
-    .filter((row) => row.name.length > 0)
 }
 
 export function Students(): ReactElement {
@@ -376,14 +246,7 @@ export function Students(): ReactElement {
 
   const handleAddStudent = useCallback(() => {
     if (newStudentName.trim() && currentClassId) {
-      addStudent(currentClassId, {
-        id: crypto.randomUUID(),
-        name: newStudentName.trim(),
-        pickCount: 0,
-        score: 0,
-        weight: 1,
-        status: 'active'
-      })
+      addStudent(currentClassId, createStudent(newStudentName.trim()))
       setNewStudentName('')
     }
   }, [newStudentName, currentClassId, addStudent])
@@ -540,16 +403,6 @@ export function Students(): ReactElement {
     [showConfirm, removeStudent]
   )
 
-  const existingStudentKeys = useMemo(
-    () =>
-      new Set(
-        (currentClass?.students || []).map((student) =>
-          `${student.name}::${student.studentId || ''}`.toLowerCase()
-        )
-      ),
-    [currentClass]
-  )
-
   const handleImportStudents = useCallback(async (): Promise<void> => {
     if (!currentClassId) return
 
@@ -568,25 +421,7 @@ export function Students(): ReactElement {
           return
         }
 
-        const existingSet = new Set(existingStudentKeys)
-
-        const newStudents = parsedRows
-          .filter((row) => {
-            const key = `${row.name}::${row.studentId || ''}`.toLowerCase()
-            if (existingSet.has(key)) return false
-            existingSet.add(key)
-            return true
-          })
-          .map((row) => ({
-            id: crypto.randomUUID(),
-            name: row.name,
-            studentId: row.studentId,
-            gender: row.gender,
-            pickCount: 0,
-            score: row.score,
-            weight: row.weight,
-            status: row.status
-          }))
+        const newStudents = buildUniqueImportedStudents(parsedRows, currentClass?.students || [])
 
         if (newStudents.length === 0) {
           addToast('没有可导入的新学生（已自动去重）。', 'error')
@@ -600,7 +435,7 @@ export function Students(): ReactElement {
         addToast('导入失败，请检查文件格式。', 'error')
       }
     }
-  }, [currentClassId, existingStudentKeys, addStudents, addToast])
+  }, [currentClassId, currentClass, addStudents, addToast])
 
   const handleExportStudents = useCallback(async () => {
     if (!currentClass || currentClass.students.length === 0) return

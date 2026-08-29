@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { useToastStore } from './toastStore'
 import { logger } from '../lib/logger'
+import type { SoundIntensity } from '../types'
+
+export type { SoundIntensity }
 
 export type ColorTheme =
   | 'blue'
@@ -60,8 +63,6 @@ export type AnimationStyle =
 export type AnimationSpeed = 'elegant' | 'balanced' | 'fast'
 
 export type ImmersiveIslandStyle = 'classic' | 'beam' | 'slot' | 'pulse'
-
-type SoundIntensity = 'low' | 'medium' | 'high'
 
 type StrategyPreset = string
 
@@ -263,84 +264,13 @@ const legacySettingKeys = new Set([
 
 const saveSettings = async (state: SettingsData): Promise<void> => {
   try {
-    const {
-      theme,
-      colorTheme,
-      customColor,
-      designStyle,
-      showStudentId,
-      photoMode,
-      soundEnabled,
-      soundIntensity,
-      confettiEnabled,
-      m3Mode,
-      backgroundImage,
-      projectorMode,
-      showTemporaryExclusion,
-      showAutoDraw,
-      showSelectionExplanation,
-      showPickGenderFilter,
-      showPickEligibleCount,
-      showPickPreviewPanel,
-      showPickMissReasonPanel,
-      showTaskScorePanel,
-      showBatchEditPanel,
-      showScoreLogPanel,
-      showGroupTaskTemplatePanel,
-      colorThemesExpanded,
-      onboardingCompleted,
-      revealSettleMs,
-      animationStyle,
-      animationSpeed,
-      animationDurationScale,
-      immersiveIslandStyle,
-      dynamicColor,
-      fairness,
-      pickCount,
-      maxHistoryRecords,
-      shortcutKey,
-      semester,
-      scoreRules
-    } = state
-    await window.electronAPI.writeJson('settings.json', {
-      theme,
-      colorTheme,
-      customColor,
-      designStyle,
-      showStudentId,
-      photoMode,
-      soundEnabled,
-      soundIntensity,
-      confettiEnabled,
-      m3Mode,
-      backgroundImage,
-      projectorMode,
-      showTemporaryExclusion,
-      showAutoDraw,
-      showSelectionExplanation,
-      showPickGenderFilter,
-      showPickEligibleCount,
-      showPickPreviewPanel,
-      showPickMissReasonPanel,
-      showTaskScorePanel,
-      showBatchEditPanel,
-      showScoreLogPanel,
-      showGroupTaskTemplatePanel,
-      colorThemesExpanded,
-      onboardingCompleted,
-      revealSettleMs,
-      animationStyle,
-      animationSpeed,
-      animationDurationScale,
-      immersiveIslandStyle,
-      dynamicColor,
-      fairness,
-      pickCount,
-      maxHistoryRecords,
-      shortcutKey,
-      semester,
-      scoreRules
-    })
+    // 持久化字段 = defaults 的全部键：新增设置项只需在 SettingsData 与
+    // defaults 中各加一行，此处自动跟随，无需再手工罗列
+    const payload: Record<string, unknown> = {}
+    for (const key of Object.keys(defaults) as Array<keyof SettingsData>) {
+      payload[key] = state[key]
+    }
+    await window.electronAPI.writeJson('settings.json', payload)
   } catch (e) {
     logger.error('SettingsStore', 'Failed to save settings', e)
     useToastStore.getState().addToast('设置保存失败，请检查磁盘空间', 'error')
@@ -356,216 +286,224 @@ const updateAndSave = (
   saveSettings(get())
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
-  ...defaults,
-  dynamicColorPalette: null,
+export const useSettingsStore = create<SettingsState>((set, get) => {
+  type BooleanSettingKey = Exclude<
+    { [K in keyof SettingsData]: SettingsData[K] extends boolean ? K : never }[keyof SettingsData],
+    undefined
+  >
 
-  loadSettings: async () => {
-    try {
-      const data = await window.electronAPI.readJson('settings.json')
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
-        const raw = data as Record<string, unknown>
-        // Migrate old m3-* color themes to new names
-        const m3Migration: Record<string, ColorTheme> = {
-          'm3-indigo': 'blue',
-          'm3-sakura': 'sakura',
-          'm3-forest': 'forest',
-          'm3-ocean': 'ocean',
-          'm3-mocha': 'mocha'
-        }
-        if (typeof raw.colorTheme === 'string' && raw.colorTheme in m3Migration) {
-          raw.colorTheme = m3Migration[raw.colorTheme]
-          // Auto-enable m3Mode when migrating from old m3 themes
-          if (raw.m3Mode === undefined) {
-            raw.m3Mode = true
-          }
-        }
-        const rawSettings = Object.fromEntries(
-          Object.entries(raw).filter(([key]) => !legacySettingKeys.has(key))
-        )
-        const next = {
-          ...defaults,
-          ...rawSettings,
-          immersiveIslandStyle:
-            typeof rawSettings.immersiveIslandStyle === 'string' &&
-            ['classic', 'beam', 'slot', 'pulse'].includes(rawSettings.immersiveIslandStyle)
-              ? (rawSettings.immersiveIslandStyle as ImmersiveIslandStyle)
-              : defaults.immersiveIslandStyle,
-          showTemporaryExclusion: false,
-          showAutoDraw: false,
-          showSelectionExplanation: false,
-          showPickGenderFilter: false,
-          showPickEligibleCount: false,
-          showPickPreviewPanel: false,
-          showPickMissReasonPanel: false,
-          scoreRules:
-            typeof raw.scoreRules === 'object' && raw.scoreRules
-              ? {
-                  ...defaults.scoreRules,
-                  ...(raw.scoreRules as SettingsData['scoreRules'])
-                }
-              : defaults.scoreRules,
-          fairness: {
-            ...defaults.fairness,
-            ...(typeof raw.fairness === 'object' && raw.fairness ? raw.fairness : {})
-          }
-        }
-        set(next)
-        const key = (raw as Partial<SettingsData>).shortcutKey
-        if (key) {
-          const success = await window.electronAPI.registerShortcut(key, 'pick')
-          if (!success) {
-            set({ shortcutKey: '' })
-            saveSettings({ ...get(), shortcutKey: '' })
-            useToastStore
-              .getState()
-              .addToast(`快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`, 'error')
-          }
-        }
-      }
-    } catch (e) {
-      logger.error('SettingsStore', 'Failed to load settings', e)
-    }
-  },
+  /** 通用布尔设置翻转：字段名只出现一次，避免 getter/setter 手写不一致 */
+  const flip = (key: BooleanSettingKey) => (): void => {
+    const partial: Partial<SettingsData> = {}
+    partial[key] = !get()[key]
+    updateAndSave(partial, set, get)
+  }
 
-  setTheme: (theme) => updateAndSave({ theme }, set, get),
-  setColorTheme: (colorTheme) => updateAndSave({ colorTheme }, set, get),
-  setDesignStyle: (designStyle) => updateAndSave({ designStyle }, set, get),
-  toggleShowStudentId: () => updateAndSave({ showStudentId: !get().showStudentId }, set, get),
-  togglePhotoMode: () => updateAndSave({ photoMode: !get().photoMode }, set, get),
-  toggleSoundEnabled: () => updateAndSave({ soundEnabled: !get().soundEnabled }, set, get),
-  setSoundIntensity: (soundIntensity) => updateAndSave({ soundIntensity }, set, get),
-  toggleConfettiEnabled: () => updateAndSave({ confettiEnabled: !get().confettiEnabled }, set, get),
-  toggleM3Mode: () => updateAndSave({ m3Mode: !get().m3Mode }, set, get),
-  toggleProjectorMode: () => updateAndSave({ projectorMode: !get().projectorMode }, set, get),
-  toggleShowTemporaryExclusion: () =>
-    updateAndSave({ showTemporaryExclusion: !get().showTemporaryExclusion }, set, get),
-  toggleShowAutoDraw: () => updateAndSave({ showAutoDraw: !get().showAutoDraw }, set, get),
-  toggleShowSelectionExplanation: () =>
-    updateAndSave({ showSelectionExplanation: !get().showSelectionExplanation }, set, get),
-  toggleShowPickGenderFilter: () =>
-    updateAndSave(
-      {
-        showPickGenderFilter: !get().showPickGenderFilter,
-        showPickEligibleCount: !get().showPickGenderFilter ? get().showPickEligibleCount : false
-      },
-      set,
-      get
-    ),
-  toggleShowPickEligibleCount: () =>
-    updateAndSave({ showPickEligibleCount: !get().showPickEligibleCount }, set, get),
-  toggleShowPickPreviewPanel: () =>
-    updateAndSave({ showPickPreviewPanel: !get().showPickPreviewPanel }, set, get),
-  toggleShowPickMissReasonPanel: () =>
-    updateAndSave({ showPickMissReasonPanel: !get().showPickMissReasonPanel }, set, get),
-  toggleShowTaskScorePanel: () =>
-    updateAndSave({ showTaskScorePanel: !get().showTaskScorePanel }, set, get),
-  toggleShowBatchEditPanel: () =>
-    updateAndSave({ showBatchEditPanel: !get().showBatchEditPanel }, set, get),
-  toggleShowScoreLogPanel: () =>
-    updateAndSave({ showScoreLogPanel: !get().showScoreLogPanel }, set, get),
-  toggleShowGroupTaskTemplatePanel: () =>
-    updateAndSave({ showGroupTaskTemplatePanel: !get().showGroupTaskTemplatePanel }, set, get),
-  setColorThemesExpanded: (colorThemesExpanded) =>
-    updateAndSave({ colorThemesExpanded }, set, get),
-  completeOnboarding: () => updateAndSave({ onboardingCompleted: true }, set, get),
-  resetOnboarding: () => updateAndSave({ onboardingCompleted: false }, set, get),
-  setRevealSettleMs: (revealSettleMs) =>
-    updateAndSave({ revealSettleMs: Math.max(0, Math.min(5000, revealSettleMs)) }, set, get),
-  setBackgroundImage: (path) => {
-    updateAndSave({ backgroundImage: path }, set, get)
-    if (get().dynamicColor && path) {
-      get().extractAndApplyDynamicColor()
-    } else if (!path) {
-      set({ dynamicColorPalette: null })
-    }
-  },
-  setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
-  setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
-  setAnimationDurationScale: (scale) =>
-    updateAndSave({ animationDurationScale: Math.max(0.6, Math.min(1.8, scale)) }, set, get),
-  setImmersiveIslandStyle: (immersiveIslandStyle) =>
-    updateAndSave({ immersiveIslandStyle }, set, get),
-  setCustomColor: (color) => updateAndSave({ customColor: color }, set, get),
-  setFairness: (fairness) => updateAndSave({ fairness }, set, get),
-  setPickCount: (count) => updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
-  setMaxHistoryRecords: async (max) => {
-    updateAndSave({ maxHistoryRecords: max }, set, get)
-    // Trigger immediate truncation in historyStore
-    try {
-      const { useHistoryStore } = await import('./historyStore')
-      const historyState = useHistoryStore.getState()
-      if (historyState.history.length > max) {
-        const trimmed = historyState.history.slice(0, max)
-        useHistoryStore.setState({ history: trimmed })
-        await window.electronAPI.writeJson('history.json', { records: trimmed })
+  return {
+    ...defaults,
+    dynamicColorPalette: null,
+
+    loadSettings: async () => {
+      try {
+        const data = await window.electronAPI.readJson('settings.json')
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          const raw = data as Record<string, unknown>
+          // Migrate old m3-* color themes to new names
+          const m3Migration: Record<string, ColorTheme> = {
+            'm3-indigo': 'blue',
+            'm3-sakura': 'sakura',
+            'm3-forest': 'forest',
+            'm3-ocean': 'ocean',
+            'm3-mocha': 'mocha'
+          }
+          if (typeof raw.colorTheme === 'string' && raw.colorTheme in m3Migration) {
+            raw.colorTheme = m3Migration[raw.colorTheme]
+            // Auto-enable m3Mode when migrating from old m3 themes
+            if (raw.m3Mode === undefined) {
+              raw.m3Mode = true
+            }
+          }
+          const rawSettings = Object.fromEntries(
+            Object.entries(raw).filter(([key]) => !legacySettingKeys.has(key))
+          )
+          const next = {
+            ...defaults,
+            ...rawSettings,
+            immersiveIslandStyle:
+              typeof rawSettings.immersiveIslandStyle === 'string' &&
+              ['classic', 'beam', 'slot', 'pulse'].includes(rawSettings.immersiveIslandStyle)
+                ? (rawSettings.immersiveIslandStyle as ImmersiveIslandStyle)
+                : defaults.immersiveIslandStyle,
+            showTemporaryExclusion: false,
+            showAutoDraw: false,
+            showSelectionExplanation: false,
+            showPickGenderFilter: false,
+            showPickEligibleCount: false,
+            showPickPreviewPanel: false,
+            showPickMissReasonPanel: false,
+            scoreRules:
+              typeof raw.scoreRules === 'object' && raw.scoreRules
+                ? {
+                    ...defaults.scoreRules,
+                    ...(raw.scoreRules as SettingsData['scoreRules'])
+                  }
+                : defaults.scoreRules,
+            fairness: {
+              ...defaults.fairness,
+              ...(typeof raw.fairness === 'object' && raw.fairness ? raw.fairness : {})
+            }
+          }
+          set(next)
+          const key = (raw as Partial<SettingsData>).shortcutKey
+          if (key) {
+            const success = await window.electronAPI.registerShortcut(key, 'pick')
+            if (!success) {
+              set({ shortcutKey: '' })
+              saveSettings({ ...get(), shortcutKey: '' })
+              useToastStore
+                .getState()
+                .addToast(`快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`, 'error')
+            }
+          }
+        }
+      } catch (e) {
+        logger.error('SettingsStore', 'Failed to load settings', e)
       }
-    } catch (e) {
-      logger.error('SettingsStore', 'Failed to truncate history', e)
-    }
-  },
-  setShortcutKey: async (key) => {
-    const prev = get().shortcutKey
-    const success = await window.electronAPI.registerShortcut(key, 'pick')
-    if (!success) {
-      return false
-    }
-    set({ shortcutKey: key })
-    await saveSettings(get())
-    if (!key && prev) {
-      set({ shortcutKey: '' })
-    }
-    return true
-  },
-  toggleDynamicColor: () => {
-    const next = !get().dynamicColor
-    updateAndSave({ dynamicColor: next }, set, get)
-    if (next && get().backgroundImage) {
-      get().extractAndApplyDynamicColor()
-    } else if (!next) {
-      set({ dynamicColorPalette: null })
-    }
-  },
-  setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
-  setSemester: (semester) => updateAndSave({ semester }, set, get),
-  setScoreRules: (scoreRules) => {
-    const safe = {
-      maxScorePerStudent: Math.trunc(
-        Math.max(-9999, Math.min(9999, scoreRules.maxScorePerStudent))
+    },
+
+    setTheme: (theme) => updateAndSave({ theme }, set, get),
+    setColorTheme: (colorTheme) => updateAndSave({ colorTheme }, set, get),
+    setDesignStyle: (designStyle) => updateAndSave({ designStyle }, set, get),
+    toggleShowStudentId: flip('showStudentId'),
+    togglePhotoMode: flip('photoMode'),
+    toggleSoundEnabled: flip('soundEnabled'),
+    setSoundIntensity: (soundIntensity) => updateAndSave({ soundIntensity }, set, get),
+    toggleConfettiEnabled: flip('confettiEnabled'),
+    toggleM3Mode: flip('m3Mode'),
+    toggleProjectorMode: flip('projectorMode'),
+    toggleShowTemporaryExclusion: flip('showTemporaryExclusion'),
+    toggleShowAutoDraw: flip('showAutoDraw'),
+    toggleShowSelectionExplanation: flip('showSelectionExplanation'),
+    toggleShowPickGenderFilter: () =>
+      updateAndSave(
+        {
+          showPickGenderFilter: !get().showPickGenderFilter,
+          showPickEligibleCount: !get().showPickGenderFilter ? get().showPickEligibleCount : false
+        },
+        set,
+        get
       ),
-      minScorePerStudent: Math.trunc(
-        Math.max(-9999, Math.min(9999, scoreRules.minScorePerStudent))
-      ),
-      maxDeltaPerOperation: Math.trunc(Math.max(1, Math.min(999, scoreRules.maxDeltaPerOperation))),
-      preventDuplicateTaskPerDay: scoreRules.preventDuplicateTaskPerDay,
-      taskDailyLimitPerStudent: Math.trunc(
-        Math.max(1, Math.min(50, scoreRules.taskDailyLimitPerStudent))
-      ),
-      allowRepeatTasks: (scoreRules.allowRepeatTasks || [])
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0)
-        .slice(0, 30),
-      blockedTasks: (scoreRules.blockedTasks || [])
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0)
-        .slice(0, 30)
-    }
-    if (safe.minScorePerStudent > safe.maxScorePerStudent) {
-      const tmp = safe.minScorePerStudent
-      safe.minScorePerStudent = safe.maxScorePerStudent
-      safe.maxScorePerStudent = tmp
-    }
-    updateAndSave({ scoreRules: safe }, set, get)
-  },
-  extractAndApplyDynamicColor: async () => {
-    const { backgroundImage } = get()
-    if (!backgroundImage) return
-    try {
-      const result = await window.electronAPI.extractWallpaperColors(backgroundImage)
-      set({ dynamicColorPalette: result })
-    } catch (e) {
-      logger.error('SettingsStore', 'Failed to extract wallpaper colors', e)
-      set({ dynamicColorPalette: null })
+    toggleShowPickEligibleCount: flip('showPickEligibleCount'),
+    toggleShowPickPreviewPanel: flip('showPickPreviewPanel'),
+    toggleShowPickMissReasonPanel: flip('showPickMissReasonPanel'),
+    toggleShowTaskScorePanel: flip('showTaskScorePanel'),
+    toggleShowBatchEditPanel: flip('showBatchEditPanel'),
+    toggleShowScoreLogPanel: flip('showScoreLogPanel'),
+    toggleShowGroupTaskTemplatePanel: flip('showGroupTaskTemplatePanel'),
+    setColorThemesExpanded: (colorThemesExpanded) =>
+      updateAndSave({ colorThemesExpanded }, set, get),
+    completeOnboarding: () => updateAndSave({ onboardingCompleted: true }, set, get),
+    resetOnboarding: () => updateAndSave({ onboardingCompleted: false }, set, get),
+    setRevealSettleMs: (revealSettleMs) =>
+      updateAndSave({ revealSettleMs: Math.max(0, Math.min(5000, revealSettleMs)) }, set, get),
+    setBackgroundImage: (path) => {
+      updateAndSave({ backgroundImage: path }, set, get)
+      if (get().dynamicColor && path) {
+        get().extractAndApplyDynamicColor()
+      } else if (!path) {
+        set({ dynamicColorPalette: null })
+      }
+    },
+    setAnimationStyle: (style) => updateAndSave({ animationStyle: style }, set, get),
+    setAnimationSpeed: (speed) => updateAndSave({ animationSpeed: speed }, set, get),
+    setAnimationDurationScale: (scale) =>
+      updateAndSave({ animationDurationScale: Math.max(0.6, Math.min(1.8, scale)) }, set, get),
+    setImmersiveIslandStyle: (immersiveIslandStyle) =>
+      updateAndSave({ immersiveIslandStyle }, set, get),
+    setCustomColor: (color) => updateAndSave({ customColor: color }, set, get),
+    setFairness: (fairness) => updateAndSave({ fairness }, set, get),
+    setPickCount: (count) =>
+      updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
+    setMaxHistoryRecords: async (max) => {
+      updateAndSave({ maxHistoryRecords: max }, set, get)
+      // Trigger immediate truncation in historyStore
+      try {
+        const { useHistoryStore } = await import('./historyStore')
+        const historyState = useHistoryStore.getState()
+        if (historyState.history.length > max) {
+          const trimmed = historyState.history.slice(0, max)
+          useHistoryStore.setState({ history: trimmed })
+          await window.electronAPI.writeJson('history.json', { records: trimmed })
+        }
+      } catch (e) {
+        logger.error('SettingsStore', 'Failed to truncate history', e)
+      }
+    },
+    setShortcutKey: async (key) => {
+      const prev = get().shortcutKey
+      const success = await window.electronAPI.registerShortcut(key, 'pick')
+      if (!success) {
+        return false
+      }
+      set({ shortcutKey: key })
+      await saveSettings(get())
+      if (!key && prev) {
+        set({ shortcutKey: '' })
+      }
+      return true
+    },
+    toggleDynamicColor: () => {
+      const next = !get().dynamicColor
+      updateAndSave({ dynamicColor: next }, set, get)
+      if (next && get().backgroundImage) {
+        get().extractAndApplyDynamicColor()
+      } else if (!next) {
+        set({ dynamicColorPalette: null })
+      }
+    },
+    setDynamicColorPalette: (palette) => set({ dynamicColorPalette: palette }),
+    setSemester: (semester) => updateAndSave({ semester }, set, get),
+    setScoreRules: (scoreRules) => {
+      const safe = {
+        maxScorePerStudent: Math.trunc(
+          Math.max(-9999, Math.min(9999, scoreRules.maxScorePerStudent))
+        ),
+        minScorePerStudent: Math.trunc(
+          Math.max(-9999, Math.min(9999, scoreRules.minScorePerStudent))
+        ),
+        maxDeltaPerOperation: Math.trunc(
+          Math.max(1, Math.min(999, scoreRules.maxDeltaPerOperation))
+        ),
+        preventDuplicateTaskPerDay: scoreRules.preventDuplicateTaskPerDay,
+        taskDailyLimitPerStudent: Math.trunc(
+          Math.max(1, Math.min(50, scoreRules.taskDailyLimitPerStudent))
+        ),
+        allowRepeatTasks: (scoreRules.allowRepeatTasks || [])
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+          .slice(0, 30),
+        blockedTasks: (scoreRules.blockedTasks || [])
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+          .slice(0, 30)
+      }
+      if (safe.minScorePerStudent > safe.maxScorePerStudent) {
+        const tmp = safe.minScorePerStudent
+        safe.minScorePerStudent = safe.maxScorePerStudent
+        safe.maxScorePerStudent = tmp
+      }
+      updateAndSave({ scoreRules: safe }, set, get)
+    },
+    extractAndApplyDynamicColor: async () => {
+      const { backgroundImage } = get()
+      if (!backgroundImage) return
+      try {
+        const result = await window.electronAPI.extractWallpaperColors(backgroundImage)
+        set({ dynamicColorPalette: result })
+      } catch (e) {
+        logger.error('SettingsStore', 'Failed to extract wallpaper colors', e)
+        set({ dynamicColorPalette: null })
+      }
     }
   }
-}))
+})

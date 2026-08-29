@@ -13,14 +13,15 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Check,
   Play,
   Pause,
   SkipForward,
   FileText
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { escapeCsvCell } from '../lib/csv'
 import { logger } from '../lib/logger'
+import { Dropdown } from '../components/Dropdown'
 
 function summarizeNames(names: string[], max = 6): string {
   if (names.length <= max) return names.join('、')
@@ -156,22 +157,21 @@ export function History(): ReactElement {
       filters: [{ name: 'CSV 文件', extensions: ['csv'] }]
     })
     if (filePath) {
-      const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
       const header = '时间,班级,抽中学生'
       const rows = history.map((r) => {
         const time = new Date(r.timestamp).toLocaleString()
         const names = r.pickedStudents.map((s) => s.name).join('、')
-        return `${escapeCsv(time)},${escapeCsv(r.className)},${escapeCsv(names)}`
+        return `${escapeCsvCell(time)},${escapeCsvCell(r.className)},${escapeCsvCell(names)}`
       })
-    const csv = '\uFEFF' + [header, ...rows].join('\n')
-    try {
-      await window.electronAPI.writeExportFile(filePath, csv)
-      addToast('历史记录已导出！', 'success')
-    } catch (error) {
-      logger.error('History', 'CSV export failed:', error)
-      addToast('导出失败。', 'error')
+      const csv = '\uFEFF' + [header, ...rows].join('\n')
+      try {
+        await window.electronAPI.writeExportFile(filePath, csv)
+        addToast('历史记录已导出！', 'success')
+      } catch (error) {
+        logger.error('History', 'CSV export failed:', error)
+        addToast('导出失败。', 'error')
+      }
     }
-  }
   }
 
   const handleExportStructuredCSV = async (): Promise<void> => {
@@ -186,7 +186,6 @@ export function History(): ReactElement {
     })
     if (!filePath) return
 
-    const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
     const lines: string[] = []
 
     lines.push('事件时间,事件类型,班级,学生名单,人数,任务名称,任务分值,策略预设,冷却轮次,说明')
@@ -224,7 +223,7 @@ export function History(): ReactElement {
           cooldownRounds,
           note
         ]
-          .map((cell) => escapeCsv(cell))
+          .map((cell) => escapeCsvCell(cell))
           .join(',')
       )
     })
@@ -241,7 +240,7 @@ export function History(): ReactElement {
             String(student.pickCount),
             (student.tags || []).join(' / ')
           ]
-            .map((cell) => escapeCsv(cell))
+            .map((cell) => escapeCsvCell(cell))
             .join(',')
         )
       })
@@ -841,6 +840,7 @@ export function History(): ReactElement {
   )
 }
 
+/** 班级筛选下拉（交互逻辑复用 components/Dropdown） */
 function ClassFilterDropdown({
   value,
   options,
@@ -850,60 +850,19 @@ function ClassFilterDropdown({
   options: string[]
   onChange: (v: string) => void
 }): ReactElement {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   const allOptions = [
     { value: 'all', label: '全部班级' },
     ...options.map((o) => ({ value: o, label: o }))
   ]
-  const current = allOptions.find((o) => o.value === value)
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
-      >
-        <span>{current?.label || '全部班级'}</span>
-        <ChevronDown
-          className={cn(
-            'w-3.5 h-3.5 text-on-surface-variant transition-transform',
-            open && 'rotate-180'
-          )}
-        />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto">
-          {allOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                onChange(opt.value)
-                setOpen(false)
-              }}
-              className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left',
-                value === opt.value
-                  ? 'bg-secondary-container text-secondary-container-foreground'
-                  : 'text-on-surface hover:bg-surface-container-high'
-              )}
-            >
-              {value === opt.value && <Check className="w-3.5 h-3.5 shrink-0" />}
-              <span className={value !== opt.value ? 'pl-[22px]' : ''}>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Dropdown
+      value={value}
+      options={allOptions}
+      onChange={onChange}
+      placeholder="全部班级"
+      triggerClassName="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
+      panelClassName="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto"
+      itemClassName="w-full px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left"
+    />
   )
 }

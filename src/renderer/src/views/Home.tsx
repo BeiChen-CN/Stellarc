@@ -3,16 +3,8 @@ import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Shuffle,
-  LayoutGrid,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  Check,
-  Maximize2
-} from 'lucide-react'
-import { Student, ClassTaskTemplate } from '../types'
+import { Shuffle, LayoutGrid, ChevronDown, ChevronUp, Users, Check, Maximize2 } from 'lucide-react'
+import { Student, ClassTaskTemplate, type AppView } from '../types'
 import { cn, toFileUrl } from '../lib/utils'
 import { useToastStore } from '../store/toastStore'
 import { useConfirmStore } from '../store/confirmStore'
@@ -132,7 +124,7 @@ export function Home({
   onNavigate,
   onImmersiveChange
 }: {
-  onNavigate: (view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about') => void
+  onNavigate: (view: AppView) => void
   onImmersiveChange?: (immersive: boolean) => void
 }): ReactElement {
   const { classes, currentClassId, setCurrentClass, incrementPickCount, addClass, applyTaskScore } =
@@ -205,13 +197,8 @@ export function Home({
   } = useSettingsStore()
 
   const effectivePickGenderFilter = showPickGenderFilter ? pickGenderFilter : 'all'
-  const {
-    immersiveMode,
-    immersivePickMode,
-    immersivePhase,
-    setImmersiveMode,
-    setImmersivePhase
-  } = useImmersiveUI(mode, onImmersiveChange)
+  const { immersiveMode, immersivePickMode, immersivePhase, setImmersiveMode, setImmersivePhase } =
+    useImmersiveUI(mode, onImmersiveChange)
   const {
     excludedMenuOpen,
     setExcludedMenuOpen,
@@ -258,88 +245,91 @@ export function Home({
     return cleanup
   }, [immersiveMode, immersivePhase, setImmersivePhase])
 
-  const getPickPlan = useCallback((countOverride?: number): PickPlan | null => {
-    if (!currentClass) return null
+  const getPickPlan = useCallback(
+    (countOverride?: number): PickPlan | null => {
+      if (!currentClass) return null
 
-    const genderFilteredStudents =
-      effectivePickGenderFilter === 'all'
-        ? currentClass.students
-        : currentClass.students.filter((student) => student.gender === effectivePickGenderFilter)
+      const genderFilteredStudents =
+        effectivePickGenderFilter === 'all'
+          ? currentClass.students
+          : currentClass.students.filter((student) => student.gender === effectivePickGenderFilter)
 
-    const pickClass =
-      effectivePickGenderFilter === 'all'
-        ? currentClass
-        : { ...currentClass, students: genderFilteredStudents }
+      const pickClass =
+        effectivePickGenderFilter === 'all'
+          ? currentClass
+          : { ...currentClass, students: genderFilteredStudents }
 
-    const requestedCount = countOverride ?? pickCount
-    const result = selectionEngine.pick(
-      buildPickRequest({
-        currentClass: pickClass,
-        history,
-        policy: {
-          ...fairness,
-          manualExcludedIds
-        },
-        count: requestedCount
+      const requestedCount = countOverride ?? pickCount
+      const result = selectionEngine.pick(
+        buildPickRequest({
+          currentClass: pickClass,
+          history,
+          policy: {
+            ...fairness,
+            manualExcludedIds
+          },
+          count: requestedCount
+        })
+      )
+
+      const candidateMap = new Map(result.traces.map((trace) => [trace.studentId, trace]))
+      const eligibleStudents = currentClass.students.filter((student) => {
+        const trace = candidateMap.get(student.id)
+        return !!trace?.eligible
       })
-    )
 
-    const candidateMap = new Map(result.traces.map((trace) => [trace.studentId, trace]))
-    const eligibleStudents = currentClass.students.filter((student) => {
-      const trace = candidateMap.get(student.id)
-      return !!trace?.eligible
-    })
+      const selectionMeta: HistorySelectionMeta = {
+        ...result.meta,
+        cooldownExcludedIds: result.cooldownExcludedIds,
+        fallbackNotes: result.meta.fallbackNotes,
+        winnerExplanations: result.winners.map((winner) => {
+          const trace = result.traces.find((item) => item.studentId === winner.id)
+          const totalWeight = result.traces
+            .filter((item) => item.eligible)
+            .reduce((sum, item) => sum + (item.finalWeight || 1), 0)
+          const finalWeight = trace?.finalWeight || winner.weight || 1
+          return {
+            id: winner.id,
+            name: winner.name,
+            baseWeight: trace?.baseWeight || winner.weight || 1,
+            finalWeight,
+            estimatedProbability: totalWeight > 0 ? finalWeight / totalWeight : 0,
+            reasons: trace?.reasons || ['eligible']
+          }
+        }),
+        explanationSummary: (() => {
+          const parts: string[] = []
+          if (result.meta.policySnapshot.weightedRandom) {
+            parts.push('采用权重抽取')
+          } else {
+            parts.push('采用随机抽取')
+          }
+          if (result.meta.policySnapshot.balanceByTerm) {
+            parts.push('启用学期均衡')
+          }
+          if (result.meta.policySnapshot.stageFairnessRounds > 0) {
+            parts.push(`参考最近 ${result.meta.policySnapshot.stageFairnessRounds} 轮阶段公平`)
+          }
+          if (result.meta.policySnapshot.prioritizeUnpickedCount > 0) {
+            parts.push(`优先未抽中 ${result.meta.policySnapshot.prioritizeUnpickedCount} 人`)
+          }
+          if (result.meta.fallbackNotes.length > 0) {
+            parts.push('发生约束冲突并已自动放宽')
+          }
+          return parts.join('，')
+        })()
+      }
 
-    const selectionMeta: HistorySelectionMeta = {
-      ...result.meta,
-      cooldownExcludedIds: result.cooldownExcludedIds,
-      fallbackNotes: result.meta.fallbackNotes,
-      winnerExplanations: result.winners.map((winner) => {
-        const trace = result.traces.find((item) => item.studentId === winner.id)
-        const totalWeight = result.traces
-          .filter((item) => item.eligible)
-          .reduce((sum, item) => sum + (item.finalWeight || 1), 0)
-        const finalWeight = trace?.finalWeight || winner.weight || 1
-        return {
-          id: winner.id,
-          name: winner.name,
-          baseWeight: trace?.baseWeight || winner.weight || 1,
-          finalWeight,
-          estimatedProbability: totalWeight > 0 ? finalWeight / totalWeight : 0,
-          reasons: trace?.reasons || ['eligible']
-        }
-      }),
-      explanationSummary: (() => {
-        const parts: string[] = []
-        if (result.meta.policySnapshot.weightedRandom) {
-          parts.push('采用权重抽取')
-        } else {
-          parts.push('采用随机抽取')
-        }
-        if (result.meta.policySnapshot.balanceByTerm) {
-          parts.push('启用学期均衡')
-        }
-        if (result.meta.policySnapshot.stageFairnessRounds > 0) {
-          parts.push(`参考最近 ${result.meta.policySnapshot.stageFairnessRounds} 轮阶段公平`)
-        }
-        if (result.meta.policySnapshot.prioritizeUnpickedCount > 0) {
-          parts.push(`优先未抽中 ${result.meta.policySnapshot.prioritizeUnpickedCount} 人`)
-        }
-        if (result.meta.fallbackNotes.length > 0) {
-          parts.push('发生约束冲突并已自动放宽')
-        }
-        return parts.join('，')
-      })()
-    }
-
-    return {
-      eligibleStudents,
-      winners: result.winners,
-      selectionMeta,
-      traces: result.traces,
-      totalCandidates: pickClass.students.length
-    }
-  }, [currentClass, effectivePickGenderFilter, fairness, history, pickCount, manualExcludedIds])
+      return {
+        eligibleStudents,
+        winners: result.winners,
+        selectionMeta,
+        traces: result.traces,
+        totalCandidates: pickClass.students.length
+      }
+    },
+    [currentClass, effectivePickGenderFilter, fairness, history, pickCount, manualExcludedIds]
+  )
 
   const pickPreview = useMemo(() => {
     if (mode !== 'pick') return null
@@ -481,145 +471,148 @@ export function Home({
     finishDraw(wheelWinnersRef.current)
   }, [finishDraw])
 
-  const handleDraw = useCallback((options: DrawOptions = {}): void => {
-    if (isSpinning) return
-    if (!currentClass || currentClass.students.length === 0) return
+  const handleDraw = useCallback(
+    (options: DrawOptions = {}): void => {
+      if (isSpinning) return
+      if (!currentClass || currentClass.students.length === 0) return
 
-    const requestedCount = options.countOverride ?? pickCount
-    const pickPlan = getPickPlan(requestedCount)
-    if (!pickPlan) return
+      const requestedCount = options.countOverride ?? pickCount
+      const pickPlan = getPickPlan(requestedCount)
+      if (!pickPlan) return
 
-    const activeStudents = pickPlan.eligibleStudents
-    if (activeStudents.length === 0) {
-      addToast(
-        effectivePickGenderFilter === 'all'
-          ? '当前班级没有可被抽选的学生！'
-          : `当前${effectivePickGenderFilter === 'male' ? '男生' : '女生'}筛选下没有可被抽选的学生！`,
-        'error'
-      )
-      return
-    }
-
-    lastSelectionMetaRef.current = pickPlan.selectionMeta
-    setLastSelectionMeta(pickPlan.selectionMeta)
-
-    setIsSpinning(true)
-    setWinners([])
-    setDisplayCandidates([])
-    setShowConfetti(false)
-    setPhase('spinning')
-    tickCountRef.current = 0
-    lastSoundAtRef.current = 0
-
-    const countToPick = Math.min(requestedCount, activeStudents.length)
-    const uniqueWinners = pickPlan.winners
-      .filter((winner, index, arr) => arr.findIndex((item) => item.id === winner.id) === index)
-      .slice(0, countToPick)
-    const winnerIdSet = new Set(uniqueWinners.map((winner) => winner.id))
-    const fallbackWinners = activeStudents.filter((student) => !winnerIdSet.has(student.id))
-    const preSelectedWinners =
-      uniqueWinners.length >= countToPick
-        ? uniqueWinners
-        : [
-            ...uniqueWinners,
-            ...pickUniqueStudents(fallbackWinners, countToPick - uniqueWinners.length)
-          ]
-
-    if (animationStyle === 'wheel') {
-      wheelWinnersRef.current = preSelectedWinners
-      setWheelActiveStudents(activeStudents)
-      setWinners(preSelectedWinners)
-      return
-    }
-
-    if (animationStyle === 'charByChar') {
-      setDisplayCandidates(preSelectedWinners)
-      setCandidateKey((k) => k + 1)
-      setPhase('spinning')
-      // Keep char-by-char concise to avoid dragging
-      const maxChars = Math.max(...preSelectedWinners.map((w) => w.name.length), 1)
-      const revealDuration = Math.min(
-        2200 * sf * animationDurationScale,
-        (maxChars * 120 + 420) * sf * animationDurationScale
-      )
-      timeoutRef.current = setTimeout(() => {
-        finishDraw(preSelectedWinners)
-      }, revealDuration)
-      return
-    }
-
-    const duration = prefersReducedMotion
-      ? ANIMATION_DURATION_REDUCED_MS
-      : ANIMATION_DURATION_MAP[animationSpeed] * sf * animationDurationScale
-    const startTime = performance.now()
-    let lastTickAt = startTime
-
-    const animate = (time: number): void => {
-      const elapsed = time - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 4)
-      const interval = TICK_INTERVAL_MIN_MS + eased * TICK_INTERVAL_RANGE_MS
-
-      if (time - lastTickAt >= interval || progress >= 1) {
-        const currentRandoms =
-          progress > LOCK_IN_PROGRESS
-            ? preSelectedWinners
-            : pickUniqueStudents(activeStudents, countToPick)
-        setDisplayCandidates(currentRandoms)
-        setCandidateKey((k) => k + 1)
-        lastTickAt = time
+      const activeStudents = pickPlan.eligibleStudents
+      if (activeStudents.length === 0) {
+        addToast(
+          effectivePickGenderFilter === 'all'
+            ? '当前班级没有可被抽选的学生！'
+            : `当前${effectivePickGenderFilter === 'male' ? '男生' : '女生'}筛选下没有可被抽选的学生！`,
+          'error'
+        )
+        return
       }
 
-      if (soundEnabled && !prefersReducedMotion && progress < 1) {
-        const now = performance.now()
-        const baseGap = SOUND_GAP_BASE_MS[animationSpeed]
-        const effectiveGap = Math.max(
-          95,
-          Math.min(280, baseGap / Math.max(0.6, animationDurationScale))
+      lastSelectionMetaRef.current = pickPlan.selectionMeta
+      setLastSelectionMeta(pickPlan.selectionMeta)
+
+      setIsSpinning(true)
+      setWinners([])
+      setDisplayCandidates([])
+      setShowConfetti(false)
+      setPhase('spinning')
+      tickCountRef.current = 0
+      lastSoundAtRef.current = 0
+
+      const countToPick = Math.min(requestedCount, activeStudents.length)
+      const uniqueWinners = pickPlan.winners
+        .filter((winner, index, arr) => arr.findIndex((item) => item.id === winner.id) === index)
+        .slice(0, countToPick)
+      const winnerIdSet = new Set(uniqueWinners.map((winner) => winner.id))
+      const fallbackWinners = activeStudents.filter((student) => !winnerIdSet.has(student.id))
+      const preSelectedWinners =
+        uniqueWinners.length >= countToPick
+          ? uniqueWinners
+          : [
+              ...uniqueWinners,
+              ...pickUniqueStudents(fallbackWinners, countToPick - uniqueWinners.length)
+            ]
+
+      if (animationStyle === 'wheel') {
+        wheelWinnersRef.current = preSelectedWinners
+        setWheelActiveStudents(activeStudents)
+        setWinners(preSelectedWinners)
+        return
+      }
+
+      if (animationStyle === 'charByChar') {
+        setDisplayCandidates(preSelectedWinners)
+        setCandidateKey((k) => k + 1)
+        setPhase('spinning')
+        // Keep char-by-char concise to avoid dragging
+        const maxChars = Math.max(...preSelectedWinners.map((w) => w.name.length), 1)
+        const revealDuration = Math.min(
+          2200 * sf * animationDurationScale,
+          (maxChars * 120 + 420) * sf * animationDurationScale
         )
-        if (now - lastSoundAtRef.current >= effectiveGap) {
-          tickCountRef.current++
-          if (animationStyle === 'typewriter') {
-            playTypewriterKey()
-          } else if (animationStyle === 'bounce') {
-            playBounceTick()
-          } else if (progress >= SLOW_DOWN_PROGRESS) {
-            playSlowTick()
-          } else {
-            playTick()
+        timeoutRef.current = setTimeout(() => {
+          finishDraw(preSelectedWinners)
+        }, revealDuration)
+        return
+      }
+
+      const duration = prefersReducedMotion
+        ? ANIMATION_DURATION_REDUCED_MS
+        : ANIMATION_DURATION_MAP[animationSpeed] * sf * animationDurationScale
+      const startTime = performance.now()
+      let lastTickAt = startTime
+
+      const animate = (time: number): void => {
+        const elapsed = time - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const eased = 1 - Math.pow(1 - progress, 4)
+        const interval = TICK_INTERVAL_MIN_MS + eased * TICK_INTERVAL_RANGE_MS
+
+        if (time - lastTickAt >= interval || progress >= 1) {
+          const currentRandoms =
+            progress > LOCK_IN_PROGRESS
+              ? preSelectedWinners
+              : pickUniqueStudents(activeStudents, countToPick)
+          setDisplayCandidates(currentRandoms)
+          setCandidateKey((k) => k + 1)
+          lastTickAt = time
+        }
+
+        if (soundEnabled && !prefersReducedMotion && progress < 1) {
+          const now = performance.now()
+          const baseGap = SOUND_GAP_BASE_MS[animationSpeed]
+          const effectiveGap = Math.max(
+            95,
+            Math.min(280, baseGap / Math.max(0.6, animationDurationScale))
+          )
+          if (now - lastSoundAtRef.current >= effectiveGap) {
+            tickCountRef.current++
+            if (animationStyle === 'typewriter') {
+              playTypewriterKey()
+            } else if (animationStyle === 'bounce') {
+              playBounceTick()
+            } else if (progress >= SLOW_DOWN_PROGRESS) {
+              playSlowTick()
+            } else {
+              playTick()
+            }
+            lastSoundAtRef.current = now
           }
-          lastSoundAtRef.current = now
+        }
+
+        if (progress > SLOW_DOWN_PROGRESS && phase !== 'slowing') {
+          setPhase('slowing')
+        }
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate)
+        } else {
+          finishDraw(preSelectedWinners)
         }
       }
 
-      if (progress > SLOW_DOWN_PROGRESS && phase !== 'slowing') {
-        setPhase('slowing')
-      }
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate)
-      } else {
-        finishDraw(preSelectedWinners)
-      }
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-  }, [
-    isSpinning,
-    currentClass,
-    getPickPlan,
-    addToast,
-    effectivePickGenderFilter,
-    pickCount,
-    animationStyle,
-    sf,
-    animationDurationScale,
-    finishDraw,
-    prefersReducedMotion,
-    animationSpeed,
-    soundEnabled,
-    phase
-  ])
+      animationRef.current = requestAnimationFrame(animate)
+    },
+    [
+      isSpinning,
+      currentClass,
+      getPickPlan,
+      addToast,
+      effectivePickGenderFilter,
+      pickCount,
+      animationStyle,
+      sf,
+      animationDurationScale,
+      finishDraw,
+      prefersReducedMotion,
+      animationSpeed,
+      soundEnabled,
+      phase
+    ]
+  )
 
   useEffect(() => {
     handleDrawRef.current = handleDraw

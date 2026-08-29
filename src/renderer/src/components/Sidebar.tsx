@@ -11,12 +11,11 @@ import {
   PanelLeftClose
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import type { AppView } from '../types'
 
 interface SidebarProps {
-  currentView: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
-  onViewChange: (
-    view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
-  ) => void
+  currentView: AppView
+  onViewChange: (view: AppView) => void
 }
 
 const items = [

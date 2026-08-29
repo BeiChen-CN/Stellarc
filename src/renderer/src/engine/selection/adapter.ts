@@ -3,15 +3,15 @@ import type { HistoryRecord } from '@renderer/store/historyStore'
 
 import type { GroupRequest, SelectionPolicy, SelectionRequest } from './types'
 
-export function buildPickRequest(input: {
+interface RequestInput {
   currentClass: ClassGroup
   history: HistoryRecord[]
   policy: SelectionPolicy
-  count: number
-}): SelectionRequest {
-  const { currentClass, history, policy, count } = input
+}
+
+function buildRequestBase(input: RequestInput) {
+  const { currentClass, history } = input
   return {
-    mode: 'pick',
     classId: currentClass.id,
     className: currentClass.name,
     candidates: currentClass.students.map((student) => ({
@@ -24,35 +24,24 @@ export function buildPickRequest(input: {
       timestamp: record.timestamp,
       classId: record.classId,
       pickedStudents: record.pickedStudents
-    })),
-    count,
-    policy
+    }))
   }
 }
 
-export function buildGroupRequest(input: {
-  currentClass: ClassGroup
-  history: HistoryRecord[]
-  policy: SelectionPolicy
-  groupCount: number
-}): GroupRequest {
-  const { currentClass, history, policy, groupCount } = input
+export function buildPickRequest(input: RequestInput & { count: number }): SelectionRequest {
+  return {
+    mode: 'pick',
+    ...buildRequestBase(input),
+    count: input.count,
+    policy: input.policy
+  }
+}
+
+export function buildGroupRequest(input: RequestInput & { groupCount: number }): GroupRequest {
   return {
     mode: 'group',
-    classId: currentClass.id,
-    className: currentClass.name,
-    candidates: currentClass.students.map((student) => ({
-      ...student,
-      classId: currentClass.id,
-      className: currentClass.name
-    })),
-    history: history.map((record) => ({
-      id: record.id,
-      timestamp: record.timestamp,
-      classId: record.classId,
-      pickedStudents: record.pickedStudents
-    })),
-    groupCount,
-    policy
+    ...buildRequestBase(input),
+    groupCount: input.groupCount,
+    policy: input.policy
   }
 }

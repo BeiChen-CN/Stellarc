@@ -23,9 +23,6 @@ import {
 
 import { cn, toFileUrl } from '../../lib/utils'
 import {
-  type AnimationSpeed,
-  type AnimationStyle,
-  type ColorTheme,
   type ImmersiveIslandStyle,
   useSettingsStore
 } from '../../store/settingsStore'
@@ -37,54 +34,11 @@ import {
   IMMERSIVE_ISLAND_VARIANTS
 } from '../home/immersiveIslandVariants'
 
-const COLOR_THEMES: Array<{ id: ColorTheme; label: string; color: string }> = [
-  { id: 'klein-blue', label: '克莱因蓝', color: 'hsl(223, 100%, 33%)' },
-  { id: 'tiffany', label: '蒂芙尼蓝', color: 'hsl(174, 46%, 68%)' },
-  { id: 'prussian', label: '普鲁士蓝', color: 'hsl(204, 100%, 16%)' },
-  { id: 'titian', label: '提香红', color: 'hsl(23, 67%, 41%)' },
-  { id: 'china-red', label: '中国红', color: 'hsl(0, 100%, 45%)' },
-  { id: 'burgundy', label: '勃艮第红', color: 'hsl(346, 100%, 28%)' },
-  { id: 'schonbrunn', label: '申布伦黄', color: 'hsl(43, 95%, 70%)' },
-  { id: 'vandyke', label: '凡戴克棕', color: 'hsl(20, 56%, 36%)' },
-  { id: 'marrs', label: '马尔斯绿', color: 'hsl(178, 98%, 26%)' },
-  { id: 'turquoise', label: '只此青绿', color: 'hsl(174, 72%, 56%)' },
-  { id: 'cloud', label: '云上舞白', color: 'hsl(30, 12%, 52%)' },
-  { id: 'morandi', label: '莫兰迪绿', color: 'hsl(150, 15%, 60%)' },
-  { id: 'hermes', label: '爱马仕橙', color: 'hsl(24, 95%, 48%)' },
-  { id: 'blue', label: '经典蓝', color: 'hsl(221.2, 83.2%, 53.3%)' },
-  { id: 'violet', label: '梦幻紫', color: 'hsl(262.1, 83.3%, 57.8%)' },
-  { id: 'rose', label: '玫瑰红', color: 'hsl(346.8, 77.2%, 49.8%)' },
-  { id: 'green', label: '翡翠绿', color: 'hsl(142.1, 76.2%, 36.3%)' },
-  { id: 'orange', label: '活力橙', color: 'hsl(24.6, 95%, 53.1%)' },
-  { id: 'amber', label: '琥珀金', color: 'hsl(43, 96%, 56%)' },
-  { id: 'teal', label: '青碧色', color: 'hsl(172, 66%, 40%)' },
-  { id: 'slate', label: '石墨灰', color: 'hsl(215, 16%, 47%)' },
-  { id: 'corundum', label: '刚玉蓝', color: 'hsl(220, 22%, 40%)' },
-  { id: 'kiwi', label: '猕猴桃绿', color: 'hsl(120, 35%, 52%)' },
-  { id: 'spicy', label: '辛辣红', color: 'hsl(15, 55%, 40%)' },
-  { id: 'bright-teal', label: '明水鸭色', color: 'hsl(180, 35%, 45%)' },
-  { id: 'sakura', label: '樱花', color: 'hsl(340, 55%, 55%)' },
-  { id: 'forest', label: '森林', color: 'hsl(100, 52%, 34%)' },
-  { id: 'ocean', label: '海洋', color: 'hsl(180, 100%, 21%)' },
-  { id: 'mocha', label: '摩卡', color: 'hsl(25, 42%, 40%)' }
-]
-
-const ANIMATION_STYLES: Array<{ id: AnimationStyle; label: string }> = [
-  { id: 'slot', label: '老虎机' },
-  { id: 'scroll', label: '滚动' },
-  { id: 'flip', label: '翻转' },
-  { id: 'wheel', label: '转盘' },
-  { id: 'bounce', label: '弹跳' },
-  { id: 'typewriter', label: '打字机' },
-  { id: 'ripple', label: '涟漪' },
-  { id: 'charByChar', label: '逐字' }
-]
-
-const ANIMATION_SPEEDS: Array<{ id: AnimationSpeed; label: string }> = [
-  { id: 'elegant', label: '舒缓' },
-  { id: 'balanced', label: '均衡' },
-  { id: 'fast', label: '快速' }
-]
+import {
+  COLOR_THEMES,
+  ANIMATION_STYLES,
+  ANIMATION_SPEEDS
+} from '../../lib/appearance'
 
 const IMMERSIVE_ISLAND_STYLE_NOTES: Record<
   ImmersiveIslandStyle,

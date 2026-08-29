@@ -1,4 +1,4 @@
-type SoundIntensity = 'low' | 'medium' | 'high'
+import type { SoundIntensity } from '../types'
 
 const audioCtx = () => {
   if (!_ctx) _ctx = new AudioContext()

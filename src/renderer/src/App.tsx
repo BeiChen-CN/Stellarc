@@ -16,10 +16,10 @@ import { useClassesStore } from './store/classesStore'
 import { useSettingsStore } from './store/settingsStore'
 import type { DynamicColorPalette } from './store/settingsStore'
 import { useHistoryStore } from './store/historyStore'
-import { useSpeedFactor } from './lib/useSpeedFactor'
+import { useSpeedFactor, ANIMATION_SPEED_FACTOR } from './lib/useSpeedFactor'
+import { NON_DEFAULT_THEME_CLASSES } from './lib/appearance'
 import { cn } from './lib/utils'
-
-type AppView = 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
+import type { AppView } from './types'
 
 function applyImmersiveDocumentBackground(immersive: boolean): void {
   const root = document.documentElement
@@ -73,12 +73,15 @@ function MainApp(): ReactElement {
     Promise.all([loadSettings(), loadClasses(), loadHistory()]).finally(() => setAppReady(true))
   }, [loadSettings, loadClasses, loadHistory])
 
-  const handleViewChange = useCallback((view: AppView): void => {
-    setCurrentView(view)
-    if (view !== 'home') {
-      handleHomeImmersiveChange(false)
-    }
-  }, [handleHomeImmersiveChange])
+  const handleViewChange = useCallback(
+    (view: AppView): void => {
+      setCurrentView(view)
+      if (view !== 'home') {
+        handleHomeImmersiveChange(false)
+      }
+    },
+    [handleHomeImmersiveChange]
+  )
 
   useLayoutEffect(() => {
     applyImmersiveDocumentBackground(homeImmersive)
@@ -108,37 +111,7 @@ function MainApp(): ReactElement {
     }
 
     // Apply color theme
-    const colorClasses = [
-      'theme-violet',
-      'theme-rose',
-      'theme-green',
-      'theme-orange',
-      'theme-amber',
-      'theme-teal',
-      'theme-slate',
-      'theme-cloud',
-      'theme-corundum',
-      'theme-kiwi',
-      'theme-spicy',
-      'theme-bright-teal',
-      'theme-sakura',
-      'theme-forest',
-      'theme-ocean',
-      'theme-mocha',
-      'theme-klein-blue',
-      'theme-tiffany',
-      'theme-prussian',
-      'theme-titian',
-      'theme-china-red',
-      'theme-burgundy',
-      'theme-schonbrunn',
-      'theme-vandyke',
-      'theme-marrs',
-      'theme-turquoise',
-      'theme-morandi',
-      'theme-hermes'
-    ]
-    root.classList.remove(...colorClasses)
+    root.classList.remove(...NON_DEFAULT_THEME_CLASSES)
     if (colorTheme && colorTheme !== 'blue') {
       root.classList.add(`theme-${colorTheme}`)
     }
@@ -187,7 +160,7 @@ function MainApp(): ReactElement {
   // Apply global animation speed factor
   useEffect(() => {
     const root = window.document.documentElement
-    const factor = animationSpeed === 'elegant' ? 1.5 : animationSpeed === 'fast' ? 0.5 : 1
+    const factor = ANIMATION_SPEED_FACTOR[animationSpeed]
     root.style.setProperty('--speed-factor', String(factor))
     root.classList.remove('speed-elegant', 'speed-fast')
     if (animationSpeed === 'elegant') root.classList.add('speed-elegant')

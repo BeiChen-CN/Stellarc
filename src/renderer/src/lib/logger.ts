@@ -19,7 +19,12 @@ function serializeArg(arg: unknown): string {
   }
 }
 
-function forwardToMain(level: 'error' | 'warn' | 'info', tag: string, msg: string, args: unknown[]): void {
+function forwardToMain(
+  level: 'error' | 'warn' | 'info',
+  tag: string,
+  msg: string,
+  args: unknown[]
+): void {
   try {
     const message = [formatMsg(tag, msg), ...args.map(serializeArg)].join(' ')
     void window.electronAPI?.appendLog?.(level, message)

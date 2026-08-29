@@ -1,4 +1,6 @@
-type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
+import type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions } from '../shared/types'
+
+export type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions }
 
 export interface WorkArea {
   x: number
@@ -27,10 +29,6 @@ interface ImmersiveWindowLayout {
   resizable: boolean
   skipTaskbar: boolean
   minimumSize: [number, number]
-}
-
-export interface ImmersiveWindowPhaseOptions {
-  anchor?: { x: number; y: number }
 }
 
 type AlwaysOnTopLevel =
@@ -69,13 +67,7 @@ const ISLAND_TOP_MARGIN = 0
 const FALLBACK_EXPANDED_WIDTH = 1024
 const FALLBACK_EXPANDED_HEIGHT = 720
 
-const PHASES = new Set<ImmersiveWindowPhase>([
-  'normal',
-  'ball',
-  'menu',
-  'island',
-  'expanded'
-])
+const PHASES = new Set<ImmersiveWindowPhase>(['normal', 'ball', 'menu', 'island', 'expanded'])
 
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min

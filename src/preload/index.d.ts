@@ -1,7 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-
-type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
-type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+import type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions } from '../shared/types'
 
 declare global {
   interface Window {

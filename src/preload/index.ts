@@ -1,8 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
-type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
-type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+import type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions } from '../shared/types'
 
 // Custom APIs for renderer
 const api = {
