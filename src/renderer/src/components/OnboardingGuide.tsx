@@ -1,27 +1,17 @@
 import { type ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import {
-  Check,
-  CheckCircle2,
-  FileUp,
-  Palette,
-  Plus,
-  Shuffle,
-  Users,
-  X
-} from 'lucide-react'
+import { Check, CheckCircle2, FileUp, Palette, Plus, Shuffle, Users, X } from 'lucide-react'
 
-import { parseStudentImportRows } from '../lib/studentImport'
+import {
+  parseStudentImportRows,
+  buildUniqueImportedStudents,
+  createStudent
+} from '../lib/studentImport'
+import { getColorThemeMeta, ANIMATION_STYLES, ANIMATION_SPEEDS } from '../lib/appearance'
 import { cn } from '../lib/utils'
 import { useClassesStore } from '../store/classesStore'
-import {
-  type AnimationSpeed,
-  type AnimationStyle,
-  type ColorTheme,
-  useSettingsStore
-} from '../store/settingsStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
-import type { Student } from '../types'
 import { DesignStylePreview } from '../views/settings/DesignStylePreview'
 import { designStyles } from '../views/settings/designStyles'
 
@@ -50,37 +40,25 @@ export const ONBOARDING_STEPS = [
   }
 ] as const
 
-const COLOR_THEME_OPTIONS: Array<{ id: ColorTheme; label: string; color: string }> = [
-  { id: 'blue', label: '经典蓝', color: 'hsl(221.2, 83.2%, 53.3%)' },
-  { id: 'rose', label: '玫瑰红', color: 'hsl(346.8, 77.2%, 49.8%)' },
-  { id: 'green', label: '翡翠绿', color: 'hsl(142.1, 76.2%, 36.3%)' },
-  { id: 'amber', label: '琥珀金', color: 'hsl(43, 96%, 56%)' },
-  { id: 'teal', label: '青碧色', color: 'hsl(172, 66%, 40%)' },
-  { id: 'violet', label: '梦幻紫', color: 'hsl(262.1, 83.3%, 57.8%)' },
-  { id: 'klein-blue', label: '克莱因蓝', color: 'hsl(223, 100%, 33%)' },
-  { id: 'china-red', label: '中国红', color: 'hsl(0, 100%, 45%)' },
-  { id: 'tiffany', label: '蒂芙尼蓝', color: 'hsl(174, 46%, 68%)' },
-  { id: 'forest', label: '森林绿', color: 'hsl(100, 52%, 34%)' },
-  { id: 'ocean', label: '海洋蓝', color: 'hsl(180, 100%, 21%)' },
-  { id: 'mocha', label: '摩卡棕', color: 'hsl(25, 42%, 40%)' }
-]
+/** 新手引导展示的精选主题子集（顺序即展示顺序），元数据来自 lib/appearance 单一来源 */
+const ONBOARDING_THEME_IDS = [
+  'blue',
+  'rose',
+  'green',
+  'amber',
+  'teal',
+  'violet',
+  'klein-blue',
+  'china-red',
+  'tiffany',
+  'forest',
+  'ocean',
+  'mocha'
+] as const
 
-const ANIMATION_STYLE_OPTIONS: Array<{ id: AnimationStyle; label: string; desc: string }> = [
-  { id: 'slot', label: '老虎机', desc: '滚轮式揭晓' },
-  { id: 'scroll', label: '滚动', desc: '名单纵向滚动' },
-  { id: 'flip', label: '翻转', desc: '卡片翻面揭晓' },
-  { id: 'wheel', label: '转盘', desc: '旋转抽取感' },
-  { id: 'bounce', label: '弹跳', desc: '轻快弹性反馈' },
-  { id: 'typewriter', label: '打字机', desc: '逐字显示姓名' },
-  { id: 'ripple', label: '涟漪', desc: '扩散式结果反馈' },
-  { id: 'charByChar', label: '逐字', desc: '字符级揭晓' }
-]
-
-const ANIMATION_SPEED_OPTIONS: Array<{ id: AnimationSpeed; label: string; desc: string }> = [
-  { id: 'elegant', label: '舒缓', desc: '适合慢节奏课堂' },
-  { id: 'balanced', label: '均衡', desc: '默认节奏' },
-  { id: 'fast', label: '快速', desc: '更利落的抽取' }
-]
+const COLOR_THEME_OPTIONS = ONBOARDING_THEME_IDS.map((id) => getColorThemeMeta(id))
+const ANIMATION_STYLE_OPTIONS = ANIMATION_STYLES
+const ANIMATION_SPEED_OPTIONS = ANIMATION_SPEEDS
 
 const formatDuration = (value: number): string =>
   Number.isFinite(value) ? value.toFixed(1).replace(/\.0$/, '') : '1'
@@ -92,13 +70,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
   const [notice, setNotice] = useState<Notice | null>(null)
   const [importing, setImporting] = useState(false)
 
-  const {
-    classes,
-    currentClassId,
-    addClass,
-    addStudent,
-    addStudents
-  } = useClassesStore()
+  const { classes, currentClassId, addClass, addStudent, addStudents } = useClassesStore()
   const addToast = useToastStore((state) => state.addToast)
   const {
     colorTheme,
@@ -191,14 +163,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
       return
     }
 
-    addStudent(currentClass.id, {
-      id: crypto.randomUUID(),
-      name,
-      pickCount: 0,
-      score: 0,
-      weight: 1,
-      status: 'active'
-    })
+    addStudent(currentClass.id, createStudent(name))
     setStudentName('')
     setNotice({ type: 'success', message: `已添加学生「${name}」。` })
   }, [addStudent, currentClass, studentName])
@@ -228,28 +193,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
         return
       }
 
-      const existingSet = new Set(
-        currentClass.students.map((student) =>
-          `${student.name}::${student.studentId || ''}`.toLowerCase()
-        )
-      )
-      const newStudents: Student[] = parsedRows
-        .filter((row) => {
-          const key = `${row.name}::${row.studentId || ''}`.toLowerCase()
-          if (existingSet.has(key)) return false
-          existingSet.add(key)
-          return true
-        })
-        .map((row) => ({
-          id: crypto.randomUUID(),
-          name: row.name,
-          studentId: row.studentId,
-          gender: row.gender,
-          pickCount: 0,
-          score: row.score,
-          weight: row.weight,
-          status: row.status
-        }))
+      const newStudents = buildUniqueImportedStudents(parsedRows, currentClass.students)
 
       if (newStudents.length === 0) {
         setNotice({ type: 'error', message: '没有可导入的新学生, 已自动去重。' })
@@ -369,9 +313,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h4 className="text-sm font-semibold text-on-surface">当前名单</h4>
-            <p className="mt-0.5 text-xs text-on-surface-variant">
-              下一步前至少需要 1 名学生。
-            </p>
+            <p className="mt-0.5 text-xs text-on-surface-variant">下一步前至少需要 1 名学生。</p>
           </div>
           <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
             {currentClass?.students.length || 0} 人
@@ -499,9 +441,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
       <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-3">
           <h4 className="text-sm font-semibold text-on-surface">动画样式</h4>
-          <p className="mt-0.5 text-xs text-on-surface-variant">
-            选择点名时的结果揭晓方式。
-          </p>
+          <p className="mt-0.5 text-xs text-on-surface-variant">选择点名时的结果揭晓方式。</p>
         </div>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {ANIMATION_STYLE_OPTIONS.map((item) => {
@@ -690,8 +630,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                     'mb-4 flex items-start gap-2 rounded-2xl border px-3 py-2 text-xs',
                     notice.type === 'error' &&
                       'border-destructive/25 bg-destructive/10 text-destructive',
-                    notice.type === 'success' &&
-                      'border-primary/20 bg-primary/10 text-primary',
+                    notice.type === 'success' && 'border-primary/20 bg-primary/10 text-primary',
                     notice.type === 'info' &&
                       'border-outline-variant/30 bg-surface-container-low text-on-surface-variant'
                   )}

@@ -113,3 +113,18 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     }
   }
 }))
+
+// 设置中「最大记录数」变化时立即截断内存与持久化记录。
+// 由 historyStore 订阅 settingsStore（单向依赖），避免 settingsStore
+// 反向动态 import 本模块来绕开循环依赖。
+useSettingsStore.subscribe((state, prevState) => {
+  if (state.maxHistoryRecords === prevState.maxHistoryRecords) return
+  const max = state.maxHistoryRecords
+  const current = useHistoryStore.getState().history
+  if (current.length <= max) return
+  const trimmed = current.slice(0, max)
+  useHistoryStore.setState({ history: trimmed })
+  window.electronAPI
+    .writeJson('history.json', { records: trimmed })
+    .catch((e: unknown) => logger.error('HistoryStore', 'Failed to truncate history', e))
+})

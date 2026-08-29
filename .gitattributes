@@ -1,0 +1,11 @@
+# 统一所有文本文件为 LF（与 .editorconfig、Prettier 默认 endOfLine=lf 一致）
+* text=auto eol=lf
+
+# 二进制文件不做任何转换
+*.png binary
+*.jpg binary
+*.bmp binary
+*.ico binary
+*.icns binary
+*.exe binary
+*.zip binary

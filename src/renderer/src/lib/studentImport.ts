@@ -5,6 +5,52 @@ export type ImportedStudentRow = Pick<
   'name' | 'studentId' | 'gender' | 'weight' | 'score' | 'status'
 >
 
+export function studentDedupeKey(name: string, studentId: string | undefined): string {
+  return `${name}::${studentId || ''}`.toLowerCase()
+}
+
+/** 手动单个添加学生时的默认值工厂（权重 1、积分 0、正常状态） */
+export function createStudent(name: string): Student {
+  return {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    pickCount: 0,
+    score: 0,
+    weight: 1,
+    status: 'active'
+  }
+}
+
+/**
+ * 把解析出的名单行转成完整 Student 对象，并按「姓名::学号」与现有学生
+ * 及名单内部互相去重。Students 页与新手引导共用此逻辑。
+ */
+export function buildUniqueImportedStudents(
+  rows: ImportedStudentRow[],
+  existingStudents: Array<Pick<Student, 'name' | 'studentId'>> = []
+): Student[] {
+  const existingSet = new Set(
+    existingStudents.map((student) => studentDedupeKey(student.name, student.studentId))
+  )
+  const result: Student[] = []
+  for (const row of rows) {
+    const key = studentDedupeKey(row.name, row.studentId)
+    if (existingSet.has(key)) continue
+    existingSet.add(key)
+    result.push({
+      id: crypto.randomUUID(),
+      name: row.name,
+      studentId: row.studentId,
+      gender: row.gender,
+      pickCount: 0,
+      score: row.score,
+      weight: row.weight,
+      status: row.status
+    })
+  }
+  return result
+}
+
 const HEADER_NAMES = new Set([
   'name',
   '姓名',
@@ -69,7 +115,9 @@ export function parseStudentImportRows(content: string): ImportedStudentRow[] {
   const normalizedHeader = headerCells.map((item) => item.toLowerCase())
   const hasHeader = normalizedHeader.some((item) => HEADER_NAMES.has(item))
   const rows = hasHeader ? lines.slice(1) : lines
-  const header = hasHeader ? normalizedHeader : ['name', 'studentId', 'gender', 'weight', 'score', 'status']
+  const header = hasHeader
+    ? normalizedHeader
+    : ['name', 'studentId', 'gender', 'weight', 'score', 'status']
 
   const indexOf = (keys: string[]): number => header.findIndex((item) => keys.includes(item))
   const nameIdx = indexOf(['name', '姓名'])

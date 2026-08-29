@@ -4,6 +4,8 @@ import { useHistoryStore } from '../store/historyStore'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
+import { logger } from '../lib/logger'
+import { buildStatisticsCsv, buildStatisticsReportHtml } from '../lib/exporters'
 import { getStrategyDescriptor } from '../engine/selection/strategies'
 import { StatisticsChartsPanel } from './statistics/StatisticsChartsPanel'
 import {
@@ -248,31 +250,26 @@ export function Statistics(): ReactElement {
     })
     if (!filePath) return
 
-    const lines: string[] = []
-    lines.push('统计摘要')
-    lines.push(`总抽选次数,${filteredHistory.length}`)
-    lines.push(`本周抽选,${weeklyComparison.thisWeek}`)
-    lines.push(`涉及班级,${classData.length}`)
-    lines.push(`参与学生数,${fairnessMetrics.uniquePicked}`)
-    lines.push(`均衡指数,${fairnessMetrics.balanceIndex}`)
-    lines.push('')
-    lines.push('被抽中次数 Top 10')
-    lines.push('姓名,次数')
-    chartData.forEach((d) => lines.push(`${d.name},${d.count}`))
-    lines.push('')
-    lines.push('班级抽选占比')
-    lines.push('班级,次数')
-    classData.forEach((d) => lines.push(`${d.name},${d.value}`))
-    if (leaderboard.length > 0) {
-      lines.push('')
-      lines.push('积分排行榜')
-      lines.push('姓名,班级,积分')
-      leaderboard.forEach((s) => lines.push(`${s.name},${s.className},${s.score}`))
+    try {
+      await window.electronAPI.writeExportFile(
+        filePath,
+        buildStatisticsCsv({
+          rangeLabel: TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label || '全部',
+          totalPicks: filteredHistory.length,
+          weeklyPicks: weeklyComparison.thisWeek,
+          classCount: classData.length,
+          uniquePicked: fairnessMetrics.uniquePicked,
+          balanceIndex: fairnessMetrics.balanceIndex,
+          chartData,
+          classData,
+          leaderboard
+        })
+      )
+      addToast('统计数据已导出', 'success')
+    } catch (error) {
+      logger.error('Statistics', 'Stats export failed:', error)
+      addToast('导出失败', 'error')
     }
-
-    const csv = '\uFEFF' + lines.join('\n')
-    const ok = await window.electronAPI.writeExportFile(filePath, csv)
-    addToast(ok ? '统计数据已导出' : '导出失败', ok ? 'success' : 'error')
   }
 
   const handleGenerateReport = async (): Promise<void> => {
@@ -283,55 +280,26 @@ export function Statistics(): ReactElement {
     })
     if (!filePath) return
 
-    const rangeLabel = TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label || '全部'
-    const top10Rows = chartData
-      .map((d, i) => `<tr><td>${i + 1}</td><td>${d.name}</td><td>${d.count}</td></tr>`)
-      .join('')
-    const classRows = classData
-      .map((d) => `<tr><td>${d.name}</td><td>${d.value}</td></tr>`)
-      .join('')
-    const scoreRows = leaderboard
-      .map(
-        (s, i) =>
-          `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.className}</td><td>${s.score}</td></tr>`
+    try {
+      await window.electronAPI.writeExportFile(
+        filePath,
+        buildStatisticsReportHtml({
+          rangeLabel: TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label || '全部',
+          totalPicks: filteredHistory.length,
+          weeklyPicks: weeklyComparison.thisWeek,
+          classCount: classData.length,
+          uniquePicked: fairnessMetrics.uniquePicked,
+          balanceIndex: fairnessMetrics.balanceIndex,
+          chartData,
+          classData,
+          leaderboard
+        })
       )
-      .join('')
-
-    const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8"><title>Stellarc 课堂报告</title>
-<style>
-body{font-family:system-ui,-apple-system,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.6}
-h1{border-bottom:3px solid #4f46e5;padding-bottom:8px}
-h2{color:#4f46e5;margin-top:32px}
-table{width:100%;border-collapse:collapse;margin:12px 0}
-th,td{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}
-th{background:#f3f4f6;font-weight:600}
-.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}
-.card{background:#f8fafc;border-radius:12px;padding:16px;text-align:center}
-.card .num{font-size:28px;font-weight:800;color:#4f46e5}
-.card .label{font-size:12px;color:#6b7280;margin-top:4px}
-.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center}
-@media print{body{margin:0}h1{font-size:20px}.summary{grid-template-columns:repeat(5,1fr)}}
-</style></head>
-<body>
-<h1>Stellarc 课堂报告</h1>
-<p>统计范围：${rangeLabel} · 生成时间：${new Date().toLocaleString()}</p>
-<div class="summary">
-<div class="card"><div class="num">${filteredHistory.length}</div><div class="label">总抽选次数</div></div>
-<div class="card"><div class="num">${weeklyComparison.thisWeek}</div><div class="label">本周抽选</div></div>
-<div class="card"><div class="num">${classData.length}</div><div class="label">涉及班级</div></div>
-<div class="card"><div class="num">${fairnessMetrics.uniquePicked}</div><div class="label">参与学生</div></div>
-<div class="card"><div class="num">${fairnessMetrics.balanceIndex}</div><div class="label">均衡指数</div></div>
-</div>
-${chartData.length > 0 ? `<h2>被抽中次数 Top 10</h2><table><tr><th>#</th><th>姓名</th><th>次数</th></tr>${top10Rows}</table>` : ''}
-${classData.length > 0 ? `<h2>班级抽选分布</h2><table><tr><th>班级</th><th>次数</th></tr>${classRows}</table>` : ''}
-${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓名</th><th>班级</th><th>积分</th></tr>${scoreRows}</table>` : ''}
-<div class="footer">由 Stellarc 自动生成 · 可直接打印此页面</div>
-</body></html>`
-
-    const ok = await window.electronAPI.writeExportFile(filePath, html)
-    addToast(ok ? '课堂报告已生成' : '生成失败', ok ? 'success' : 'error')
+      addToast('课堂报告已生成', 'success')
+    } catch (error) {
+      logger.error('Statistics', 'Report generation failed:', error)
+      addToast('生成失败', 'error')
+    }
   }
 
   return (

@@ -13,13 +13,19 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Check,
   Play,
   Pause,
   SkipForward,
   FileText
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { logger } from '../lib/logger'
+import {
+  buildHistoryCsv,
+  buildStructuredReportCsv,
+  buildClassReportMarkdown
+} from '../lib/exporters'
+import { Dropdown } from '../components/Dropdown'
 
 function summarizeNames(names: string[], max = 6): string {
   if (names.length <= max) return names.join('、')
@@ -151,20 +157,17 @@ export function History(): ReactElement {
     }
     const filePath = await window.electronAPI.saveFile({
       title: '导出历史记录',
-      defaultPath: 'spotlight-history.csv',
+      defaultPath: 'stellarc-history.csv',
       filters: [{ name: 'CSV 文件', extensions: ['csv'] }]
     })
     if (filePath) {
-      const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
-      const header = '时间,班级,抽中学生'
-      const rows = history.map((r) => {
-        const time = new Date(r.timestamp).toLocaleString()
-        const names = r.pickedStudents.map((s) => s.name).join('、')
-        return `${escapeCsv(time)},${escapeCsv(r.className)},${escapeCsv(names)}`
-      })
-      const csv = '\uFEFF' + [header, ...rows].join('\n')
-      const success = await window.electronAPI.writeExportFile(filePath, csv)
-      addToast(success ? '历史记录已导出！' : '导出失败。', success ? 'success' : 'error')
+      try {
+        await window.electronAPI.writeExportFile(filePath, buildHistoryCsv(history))
+        addToast('历史记录已导出！', 'success')
+      } catch (error) {
+        logger.error('History', 'CSV export failed:', error)
+        addToast('导出失败。', 'error')
+      }
     }
   }
 
@@ -180,70 +183,16 @@ export function History(): ReactElement {
     })
     if (!filePath) return
 
-    const escapeCsv = (s: string): string => `"${s.replace(/"/g, '""')}"`
-    const lines: string[] = []
-
-    lines.push('事件时间,事件类型,班级,学生名单,人数,任务名称,任务分值,策略预设,冷却轮次,说明')
-    history.forEach((record) => {
-      const eventType =
-        record.eventType === 'group' ? '分组' : record.eventType === 'task' ? '任务记分' : '点名'
-      const names = record.pickedStudents.map((student) => student.name).join('、')
-      const taskName =
-        record.taskSummary?.taskName || record.groupSummary?.groups?.[0]?.taskName || ''
-      const taskScore =
-        typeof record.taskSummary?.scoreDelta === 'number'
-          ? String(record.taskSummary.scoreDelta)
-          : typeof record.groupSummary?.groups?.[0]?.taskScoreDelta === 'number'
-            ? String(record.groupSummary.groups[0].taskScoreDelta)
-            : ''
-      const strategyPreset = record.selectionMeta?.policySnapshot.strategyPreset || ''
-      const cooldownRounds =
-        typeof record.selectionMeta?.policySnapshot.cooldownRounds === 'number'
-          ? String(record.selectionMeta.policySnapshot.cooldownRounds)
-          : ''
-      const note =
-        record.selectionMeta?.explanationSummary ||
-        (record.selectionMeta?.fallbackNotes || []).join('；') ||
-        ''
-      lines.push(
-        [
-          new Date(record.timestamp).toLocaleString(),
-          eventType,
-          record.className,
-          names,
-          String(record.pickedStudents.length),
-          taskName,
-          taskScore,
-          strategyPreset,
-          cooldownRounds,
-          note
-        ]
-          .map((cell) => escapeCsv(cell))
-          .join(',')
+    try {
+      await window.electronAPI.writeExportFile(
+        filePath,
+        buildStructuredReportCsv(history, classes)
       )
-    })
-
-    lines.push('')
-    lines.push('班级,学生,积分,被抽中次数,标签')
-    classes.forEach((classItem) => {
-      classItem.students.forEach((student) => {
-        lines.push(
-          [
-            classItem.name,
-            student.name,
-            String(student.score),
-            String(student.pickCount),
-            (student.tags || []).join(' / ')
-          ]
-            .map((cell) => escapeCsv(cell))
-            .join(',')
-        )
-      })
-    })
-
-    const csv = '\uFEFF' + lines.join('\n')
-    const success = await window.electronAPI.writeExportFile(filePath, csv)
-    addToast(success ? '结构化 CSV 导出成功' : '结构化 CSV 导出失败', success ? 'success' : 'error')
+      addToast('结构化 CSV 导出成功', 'success')
+    } catch (error) {
+      logger.error('History', 'Structured CSV export failed:', error)
+      addToast('结构化 CSV 导出失败', 'error')
+    }
   }
 
   const handleExportClassReport = async (): Promise<void> => {
@@ -254,118 +203,16 @@ export function History(): ReactElement {
     })
     if (!filePath) return
 
-    const pickEvents = history.filter((record) => (record.eventType || 'pick') === 'pick').length
-    const groupEvents = history.filter((record) => record.eventType === 'group').length
-    const taskEvents = history.filter((record) => record.eventType === 'task').length
-
-    const scoreRows = classes.flatMap((classItem) =>
-      classItem.students.map((student) => ({
-        className: classItem.name,
-        studentName: student.name,
-        score: student.score,
-        pickCount: student.pickCount,
-        tags: (student.tags || []).join(' / ')
-      }))
-    )
-
-    const topScores = [...scoreRows].sort((a, b) => b.score - a.score).slice(0, 10)
-    const latest = history.slice(0, 20)
-    const classStats = classes.map((classItem) => {
-      const classEvents = history.filter((record) => record.className === classItem.name)
-      const classTaskEvents = classEvents.filter((record) => record.eventType === 'task')
-      const taskVolume = classTaskEvents.reduce(
-        (sum, record) => sum + (record.pickedStudents?.length || 0),
-        0
+    try {
+      await window.electronAPI.writeExportFile(
+        filePath,
+        buildClassReportMarkdown(history, classes)
       )
-      return {
-        className: classItem.name,
-        studentCount: classItem.students.length,
-        eventCount: classEvents.length,
-        avgScore:
-          classItem.students.length > 0
-            ? (
-                classItem.students.reduce((sum, student) => sum + (student.score || 0), 0) /
-                classItem.students.length
-              ).toFixed(2)
-            : '0.00',
-        taskVolume
-      }
-    })
-
-    const taskBreakdownMap = new Map<string, { count: number; impacted: number }>()
-    history
-      .filter((record) => record.eventType === 'task')
-      .forEach((record) => {
-        const key = record.taskSummary?.taskName || '未命名任务'
-        const prev = taskBreakdownMap.get(key) || { count: 0, impacted: 0 }
-        prev.count += 1
-        prev.impacted += record.taskSummary?.studentIds?.length || record.pickedStudents.length || 0
-        taskBreakdownMap.set(key, prev)
-      })
-    const taskBreakdown = Array.from(taskBreakdownMap.entries())
-      .map(([taskName, value]) => ({ taskName, ...value }))
-      .sort((a, b) => b.count - a.count)
-
-    const tagBreakdownMap = new Map<string, number>()
-    classes.forEach((classItem) => {
-      classItem.students.forEach((student) => {
-        ;(student.tags || []).forEach((tag) => {
-          const key = tag.trim()
-          if (!key) return
-          tagBreakdownMap.set(key, (tagBreakdownMap.get(key) || 0) + 1)
-        })
-      })
-    })
-    const tagBreakdown = Array.from(tagBreakdownMap.entries())
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count)
-
-    const content = [
-      '# 课堂报告',
-      '',
-      `生成时间：${new Date().toLocaleString()}`,
-      `历史总记录：${history.length}`,
-      `点名记录：${pickEvents}`,
-      `分组记录：${groupEvents}`,
-      `任务记分记录：${taskEvents}`,
-      '',
-      '## 积分榜（Top 10）',
-      ...topScores.map(
-        (row, index) =>
-          `${index + 1}. ${row.studentName}（${row.className}）- 积分 ${row.score}，被抽中 ${row.pickCount} 次${row.tags ? `，标签：${row.tags}` : ''}`
-      ),
-      '',
-      '## 班级概览',
-      ...classStats.map(
-        (item, index) =>
-          `${index + 1}. ${item.className} - 学生 ${item.studentCount} 人，事件 ${item.eventCount} 条，平均积分 ${item.avgScore}，任务影响 ${item.taskVolume} 人次`
-      ),
-      '',
-      '## 任务分布',
-      ...(taskBreakdown.length > 0
-        ? taskBreakdown.map(
-            (item, index) =>
-              `${index + 1}. ${item.taskName} - 执行 ${item.count} 次，影响 ${item.impacted} 人次`
-          )
-        : ['暂无任务数据']),
-      '',
-      '## 标签分布',
-      ...(tagBreakdown.length > 0
-        ? tagBreakdown.map((item, index) => `${index + 1}. ${item.tag} - ${item.count} 人`)
-        : ['暂无标签数据']),
-      '',
-      '## 最近 20 条课堂事件',
-      ...latest.map((record) => {
-        const eventType =
-          record.eventType === 'group' ? '分组' : record.eventType === 'task' ? '任务记分' : '点名'
-        const names = record.pickedStudents.map((student) => student.name).join('、')
-        return `- ${new Date(record.timestamp).toLocaleString()} [${eventType}] ${record.className}: ${names}`
-      }),
-      ''
-    ].join('\n')
-
-    const success = await window.electronAPI.writeExportFile(filePath, content)
-    addToast(success ? '课堂报告导出成功' : '课堂报告导出失败', success ? 'success' : 'error')
+      addToast('课堂报告导出成功', 'success')
+    } catch (error) {
+      logger.error('History', 'Class report export failed:', error)
+      addToast('课堂报告导出失败', 'error')
+    }
   }
 
   const handleDeleteRecord = (id: string): void => {
@@ -825,6 +672,7 @@ export function History(): ReactElement {
   )
 }
 
+/** 班级筛选下拉（交互逻辑复用 components/Dropdown） */
 function ClassFilterDropdown({
   value,
   options,
@@ -834,60 +682,19 @@ function ClassFilterDropdown({
   options: string[]
   onChange: (v: string) => void
 }): ReactElement {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   const allOptions = [
     { value: 'all', label: '全部班级' },
     ...options.map((o) => ({ value: o, label: o }))
   ]
-  const current = allOptions.find((o) => o.value === value)
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
-      >
-        <span>{current?.label || '全部班级'}</span>
-        <ChevronDown
-          className={cn(
-            'w-3.5 h-3.5 text-on-surface-variant transition-transform',
-            open && 'rotate-180'
-          )}
-        />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto">
-          {allOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                onChange(opt.value)
-                setOpen(false)
-              }}
-              className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left',
-                value === opt.value
-                  ? 'bg-secondary-container text-secondary-container-foreground'
-                  : 'text-on-surface hover:bg-surface-container-high'
-              )}
-            >
-              {value === opt.value && <Check className="w-3.5 h-3.5 shrink-0" />}
-              <span className={value !== opt.value ? 'pl-[22px]' : ''}>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Dropdown
+      value={value}
+      options={allOptions}
+      onChange={onChange}
+      placeholder="全部班级"
+      triggerClassName="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
+      panelClassName="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto"
+      itemClassName="w-full px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left"
+    />
   )
 }

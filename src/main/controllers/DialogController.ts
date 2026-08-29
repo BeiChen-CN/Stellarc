@@ -1,7 +1,8 @@
 import { dialog, BrowserWindow, OpenDialogOptions, SaveDialogOptions } from 'electron'
+import log from 'electron-log'
 import path from 'path'
 import { BaseController } from './BaseController'
-import { FileController } from './FileController'
+import { authorizePath } from '../fileAuth'
 
 export class DialogController extends BaseController {
 
@@ -11,8 +12,6 @@ export class DialogController extends BaseController {
 
   protected init(): void {
     this.handle('select-file', this.selectFile)
-    this.handle('select-files', this.selectFiles)
-    this.handle('select-folder', this.selectFolder)
     this.handle('save-file', this.saveFile)
   }
 
@@ -21,50 +20,41 @@ export class DialogController extends BaseController {
   }
 
   private authorize(filePath: string): void {
-    FileController.authorizedPaths.add(path.normalize(filePath))
+    authorizePath(path.normalize(filePath))
   }
 
   private async selectFile(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      ...options,
-      properties: ['openFile']
-    })
-    if (result.canceled) return null
+    const result = await this.showDialog(() =>
+      dialog.showOpenDialog(win, { ...options, properties: ['openFile'] })
+    )
+    if (!result || result.canceled) return null
     this.authorize(result.filePaths[0])
     return result.filePaths[0]
   }
 
-  private async selectFiles(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string[] | null> {
-    const win = this.getMainWindow()
-    if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      ...options,
-      properties: ['openFile', 'multiSelections']
-    })
-    if (result.canceled) return null
-    result.filePaths.forEach((p) => this.authorize(p))
-    return result.filePaths
-  }
 
-  private async selectFolder(_event: Electron.IpcMainInvokeEvent): Promise<string | null> {
-    const win = this.getMainWindow()
-    if (!win) return null
-    const result = await dialog.showOpenDialog(win, {
-      properties: ['openDirectory']
-    })
-    if (result.canceled) return null
-    this.authorize(result.filePaths[0])
-    return result.filePaths[0]
-  }
 
   private async saveFile(_event: Electron.IpcMainInvokeEvent, options: SaveDialogOptions): Promise<string | null> {
     const win = this.getMainWindow()
     if (!win) return null
-    const result = await dialog.showSaveDialog(win, options)
-    if (result.canceled || !result.filePath) return null
+    const result = await this.showDialog(() => dialog.showSaveDialog(win, options))
+    if (!result || result.canceled || !result.filePath) return null
     this.authorize(result.filePath)
     return result.filePath
+  }
+
+  /**
+   * 对话框打开失败时归约为 null（语义：未选择任何文件）。
+   * null 才是渲染端已有的取消分支，避免错误对象被当作路径使用。
+   */
+  private async showDialog<T>(open: () => Promise<T>): Promise<T | null> {
+    try {
+      return await open()
+    } catch (error) {
+      log.error('[IPC Error] file dialog failed:', error)
+      return null
+    }
   }
 }

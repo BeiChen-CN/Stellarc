@@ -5,10 +5,15 @@ import { useToastStore } from './toastStore'
 import { useSettingsStore } from './settingsStore'
 import { logger } from '../lib/logger'
 
+interface ClassesSnapshot {
+  classes: ClassGroup[]
+  currentClassId: string | null
+}
+
 interface ClassesState {
   classes: ClassGroup[]
   currentClassId: string | null
-  undoStack: { classes: ClassGroup[]; currentClassId: string | null }[]
+  undoStack: ClassesSnapshot[]
   canUndo: boolean
   addClass: (name: string) => void
   removeClass: (id: string) => void
@@ -27,7 +32,7 @@ interface ClassesState {
   updateStudentScore: (classId: string, studentId: string, score: number) => void
   updateStudentPhoto: (classId: string, studentId: string, photo: string | undefined) => void
   updateStudentName: (classId: string, studentId: string, name: string) => void
-  updateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  updateStudentId: (classId: string, studentId: string, newStudentId: string | undefined) => void
   updateStudentGender: (
     classId: string,
     studentId: string,
@@ -67,6 +72,33 @@ interface ClassesState {
   undoLastChange: () => void
 }
 
+const UNDO_STACK_LIMIT = 20
+const SAVE_DEBOUNCE_MS = 300
+
+/** 把当前状态压入撤销栈（栈深上限 UNDO_STACK_LIMIT） */
+function pushUndo(
+  state: Pick<ClassesState, 'classes' | 'currentClassId' | 'undoStack'>
+): Pick<ClassesState, 'undoStack' | 'canUndo'> {
+  return {
+    undoStack: [
+      ...state.undoStack.slice(-(UNDO_STACK_LIMIT - 1)),
+      { classes: state.classes, currentClassId: state.currentClassId }
+    ],
+    canUndo: true
+  }
+}
+
+/** 连续小改动（如权重步进）合并为一次落盘，避免每次变更都全量序列化写盘 */
+function flushSoon(get: () => ClassesState): void {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    void get().saveClasses()
+  }, SAVE_DEBOUNCE_MS)
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
 export const useClassesStore = create<ClassesState>((set, get) => ({
   classes: [],
   currentClassId: null,
@@ -84,7 +116,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       undoStack: undoStack.slice(0, -1),
       canUndo: undoStack.length > 1
     })
-    get().saveClasses()
+    flushSoon(get)
   },
 
   loadClasses: async () => {
@@ -135,13 +167,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     set((state) => ({
       classes: [...state.classes, newClass],
       currentClassId: newClass.id,
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   removeClass: (id) => {
@@ -155,14 +183,10 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
               ? remaining[0].id
               : null
             : state.currentClassId,
-        undoStack: [
-          ...state.undoStack.slice(-19),
-          { classes: state.classes, currentClassId: state.currentClassId }
-        ],
-        canUndo: true
+        ...pushUndo(state)
       }
     })
-    get().saveClasses()
+    flushSoon(get)
   },
 
   addStudent: (classId, student) => {
@@ -171,13 +195,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       classes: state.classes.map((c) =>
         c.id === classId ? { ...c, students: [...c.students, student] } : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   addStudents: (classId, students) => {
@@ -185,13 +205,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       classes: state.classes.map((c) =>
         c.id === classId ? { ...c, students: [...c.students, ...students] } : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   removeStudent: (classId, studentId) => {
@@ -199,18 +215,14 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       classes: state.classes.map((c) =>
         c.id === classId ? { ...c, students: c.students.filter((s) => s.id !== studentId) } : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   setCurrentClass: (id) => {
     set({ currentClassId: id })
-    get().saveClasses()
+    flushSoon(get)
   },
 
   incrementPickCount: (classId, studentId) => {
@@ -232,7 +244,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
           : c
       )
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentStatus: (classId, studentId, status) => {
@@ -245,13 +257,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentWeight: (classId, studentId, weight) => {
@@ -264,13 +272,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentScore: (classId, studentId, score) => {
@@ -311,13 +315,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentPhoto: (classId, studentId, photo) => {
@@ -330,13 +330,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentName: (classId, studentId, name) => {
@@ -352,13 +348,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentId: (classId, studentId, newStudentId) => {
@@ -373,13 +365,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentGender: (classId, studentId, gender) => {
@@ -392,13 +380,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   updateStudentTags: (classId, studentId, tags) => {
@@ -417,13 +401,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   batchUpdateStudents: (classId, studentIds, patch) => {
@@ -466,13 +446,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
           })
         }
       }),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
     return { affected }
   },
 
@@ -493,13 +469,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
             }
           : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   applyTaskScore: (classId, studentIds, taskName, delta, source = 'manual') => {
@@ -566,13 +538,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
           })
         }
       }),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
     return { affected }
   },
 
@@ -610,14 +578,10 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
           })
         }
       }),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
     if (success) {
-      get().saveClasses()
+      flushSoon(get)
     }
     return { ok: success, message }
   },
@@ -626,13 +590,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     if (!name.trim()) return
     set((state) => ({
       classes: state.classes.map((c) => (c.id === classId ? { ...c, name: name.trim() } : c)),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   duplicateClass: (classId) => {
@@ -653,13 +613,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
     set((state) => ({
       classes: [...state.classes, newClass],
       currentClassId: newClass.id,
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   resetClassScores: (classId) => {
@@ -667,13 +623,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       classes: state.classes.map((c) =>
         c.id === classId ? { ...c, students: c.students.map((s) => ({ ...s, score: 0 })) } : c
       ),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
   },
 
   dedupeClassStudents: (classId) => {
@@ -693,13 +645,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         })
         return { ...c, students: deduped }
       }),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
     return { removed }
   },
 
@@ -760,13 +708,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         })
         return { ...c, students: normalized }
       }),
-      undoStack: [
-        ...state.undoStack.slice(-19),
-        { classes: state.classes, currentClassId: state.currentClassId }
-      ],
-      canUndo: true
+      ...pushUndo(state)
     }))
-    get().saveClasses()
+    flushSoon(get)
     return { updated, removed }
   }
 }))

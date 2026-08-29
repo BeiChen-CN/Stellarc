@@ -6,22 +6,18 @@ import { z } from 'zod/v4'
 import { Vibrant } from 'node-vibrant/node'
 import log from 'electron-log'
 import { BaseController } from './BaseController'
+import { assertPathAuthorized } from '../fileAuth'
 
 const filenameSchema = z.tuple([z.string().min(1)])
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC payload is untyped JSON
 const filenameDataSchema = z.tuple([z.string().min(1), z.any()])
 const filePathSchema = z.tuple([z.string().min(1)])
 const filePathContentSchema = z.tuple([z.string().min(1), z.string()])
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC binary payload
-const filePathBufferSchema = z.tuple([z.string().min(1), z.any()])
 const copyPhotoSchema = z.tuple([z.string().min(1), z.string().min(1)])
 
 export class FileController extends BaseController {
   private dataPath: string
   private photosPath: string
-
-  /** Paths authorized via native file dialogs — shared with DialogController */
-  static authorizedPaths = new Set<string>()
 
   constructor(dataPath: string) {
     super()
@@ -45,12 +41,8 @@ export class FileController extends BaseController {
     this.handleValidated('read-file', filePathSchema, this.readFile)
     this.handleValidated('read-text-file', filePathSchema, this.readTextFile)
     this.handleValidated('copy-photo', copyPhotoSchema, this.copyPhoto)
-    this.handleValidated('delete-photo', filenameSchema, this.deletePhoto)
-    this.handleValidated('get-photo-path', filenameSchema, this.getPhotoPath)
-    this.handle('get-data-path', this.getDataPath)
     this.handleValidated('extract-wallpaper-colors', filePathSchema, this.extractWallpaperColors)
     this.handleValidated('write-export-file', filePathContentSchema, this.writeExportFile)
-    this.handleValidated('write-binary-file', filePathBufferSchema, this.writeBinaryFile)
   }
 
   private getSafePath(relativePath: string, baseDir: string = this.dataPath): string {
@@ -64,25 +56,22 @@ export class FileController extends BaseController {
   }
 
   private assertAuthorized(filePath: string): void {
-    const normalized = path.normalize(filePath)
-    if (!FileController.authorizedPaths.has(normalized)) {
-      throw new Error('Access denied: Path not authorized by file dialog')
-    }
+    assertPathAuthorized(filePath)
   }
 
+  /**
+   * 读取数据文件。文件不存在返回 null；JSON 损坏或 IO 异常向上抛出，
+   * 让渲染端感知（静默返回 null 会导致渲染端把损坏文件当作空数据覆盖重写）。
+   */
   private async readJson(_event: IpcMainInvokeEvent, filename: string): Promise<unknown> {
+    const filePath = this.getSafePath(filename)
     try {
-      const filePath = this.getSafePath(filename)
-      try {
-        const data = await fsp.readFile(filePath, 'utf-8')
-        return JSON.parse(data)
-      } catch (e: unknown) {
-        if (e instanceof Error && 'code' in e && e.code === 'ENOENT') return null
-        throw e
-      }
-    } catch (error) {
-      log.error('Failed to read JSON:', error)
-      return null
+      const data = await fsp.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && e.code === 'ENOENT') return null
+      log.error('Failed to read JSON:', e)
+      throw e
     }
   }
 
@@ -103,7 +92,7 @@ export class FileController extends BaseController {
         typeof data === 'object' &&
         !Array.isArray(data)
       ) {
-        const existing = await this.readJson(_event, filename) as Record<string, unknown> | null
+        const existing = (await this.readJson(_event, filename)) as Record<string, unknown> | null
         if (
           existing &&
           typeof existing === 'object' &&
@@ -118,7 +107,7 @@ export class FileController extends BaseController {
       return true
     } catch (error) {
       log.error('Failed to write JSON:', error)
-      return false
+      throw error
     }
   }
 
@@ -148,28 +137,6 @@ export class FileController extends BaseController {
     const targetPath = path.join(this.photosPath, targetFile)
     await fsp.copyFile(sourcePath, targetPath)
     return 'photos/' + targetFile
-  }
-
-  private async deletePhoto(_event: IpcMainInvokeEvent, photoPath: string): Promise<boolean> {
-    const fullPath = this.getSafePath(photoPath)
-    try {
-      await fsp.unlink(fullPath)
-    } catch (e: unknown) {
-      if (e instanceof Error && 'code' in e && e.code !== 'ENOENT') throw e
-    }
-    return true
-  }
-
-  private async getPhotoPath(
-    _event: IpcMainInvokeEvent,
-    relativePath: string
-  ): Promise<string | null> {
-    if (!relativePath) return null
-    return this.getSafePath(relativePath)
-  }
-
-  private async getDataPath(): Promise<string> {
-    return this.dataPath
   }
 
   private async extractWallpaperColors(
@@ -207,16 +174,6 @@ export class FileController extends BaseController {
   ): Promise<boolean> {
     this.assertAuthorized(filePath)
     await fsp.writeFile(filePath, content, 'utf-8')
-    return true
-  }
-
-  private async writeBinaryFile(
-    _event: IpcMainInvokeEvent,
-    filePath: string,
-    buffer: Buffer
-  ): Promise<boolean> {
-    this.assertAuthorized(filePath)
-    await fsp.writeFile(filePath, Buffer.from(buffer))
     return true
   }
 }

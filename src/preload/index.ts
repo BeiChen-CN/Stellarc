@@ -1,11 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
-type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
-type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+import type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions } from '../shared/types'
 
 // Custom APIs for renderer
 const api = {
+  // Logging（渲染端 error/warn 转发主进程 electron-log 落盘）
+  appendLog: (level: 'error' | 'warn' | 'info', message: string): Promise<boolean> =>
+    ipcRenderer.invoke('renderer-log', level, message),
+
   // Data Storage
   readJson: (filename: string): Promise<unknown> => ipcRenderer.invoke('read-json', filename),
   writeJson: (filename: string, data: unknown): Promise<boolean> =>
@@ -14,9 +16,6 @@ const api = {
   // File Dialogs
   selectFile: (options: Electron.OpenDialogOptions): Promise<string | null> =>
     ipcRenderer.invoke('select-file', options),
-  selectFiles: (options: Electron.OpenDialogOptions): Promise<string[] | null> =>
-    ipcRenderer.invoke('select-files', options),
-  selectFolder: () => ipcRenderer.invoke('select-folder'),
   saveFile: (options: Electron.SaveDialogOptions): Promise<string | null> =>
     ipcRenderer.invoke('save-file', options),
 
@@ -25,29 +24,14 @@ const api = {
   readTextFile: (filePath: string) => ipcRenderer.invoke('read-text-file', filePath),
   writeExportFile: (filePath: string, content: string) =>
     ipcRenderer.invoke('write-export-file', filePath, content),
-  writeBinaryFile: (filePath: string, buffer: ArrayBuffer) =>
-    ipcRenderer.invoke('write-binary-file', filePath, buffer),
 
   // Photo Management
   copyPhoto: (sourcePath: string, targetName: string) =>
     ipcRenderer.invoke('copy-photo', sourcePath, targetName),
-  deletePhoto: (photoPath: string) => ipcRenderer.invoke('delete-photo', photoPath),
-  getPhotoPath: (relativePath: string) => ipcRenderer.invoke('get-photo-path', relativePath),
-
-  // Path
-  getDataPath: () => ipcRenderer.invoke('get-data-path'),
 
   // Color Extraction
   extractWallpaperColors: (imagePath: string) =>
     ipcRenderer.invoke('extract-wallpaper-colors', imagePath),
-
-  // System Theme
-  getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
-  onSystemThemeChanged: (callback: (theme: string) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, theme: string): void => callback(theme)
-    ipcRenderer.on('system-theme-changed', subscription)
-    return () => ipcRenderer.removeListener('system-theme-changed', subscription)
-  },
 
   // Shortcuts
   registerShortcut: (accelerator: string, action: string) =>
@@ -59,19 +43,12 @@ const api = {
     return () => ipcRenderer.removeListener('shortcut-triggered', subscription)
   },
 
+  // External Links
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+
   // Backup & Restore
   backupData: (targetPath: string) => ipcRenderer.invoke('backup-data', targetPath),
   restoreData: (sourcePath: string) => ipcRenderer.invoke('restore-data', sourcePath),
-  appendDiagnosticEvent: (event: {
-    category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
-    level: 'info' | 'warn' | 'error'
-    code: string
-    message: string
-    context?: Record<string, unknown>
-  }) => ipcRenderer.invoke('append-diagnostic-event', event),
-
-  // External Links
-  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
 
   // Auto Launch
   setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke('set-auto-launch', enabled),

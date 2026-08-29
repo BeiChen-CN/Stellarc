@@ -1,46 +1,30 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-
-type ImmersiveWindowPhase = 'normal' | 'ball' | 'menu' | 'island' | 'expanded'
-type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
+import type { ImmersiveWindowPhase, ImmersiveWindowPhaseOptions } from '../shared/types'
 
 declare global {
   interface Window {
     electron: ElectronAPI
     electronAPI: {
+      appendLog: (level: 'error' | 'warn' | 'info', message: string) => Promise<boolean>
       readJson: (filename: string) => Promise<unknown>
       writeJson: (filename: string, data: unknown) => Promise<boolean>
       selectFile: (options: Electron.OpenDialogOptions) => Promise<string | null>
-      selectFiles: (options: Electron.OpenDialogOptions) => Promise<string[] | null>
-      selectFolder: () => Promise<string | null>
       saveFile: (options: Electron.SaveDialogOptions) => Promise<string | null>
       readFile: (filePath: string) => Promise<Uint8Array>
       readTextFile: (filePath: string) => Promise<string>
       writeExportFile: (filePath: string, content: string) => Promise<boolean>
-      writeBinaryFile: (filePath: string, buffer: ArrayBuffer) => Promise<boolean>
       copyPhoto: (sourcePath: string, targetName: string) => Promise<string>
-      deletePhoto: (photoPath: string) => Promise<boolean>
-      getPhotoPath: (relativePath: string) => Promise<string | null>
-      getDataPath: () => Promise<string>
       extractWallpaperColors: (imagePath: string) => Promise<{
         hue: number
         saturation: number
         lightness: number
         tertiaryHue: number
       } | null>
-      getSystemTheme: () => Promise<string>
-      onSystemThemeChanged: (callback: (theme: string) => void) => () => void
       registerShortcut: (accelerator: string, action: string) => Promise<boolean>
       onShortcutTriggered: (callback: (action: string) => void) => () => void
+      openExternal: (url: string) => Promise<boolean>
       backupData: (targetPath: string) => Promise<boolean>
       restoreData: (sourcePath: string) => Promise<boolean>
-      appendDiagnosticEvent: (event: {
-        category: 'sync' | 'shortcut' | 'plugin' | 'self-check'
-        level: 'info' | 'warn' | 'error'
-        code: string
-        message: string
-        context?: Record<string, unknown>
-      }) => Promise<boolean>
-      openExternal: (url: string) => Promise<boolean>
       setAutoLaunch: (enabled: boolean) => Promise<boolean>
       getAutoLaunch: () => Promise<boolean>
       checkForUpdates: () => Promise<boolean>

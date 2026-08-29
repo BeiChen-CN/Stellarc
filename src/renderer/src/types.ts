@@ -34,3 +34,8 @@ export interface ClassGroup {
   taskTemplates?: ClassTaskTemplate[]
 }
 
+/** 侧边栏导航视图（App / Sidebar / Home 共用的单一来源） */
+export type AppView = 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about'
+
+/** 提示音强度（设置 store 与音效模块共用） */
+export type SoundIntensity = 'low' | 'medium' | 'high'

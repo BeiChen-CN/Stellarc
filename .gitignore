@@ -29,3 +29,9 @@ nul
 .codex/
 .ace-tool/
 AGENTS.md
+# Test artifacts
+playwright-report/
+test-results/
+
+# Local tooling
+.zcode/

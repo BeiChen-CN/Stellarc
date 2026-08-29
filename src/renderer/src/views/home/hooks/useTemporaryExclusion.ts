@@ -11,15 +11,7 @@ import type { Student } from '../../../types'
 
 const TEMP_EXCLUSION_STORAGE_KEY = 'home-temporary-exclusion-by-class'
 
-export function useTemporaryExclusion({
-  currentClass,
-  currentClassId,
-  effectivePickGenderFilter
-}: {
-  currentClass: { id: string; students: Student[] } | undefined
-  currentClassId: string | null
-  effectivePickGenderFilter: 'all' | 'male' | 'female'
-}): {
+export interface TemporaryExclusionState {
   excludedMenuOpen: boolean
   setExcludedMenuOpen: Dispatch<SetStateAction<boolean>>
   excludedSearch: string
@@ -33,7 +25,17 @@ export function useTemporaryExclusion({
   pickRangeEligibleCount: number
   updateManualExcludedIds: (nextIds: string[]) => void
   hydrateForClass: (classId: string, students: Student[]) => void
-} {
+}
+
+export function useTemporaryExclusion({
+  currentClass,
+  currentClassId,
+  effectivePickGenderFilter
+}: {
+  currentClass: { id: string; students: Student[] } | undefined
+  currentClassId: string | null
+  effectivePickGenderFilter: 'all' | 'male' | 'female'
+}): TemporaryExclusionState {
   const [excludedMenuOpen, setExcludedMenuOpen] = useState(false)
   const [excludedSearch, setExcludedSearch] = useState('')
   const [excludedOnly, setExcludedOnly] = useState(false)

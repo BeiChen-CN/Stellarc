@@ -1,18 +1,11 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactElement } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Shuffle,
-  LayoutGrid,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  Check,
-  Maximize2
-} from 'lucide-react'
-import { Student, ClassTaskTemplate } from '../types'
+import { Shuffle, LayoutGrid, ChevronDown, ChevronUp, Users, Maximize2 } from 'lucide-react'
+import { Student, ClassTaskTemplate, type AppView } from '../types'
 import { cn, toFileUrl } from '../lib/utils'
 import { useToastStore } from '../store/toastStore'
 import { useConfirmStore } from '../store/confirmStore'
@@ -41,6 +34,12 @@ import { ClassTimer } from '../components/ClassTimer'
 import { ImmersiveShell } from './home/ImmersiveShell'
 import { useImmersiveUI } from './home/hooks/useImmersiveUI'
 import { useTemporaryExclusion } from './home/hooks/useTemporaryExclusion'
+import { TemporaryExclusionMenu, AutoDrawBar } from './home/DrawToolbar'
+import {
+  PickPreviewPanel,
+  StudentExplainPanel,
+  SelectionExplainPanel
+} from './home/SelectionExplainPanels'
 
 const ANIMATION_DURATION_MAP = { elegant: 3200, balanced: 2200, fast: 1300 } as const
 const ANIMATION_DURATION_REDUCED_MS = 300
@@ -72,55 +71,6 @@ function pickUniqueStudents(pool: Student[], count: number): Student[] {
   return copy.slice(0, count)
 }
 
-const REASON_LABELS: Record<string, string> = {
-  eligible: '可抽取',
-  excluded_by_status: '状态排除',
-  excluded_by_manual: '手动禁选',
-  excluded_by_cooldown: '冷却排除',
-  weighted: '权重抽取',
-  strategy_adjusted: '策略修正',
-  balance_target_boost: '学期均衡',
-  stage_fairness_boost: '阶段公平',
-  priority_unpicked: '优先未抽中',
-  fallback_relaxed_constraints: '自动放宽',
-  fallback_random: '随机兜底'
-}
-
-const REASON_TOOLTIPS: Record<string, string> = {
-  eligible: '该学生满足当前抽选条件，可参与本轮抽选。',
-  excluded_by_status: '学生状态不是“可参与”（如缺席/排除），因此不参与本轮。',
-  excluded_by_manual: '你在“临时禁选”中手动排除了该学生。',
-  excluded_by_cooldown: '该学生命中防重复冷却规则，暂时不参与本轮。',
-  weighted: '本轮使用权重抽取，学生基础权重会影响被抽中概率。',
-  strategy_adjusted: '策略预设对基础权重进行了额外修正。',
-  balance_target_boost: '学期均衡策略会降低高频学生权重，提升整体公平性。',
-  stage_fairness_boost: '最近多次被抽中的学生会在阶段公平中被适度降权。',
-  priority_unpicked: '该学生属于“本学期未抽中优先”名额。',
-  fallback_relaxed_constraints: '因约束冲突导致无可选人，系统自动放宽了部分限制。',
-  fallback_random: '当前使用随机兜底逻辑，按候选集合随机抽取。'
-}
-
-const REASON_CATEGORIES: Array<{ key: 'eligibility' | 'fairness' | 'fallback'; label: string }> = [
-  { key: 'eligibility', label: '资格过滤' },
-  { key: 'fairness', label: '公平策略' },
-  { key: 'fallback', label: '兜底策略' }
-]
-
-function getReasonCategory(reason: string): 'eligibility' | 'fairness' | 'fallback' {
-  if (
-    reason.startsWith('excluded_') ||
-    reason === 'eligible' ||
-    reason === 'weighted' ||
-    reason === 'strategy_adjusted'
-  ) {
-    return 'eligibility'
-  }
-  if (reason.includes('balance') || reason.includes('fairness') || reason.includes('priority')) {
-    return 'fairness'
-  }
-  return 'fallback'
-}
-
 const DEFAULT_GROUP_TASK_TEMPLATES: ClassTaskTemplate[] = [
   { id: 'task-observe', name: '观察记录', scoreDelta: 1 },
   { id: 'task-quiz', name: '快问快答', scoreDelta: 2 },
@@ -132,7 +82,7 @@ export function Home({
   onNavigate,
   onImmersiveChange
 }: {
-  onNavigate: (view: 'home' | 'students' | 'history' | 'statistics' | 'settings' | 'about') => void
+  onNavigate: (view: AppView) => void
   onImmersiveChange?: (immersive: boolean) => void
 }): ReactElement {
   const { classes, currentClassId, setCurrentClass, incrementPickCount, addClass, applyTaskScore } =
@@ -201,36 +151,48 @@ export function Home({
     animationStyle,
     animationSpeed,
     animationDurationScale,
-    immersiveIslandStyle
-  } = useSettingsStore()
+    immersiveIslandStyle} = useSettingsStore(
+    useShallow((state) => ({
+      fairness: state.fairness,
+      pickCount: state.pickCount,
+      setPickCount: state.setPickCount,
+      projectorMode: state.projectorMode,
+      showTemporaryExclusion: state.showTemporaryExclusion,
+      showAutoDraw: state.showAutoDraw,
+      showSelectionExplanation: state.showSelectionExplanation,
+      showPickGenderFilter: state.showPickGenderFilter,
+      showPickEligibleCount: state.showPickEligibleCount,
+      showPickPreviewPanel: state.showPickPreviewPanel,
+      showPickMissReasonPanel: state.showPickMissReasonPanel,
+      revealSettleMs: state.revealSettleMs,
+      showStudentId: state.showStudentId,
+      photoMode: state.photoMode,
+      backgroundImage: state.backgroundImage,
+      soundEnabled: state.soundEnabled,
+      soundIntensity: state.soundIntensity,
+      confettiEnabled: state.confettiEnabled,
+      animationStyle: state.animationStyle,
+      animationSpeed: state.animationSpeed,
+      animationDurationScale: state.animationDurationScale,
+      immersiveIslandStyle: state.immersiveIslandStyle
+    }))
+  )
 
   const effectivePickGenderFilter = showPickGenderFilter ? pickGenderFilter : 'all'
-  const {
-    immersiveMode,
-    immersivePickMode,
-    immersivePhase,
-    setImmersiveMode,
-    setImmersivePhase
-  } = useImmersiveUI(mode, onImmersiveChange)
-  const {
-    excludedMenuOpen,
-    setExcludedMenuOpen,
-    excludedSearch,
-    setExcludedSearch,
-    excludedOnly,
-    setExcludedOnly,
-    manualExcludedIds,
-    manualExcludedSet,
-    excludedMenuRef,
-    filteredExcludedCandidates,
-    pickRangeEligibleCount,
-    updateManualExcludedIds,
-    hydrateForClass
-  } = useTemporaryExclusion({
+  const { immersiveMode, immersivePickMode, immersivePhase, setImmersiveMode, setImmersivePhase } =
+    useImmersiveUI(mode, onImmersiveChange)
+  const temporaryExclusion = useTemporaryExclusion({
     currentClass,
     currentClassId,
     effectivePickGenderFilter
   })
+  const {
+    setExcludedMenuOpen,
+    manualExcludedIds,
+    pickRangeEligibleCount,
+    updateManualExcludedIds,
+    hydrateForClass
+  } = temporaryExclusion
 
   const handleDrawRef = useRef<(options?: DrawOptions) => void>(() => {})
 
@@ -258,88 +220,91 @@ export function Home({
     return cleanup
   }, [immersiveMode, immersivePhase, setImmersivePhase])
 
-  const getPickPlan = useCallback((countOverride?: number): PickPlan | null => {
-    if (!currentClass) return null
+  const getPickPlan = useCallback(
+    (countOverride?: number): PickPlan | null => {
+      if (!currentClass) return null
 
-    const genderFilteredStudents =
-      effectivePickGenderFilter === 'all'
-        ? currentClass.students
-        : currentClass.students.filter((student) => student.gender === effectivePickGenderFilter)
+      const genderFilteredStudents =
+        effectivePickGenderFilter === 'all'
+          ? currentClass.students
+          : currentClass.students.filter((student) => student.gender === effectivePickGenderFilter)
 
-    const pickClass =
-      effectivePickGenderFilter === 'all'
-        ? currentClass
-        : { ...currentClass, students: genderFilteredStudents }
+      const pickClass =
+        effectivePickGenderFilter === 'all'
+          ? currentClass
+          : { ...currentClass, students: genderFilteredStudents }
 
-    const requestedCount = countOverride ?? pickCount
-    const result = selectionEngine.pick(
-      buildPickRequest({
-        currentClass: pickClass,
-        history,
-        policy: {
-          ...fairness,
-          manualExcludedIds
-        },
-        count: requestedCount
+      const requestedCount = countOverride ?? pickCount
+      const result = selectionEngine.pick(
+        buildPickRequest({
+          currentClass: pickClass,
+          history,
+          policy: {
+            ...fairness,
+            manualExcludedIds
+          },
+          count: requestedCount
+        })
+      )
+
+      const candidateMap = new Map(result.traces.map((trace) => [trace.studentId, trace]))
+      const eligibleStudents = currentClass.students.filter((student) => {
+        const trace = candidateMap.get(student.id)
+        return !!trace?.eligible
       })
-    )
 
-    const candidateMap = new Map(result.traces.map((trace) => [trace.studentId, trace]))
-    const eligibleStudents = currentClass.students.filter((student) => {
-      const trace = candidateMap.get(student.id)
-      return !!trace?.eligible
-    })
+      const selectionMeta: HistorySelectionMeta = {
+        ...result.meta,
+        cooldownExcludedIds: result.cooldownExcludedIds,
+        fallbackNotes: result.meta.fallbackNotes,
+        winnerExplanations: result.winners.map((winner) => {
+          const trace = result.traces.find((item) => item.studentId === winner.id)
+          const totalWeight = result.traces
+            .filter((item) => item.eligible)
+            .reduce((sum, item) => sum + (item.finalWeight || 1), 0)
+          const finalWeight = trace?.finalWeight || winner.weight || 1
+          return {
+            id: winner.id,
+            name: winner.name,
+            baseWeight: trace?.baseWeight || winner.weight || 1,
+            finalWeight,
+            estimatedProbability: totalWeight > 0 ? finalWeight / totalWeight : 0,
+            reasons: trace?.reasons || ['eligible']
+          }
+        }),
+        explanationSummary: (() => {
+          const parts: string[] = []
+          if (result.meta.policySnapshot.weightedRandom) {
+            parts.push('采用权重抽取')
+          } else {
+            parts.push('采用随机抽取')
+          }
+          if (result.meta.policySnapshot.balanceByTerm) {
+            parts.push('启用学期均衡')
+          }
+          if (result.meta.policySnapshot.stageFairnessRounds > 0) {
+            parts.push(`参考最近 ${result.meta.policySnapshot.stageFairnessRounds} 轮阶段公平`)
+          }
+          if (result.meta.policySnapshot.prioritizeUnpickedCount > 0) {
+            parts.push(`优先未抽中 ${result.meta.policySnapshot.prioritizeUnpickedCount} 人`)
+          }
+          if (result.meta.fallbackNotes.length > 0) {
+            parts.push('发生约束冲突并已自动放宽')
+          }
+          return parts.join('，')
+        })()
+      }
 
-    const selectionMeta: HistorySelectionMeta = {
-      ...result.meta,
-      cooldownExcludedIds: result.cooldownExcludedIds,
-      fallbackNotes: result.meta.fallbackNotes,
-      winnerExplanations: result.winners.map((winner) => {
-        const trace = result.traces.find((item) => item.studentId === winner.id)
-        const totalWeight = result.traces
-          .filter((item) => item.eligible)
-          .reduce((sum, item) => sum + (item.finalWeight || 1), 0)
-        const finalWeight = trace?.finalWeight || winner.weight || 1
-        return {
-          id: winner.id,
-          name: winner.name,
-          baseWeight: trace?.baseWeight || winner.weight || 1,
-          finalWeight,
-          estimatedProbability: totalWeight > 0 ? finalWeight / totalWeight : 0,
-          reasons: trace?.reasons || ['eligible']
-        }
-      }),
-      explanationSummary: (() => {
-        const parts: string[] = []
-        if (result.meta.policySnapshot.weightedRandom) {
-          parts.push('采用权重抽取')
-        } else {
-          parts.push('采用随机抽取')
-        }
-        if (result.meta.policySnapshot.balanceByTerm) {
-          parts.push('启用学期均衡')
-        }
-        if (result.meta.policySnapshot.stageFairnessRounds > 0) {
-          parts.push(`参考最近 ${result.meta.policySnapshot.stageFairnessRounds} 轮阶段公平`)
-        }
-        if (result.meta.policySnapshot.prioritizeUnpickedCount > 0) {
-          parts.push(`优先未抽中 ${result.meta.policySnapshot.prioritizeUnpickedCount} 人`)
-        }
-        if (result.meta.fallbackNotes.length > 0) {
-          parts.push('发生约束冲突并已自动放宽')
-        }
-        return parts.join('，')
-      })()
-    }
-
-    return {
-      eligibleStudents,
-      winners: result.winners,
-      selectionMeta,
-      traces: result.traces,
-      totalCandidates: pickClass.students.length
-    }
-  }, [currentClass, effectivePickGenderFilter, fairness, history, pickCount, manualExcludedIds])
+      return {
+        eligibleStudents,
+        winners: result.winners,
+        selectionMeta,
+        traces: result.traces,
+        totalCandidates: pickClass.students.length
+      }
+    },
+    [currentClass, effectivePickGenderFilter, fairness, history, pickCount, manualExcludedIds]
+  )
 
   const pickPreview = useMemo(() => {
     if (mode !== 'pick') return null
@@ -395,23 +360,6 @@ export function Home({
       baseWeight: trace.baseWeight
     }
   }, [currentClass, mode, previewStudentQuery, getPickPlan])
-
-  const selectionReasonOverview = useMemo(() => {
-    const reasonCount = new Map<string, number>()
-    const winnerExplanations = lastSelectionMeta?.winnerExplanations || []
-    winnerExplanations.forEach((item) => {
-      item.reasons.forEach((reason) => {
-        reasonCount.set(reason, (reasonCount.get(reason) || 0) + 1)
-      })
-    })
-    const flattened = Array.from(reasonCount.entries())
-      .map(([reason, count]) => ({ reason, count }))
-      .sort((a, b) => b.count - a.count)
-    return REASON_CATEGORIES.map((category) => ({
-      ...category,
-      items: flattened.filter((item) => getReasonCategory(item.reason) === category.key)
-    })).filter((group) => group.items.length > 0)
-  }, [lastSelectionMeta])
 
   const finishDraw = useCallback(
     (preSelectedWinners: Student[]) => {
@@ -481,145 +429,148 @@ export function Home({
     finishDraw(wheelWinnersRef.current)
   }, [finishDraw])
 
-  const handleDraw = useCallback((options: DrawOptions = {}): void => {
-    if (isSpinning) return
-    if (!currentClass || currentClass.students.length === 0) return
+  const handleDraw = useCallback(
+    (options: DrawOptions = {}): void => {
+      if (isSpinning) return
+      if (!currentClass || currentClass.students.length === 0) return
 
-    const requestedCount = options.countOverride ?? pickCount
-    const pickPlan = getPickPlan(requestedCount)
-    if (!pickPlan) return
+      const requestedCount = options.countOverride ?? pickCount
+      const pickPlan = getPickPlan(requestedCount)
+      if (!pickPlan) return
 
-    const activeStudents = pickPlan.eligibleStudents
-    if (activeStudents.length === 0) {
-      addToast(
-        effectivePickGenderFilter === 'all'
-          ? '当前班级没有可被抽选的学生！'
-          : `当前${effectivePickGenderFilter === 'male' ? '男生' : '女生'}筛选下没有可被抽选的学生！`,
-        'error'
-      )
-      return
-    }
-
-    lastSelectionMetaRef.current = pickPlan.selectionMeta
-    setLastSelectionMeta(pickPlan.selectionMeta)
-
-    setIsSpinning(true)
-    setWinners([])
-    setDisplayCandidates([])
-    setShowConfetti(false)
-    setPhase('spinning')
-    tickCountRef.current = 0
-    lastSoundAtRef.current = 0
-
-    const countToPick = Math.min(requestedCount, activeStudents.length)
-    const uniqueWinners = pickPlan.winners
-      .filter((winner, index, arr) => arr.findIndex((item) => item.id === winner.id) === index)
-      .slice(0, countToPick)
-    const winnerIdSet = new Set(uniqueWinners.map((winner) => winner.id))
-    const fallbackWinners = activeStudents.filter((student) => !winnerIdSet.has(student.id))
-    const preSelectedWinners =
-      uniqueWinners.length >= countToPick
-        ? uniqueWinners
-        : [
-            ...uniqueWinners,
-            ...pickUniqueStudents(fallbackWinners, countToPick - uniqueWinners.length)
-          ]
-
-    if (animationStyle === 'wheel') {
-      wheelWinnersRef.current = preSelectedWinners
-      setWheelActiveStudents(activeStudents)
-      setWinners(preSelectedWinners)
-      return
-    }
-
-    if (animationStyle === 'charByChar') {
-      setDisplayCandidates(preSelectedWinners)
-      setCandidateKey((k) => k + 1)
-      setPhase('spinning')
-      // Keep char-by-char concise to avoid dragging
-      const maxChars = Math.max(...preSelectedWinners.map((w) => w.name.length), 1)
-      const revealDuration = Math.min(
-        2200 * sf * animationDurationScale,
-        (maxChars * 120 + 420) * sf * animationDurationScale
-      )
-      timeoutRef.current = setTimeout(() => {
-        finishDraw(preSelectedWinners)
-      }, revealDuration)
-      return
-    }
-
-    const duration = prefersReducedMotion
-      ? ANIMATION_DURATION_REDUCED_MS
-      : ANIMATION_DURATION_MAP[animationSpeed] * sf * animationDurationScale
-    const startTime = performance.now()
-    let lastTickAt = startTime
-
-    const animate = (time: number): void => {
-      const elapsed = time - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 4)
-      const interval = TICK_INTERVAL_MIN_MS + eased * TICK_INTERVAL_RANGE_MS
-
-      if (time - lastTickAt >= interval || progress >= 1) {
-        const currentRandoms =
-          progress > LOCK_IN_PROGRESS
-            ? preSelectedWinners
-            : pickUniqueStudents(activeStudents, countToPick)
-        setDisplayCandidates(currentRandoms)
-        setCandidateKey((k) => k + 1)
-        lastTickAt = time
+      const activeStudents = pickPlan.eligibleStudents
+      if (activeStudents.length === 0) {
+        addToast(
+          effectivePickGenderFilter === 'all'
+            ? '当前班级没有可被抽选的学生！'
+            : `当前${effectivePickGenderFilter === 'male' ? '男生' : '女生'}筛选下没有可被抽选的学生！`,
+          'error'
+        )
+        return
       }
 
-      if (soundEnabled && !prefersReducedMotion && progress < 1) {
-        const now = performance.now()
-        const baseGap = SOUND_GAP_BASE_MS[animationSpeed]
-        const effectiveGap = Math.max(
-          95,
-          Math.min(280, baseGap / Math.max(0.6, animationDurationScale))
+      lastSelectionMetaRef.current = pickPlan.selectionMeta
+      setLastSelectionMeta(pickPlan.selectionMeta)
+
+      setIsSpinning(true)
+      setWinners([])
+      setDisplayCandidates([])
+      setShowConfetti(false)
+      setPhase('spinning')
+      tickCountRef.current = 0
+      lastSoundAtRef.current = 0
+
+      const countToPick = Math.min(requestedCount, activeStudents.length)
+      const uniqueWinners = pickPlan.winners
+        .filter((winner, index, arr) => arr.findIndex((item) => item.id === winner.id) === index)
+        .slice(0, countToPick)
+      const winnerIdSet = new Set(uniqueWinners.map((winner) => winner.id))
+      const fallbackWinners = activeStudents.filter((student) => !winnerIdSet.has(student.id))
+      const preSelectedWinners =
+        uniqueWinners.length >= countToPick
+          ? uniqueWinners
+          : [
+              ...uniqueWinners,
+              ...pickUniqueStudents(fallbackWinners, countToPick - uniqueWinners.length)
+            ]
+
+      if (animationStyle === 'wheel') {
+        wheelWinnersRef.current = preSelectedWinners
+        setWheelActiveStudents(activeStudents)
+        setWinners(preSelectedWinners)
+        return
+      }
+
+      if (animationStyle === 'charByChar') {
+        setDisplayCandidates(preSelectedWinners)
+        setCandidateKey((k) => k + 1)
+        setPhase('spinning')
+        // Keep char-by-char concise to avoid dragging
+        const maxChars = Math.max(...preSelectedWinners.map((w) => w.name.length), 1)
+        const revealDuration = Math.min(
+          2200 * sf * animationDurationScale,
+          (maxChars * 120 + 420) * sf * animationDurationScale
         )
-        if (now - lastSoundAtRef.current >= effectiveGap) {
-          tickCountRef.current++
-          if (animationStyle === 'typewriter') {
-            playTypewriterKey()
-          } else if (animationStyle === 'bounce') {
-            playBounceTick()
-          } else if (progress >= SLOW_DOWN_PROGRESS) {
-            playSlowTick()
-          } else {
-            playTick()
+        timeoutRef.current = setTimeout(() => {
+          finishDraw(preSelectedWinners)
+        }, revealDuration)
+        return
+      }
+
+      const duration = prefersReducedMotion
+        ? ANIMATION_DURATION_REDUCED_MS
+        : ANIMATION_DURATION_MAP[animationSpeed] * sf * animationDurationScale
+      const startTime = performance.now()
+      let lastTickAt = startTime
+
+      const animate = (time: number): void => {
+        const elapsed = time - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const eased = 1 - Math.pow(1 - progress, 4)
+        const interval = TICK_INTERVAL_MIN_MS + eased * TICK_INTERVAL_RANGE_MS
+
+        if (time - lastTickAt >= interval || progress >= 1) {
+          const currentRandoms =
+            progress > LOCK_IN_PROGRESS
+              ? preSelectedWinners
+              : pickUniqueStudents(activeStudents, countToPick)
+          setDisplayCandidates(currentRandoms)
+          setCandidateKey((k) => k + 1)
+          lastTickAt = time
+        }
+
+        if (soundEnabled && !prefersReducedMotion && progress < 1) {
+          const now = performance.now()
+          const baseGap = SOUND_GAP_BASE_MS[animationSpeed]
+          const effectiveGap = Math.max(
+            95,
+            Math.min(280, baseGap / Math.max(0.6, animationDurationScale))
+          )
+          if (now - lastSoundAtRef.current >= effectiveGap) {
+            tickCountRef.current++
+            if (animationStyle === 'typewriter') {
+              playTypewriterKey()
+            } else if (animationStyle === 'bounce') {
+              playBounceTick()
+            } else if (progress >= SLOW_DOWN_PROGRESS) {
+              playSlowTick()
+            } else {
+              playTick()
+            }
+            lastSoundAtRef.current = now
           }
-          lastSoundAtRef.current = now
+        }
+
+        if (progress > SLOW_DOWN_PROGRESS && phase !== 'slowing') {
+          setPhase('slowing')
+        }
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate)
+        } else {
+          finishDraw(preSelectedWinners)
         }
       }
 
-      if (progress > SLOW_DOWN_PROGRESS && phase !== 'slowing') {
-        setPhase('slowing')
-      }
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate)
-      } else {
-        finishDraw(preSelectedWinners)
-      }
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-  }, [
-    isSpinning,
-    currentClass,
-    getPickPlan,
-    addToast,
-    effectivePickGenderFilter,
-    pickCount,
-    animationStyle,
-    sf,
-    animationDurationScale,
-    finishDraw,
-    prefersReducedMotion,
-    animationSpeed,
-    soundEnabled,
-    phase
-  ])
+      animationRef.current = requestAnimationFrame(animate)
+    },
+    [
+      isSpinning,
+      currentClass,
+      getPickPlan,
+      addToast,
+      effectivePickGenderFilter,
+      pickCount,
+      animationStyle,
+      sf,
+      animationDurationScale,
+      finishDraw,
+      prefersReducedMotion,
+      animationSpeed,
+      soundEnabled,
+      phase
+    ]
+  )
 
   useEffect(() => {
     handleDrawRef.current = handleDraw
@@ -985,181 +936,23 @@ export function Home({
             <div className="mb-3 shrink-0 w-full max-w-2xl">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-surface-container-high/80 px-3 py-2 border border-outline-variant/40">
                 {showTemporaryExclusion && (
-                  <div className="relative" ref={excludedMenuRef}>
-                    <button
-                      onClick={() => setExcludedMenuOpen((v) => !v)}
-                      className="px-3 py-1.5 rounded-full text-xs bg-surface-container border border-outline-variant/40 text-on-surface cursor-pointer"
-                    >
-                      临时禁选 {manualExcludedIds.length}
-                    </button>
-                    {excludedMenuOpen && (
-                      <div className="absolute left-0 mt-1 w-[min(360px,calc(100vw-2rem))] max-h-[420px] overflow-hidden bg-surface-container rounded-2xl border border-outline-variant/40 elevation-2 z-40">
-                        <div className="px-3 py-2 border-b border-outline-variant/30 flex items-center justify-between">
-                          <span className="text-xs text-on-surface-variant">
-                            可选{' '}
-                            {currentClass?.students.filter((s) => s.status === 'active').length ||
-                              0}{' '}
-                            人
-                          </span>
-                          <span className="text-xs text-on-surface-variant">
-                            已禁选 {manualExcludedIds.length} 人
-                          </span>
-                        </div>
-
-                        <div className="px-3 py-2 border-b border-outline-variant/30 space-y-2">
-                          <input
-                            value={excludedSearch}
-                            onChange={(e) => setExcludedSearch(e.target.value)}
-                            placeholder="搜索姓名/学号"
-                            className="w-full px-3 py-1.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-on-surface outline-none"
-                          />
-                          <button
-                            onClick={() => setExcludedOnly((v) => !v)}
-                            className={cn(
-                              'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs border transition-colors cursor-pointer',
-                              excludedOnly
-                                ? 'bg-secondary-container text-secondary-container-foreground border-outline'
-                                : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40 hover:bg-surface-container-high'
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                'w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center',
-                                excludedOnly
-                                  ? 'bg-primary border-primary text-primary-foreground'
-                                  : 'border-outline-variant/60 bg-transparent'
-                              )}
-                            >
-                              {excludedOnly && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
-                            </span>
-                            仅显示已禁选
-                          </button>
-                        </div>
-
-                        <div className="max-h-[250px] overflow-y-auto custom-scrollbar p-1">
-                          {filteredExcludedCandidates.map((student) => {
-                            const checked = manualExcludedSet.has(student.id)
-                            return (
-                              <button
-                                key={student.id}
-                                onClick={() => {
-                                  updateManualExcludedIds(
-                                    checked
-                                      ? manualExcludedIds.filter((id) => id !== student.id)
-                                      : [...manualExcludedIds, student.id]
-                                  )
-                                }}
-                                className={cn(
-                                  'w-full text-left px-2.5 py-2 rounded-xl text-xs cursor-pointer flex items-center justify-between gap-2',
-                                  checked
-                                    ? 'bg-secondary-container text-secondary-container-foreground'
-                                    : 'text-on-surface hover:bg-surface-container-high'
-                                )}
-                              >
-                                <span className="truncate">{student.name}</span>
-                                <span className="text-[10px] opacity-80">
-                                  {checked ? '已禁选' : '可抽取'}
-                                </span>
-                              </button>
-                            )
-                          })}
-                          {filteredExcludedCandidates.length === 0 && (
-                            <div className="px-2.5 py-4 text-xs text-on-surface-variant text-center">
-                              无匹配学生
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="px-2 py-2 border-t border-outline-variant/30 flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              const allActiveIds =
-                                currentClass?.students
-                                  .filter((s) => s.status === 'active')
-                                  .map((s) => s.id) || []
-                              updateManualExcludedIds(allActiveIds)
-                            }}
-                            className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-on-surface hover:bg-surface-container-high cursor-pointer"
-                          >
-                            全部禁选
-                          </button>
-                          <button
-                            onClick={() => updateManualExcludedIds([])}
-                            className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
-                          >
-                            清空禁选
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <TemporaryExclusionMenu currentClass={currentClass} exclusion={temporaryExclusion} />
                 )}
 
                 {showAutoDraw && (
-                  <button
-                    onClick={() => setAutoDrawEnabled((v) => !v)}
-                    title="Ctrl/Cmd + Enter 可快速开始/停止连抽"
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs border border-outline-variant/40 cursor-pointer',
-                      autoDrawEnabled
-                        ? 'bg-secondary-container text-secondary-container-foreground'
-                        : 'bg-surface-container text-on-surface'
-                    )}
-                  >
-                    连抽设置 {autoDrawEnabled ? '开' : '关'}
-                  </button>
-                )}
-
-                {showAutoDraw && autoDrawEnabled && (
-                  <>
-                    <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
-                      <span className="text-[11px] text-on-surface-variant">轮次</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={autoDrawRounds}
-                        onChange={(e) =>
-                          setAutoDrawRounds(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
-                        }
-                        className="w-12 bg-transparent text-xs text-on-surface text-center outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
-                      <span className="text-[11px] text-on-surface-variant">间隔ms</span>
-                      <input
-                        type="number"
-                        min={2500}
-                        max={12000}
-                        step={100}
-                        value={autoDrawIntervalMs}
-                        onChange={(e) =>
-                          setAutoDrawIntervalMs(
-                            Math.max(2500, Math.min(12000, Number(e.target.value) || 3600))
-                          )
-                        }
-                        className="w-16 bg-transparent text-xs text-on-surface text-center outline-none"
-                      />
-                    </div>
-                    {autoDrawRemaining === 0 ? (
-                      <button
-                        onClick={startAutoDraw}
-                        disabled={isSpinning || !currentClass || currentClass.students.length === 0}
-                        title="Ctrl/Cmd + Enter"
-                        className="px-3 py-1.5 rounded-full text-xs bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        开始连抽
-                      </button>
-                    ) : (
-                      <button
-                        onClick={stopAutoDraw}
-                        title="Ctrl/Cmd + Enter"
-                        className="px-3 py-1.5 rounded-full text-xs bg-destructive/10 text-destructive border border-destructive/20 cursor-pointer"
-                      >
-                        停止连抽（剩余 {autoDrawRemaining}）
-                      </button>
-                    )}
-                  </>
+                  <AutoDrawBar
+                    autoDrawEnabled={autoDrawEnabled}
+                    onToggleEnabled={() => setAutoDrawEnabled((v) => !v)}
+                    autoDrawRounds={autoDrawRounds}
+                    onRoundsChange={setAutoDrawRounds}
+                    autoDrawIntervalMs={autoDrawIntervalMs}
+                    onIntervalChange={setAutoDrawIntervalMs}
+                    autoDrawRemaining={autoDrawRemaining}
+                    onStart={startAutoDraw}
+                    onStop={stopAutoDraw}
+                    isSpinning={isSpinning}
+                    canDraw={!!currentClass && currentClass.students.length > 0}
+                  />
                 )}
               </div>
             </div>
@@ -1428,168 +1221,22 @@ export function Home({
           )}
 
           {showPickPreviewPanel && mode === 'pick' && !isSpinning && pickPreview && (
-            <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-on-surface-variant">抽选前预览</span>
-                <span className="text-xs text-on-surface-variant">
-                  候选 {pickPreview.totalCandidates} / 可抽 {pickPreview.eligibleCount} / 排除{' '}
-                  {pickPreview.excludedCount}
-                </span>
-              </div>
-              {pickPreview.excludedBreakdown.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {pickPreview.excludedBreakdown.map((item) => (
-                    <span
-                      key={item.reason}
-                      className="px-2 py-0.5 rounded-full text-[10px] bg-surface-container text-on-surface-variant"
-                    >
-                      {REASON_LABELS[item.reason] || item.reason} {item.count}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PickPreviewPanel preview={pickPreview} />
           )}
 
           {showPickMissReasonPanel && mode === 'pick' && !isSpinning && (
-            <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
-              <div className="text-xs text-on-surface-variant mb-2">未抽中原因（学生视角）</div>
-              <input
-                value={previewStudentQuery}
-                onChange={(e) => setPreviewStudentQuery(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                placeholder="输入姓名或学号查看该生当前抽选状态"
-              />
-              {previewStudentExplain && (
-                <div className="mt-2 text-[11px] text-on-surface-variant">
-                  {'notFound' in previewStudentExplain && previewStudentExplain.notFound ? (
-                    <span>未匹配到学生</span>
-                  ) : (
-                    <>
-                      <div>
-                        {previewStudentExplain.student.name}：
-                        {previewStudentExplain.eligible ? '当前可抽取' : '当前不可抽取'}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {previewStudentExplain.reasons.map((reason) => (
-                          <span
-                            key={`${previewStudentExplain.student.id}-${reason}`}
-                            className="px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant"
-                            title={REASON_TOOLTIPS[reason] || reason}
-                          >
-                            {REASON_LABELS[reason] || reason}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="mt-1">
-                        权重 {previewStudentExplain.baseWeight.toFixed(2)} -&gt;{' '}
-                        {previewStudentExplain.finalWeight.toFixed(2)}
-                      </div>
-                      <details className="mt-1.5 rounded-lg bg-surface-container-low/60 px-2 py-1.5">
-                        <summary className="cursor-pointer text-[11px] text-on-surface">
-                          规则说明
-                        </summary>
-                        <div className="mt-1.5 space-y-1">
-                          {previewStudentExplain.reasons.map((reason) => (
-                            <div key={`tip-${previewStudentExplain.student.id}-${reason}`}>
-                              <span className="font-medium text-on-surface">
-                                {REASON_LABELS[reason] || reason}
-                              </span>
-                              <span className="ml-1">{REASON_TOOLTIPS[reason] || '暂无说明'}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            <StudentExplainPanel
+              explain={previewStudentExplain}
+              query={previewStudentQuery}
+              onQueryChange={setPreviewStudentQuery}
+            />
           )}
 
           {showSelectionExplanation &&
             mode === 'pick' &&
             phase === 'reveal' &&
             winners.length > 0 && (
-              <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-on-surface-variant">抽选解释</div>
-                  <div className="text-[11px] text-on-surface-variant">
-                    本次抽取 {lastSelectionMeta?.actualCount || winners.length} 人 / 请求{' '}
-                    {lastSelectionMeta?.requestedCount || pickCount} 人
-                  </div>
-                </div>
-
-                {lastSelectionMeta?.explanationSummary && (
-                  <div className="mb-2 text-[11px] text-on-surface-variant bg-surface-container-low/70 border border-outline-variant/20 rounded-xl px-2.5 py-1.5">
-                    {lastSelectionMeta.explanationSummary}
-                  </div>
-                )}
-
-                {(lastSelectionMeta?.fallbackNotes || []).length > 0 && (
-                  <div className="mb-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
-                    {(lastSelectionMeta?.fallbackNotes || []).join('；')}
-                  </div>
-                )}
-
-                {selectionReasonOverview.length > 0 && (
-                  <div className="mb-2 rounded-xl bg-surface-container-low/70 border border-outline-variant/20 p-2.5">
-                    <div className="text-[11px] text-on-surface-variant mb-1.5">规则命中概览</div>
-                    <div className="space-y-1.5">
-                      {selectionReasonOverview.map((group) => (
-                        <div key={`reason-group-${group.key}`}>
-                          <div className="text-[10px] text-on-surface-variant mb-1">
-                            {group.label}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {group.items.map((item) => (
-                              <span
-                                key={`reason-overview-${group.key}-${item.reason}`}
-                                className="px-2 py-0.5 rounded-full text-[10px] bg-surface-container-high text-on-surface-variant"
-                                title={REASON_TOOLTIPS[item.reason] || item.reason}
-                              >
-                                {REASON_LABELS[item.reason] || item.reason} x {item.count}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
-                  {(lastSelectionMeta?.winnerExplanations || []).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl bg-surface-container-low/70 p-2.5 border border-outline-variant/20"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-on-surface truncate">
-                          {item.name}
-                        </span>
-                        <span className="text-[11px] text-on-surface-variant shrink-0">
-                          概率约 {(item.estimatedProbability * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="mt-1 text-[11px] text-on-surface-variant">
-                        权重 {item.baseWeight.toFixed(2)} -&gt; {item.finalWeight.toFixed(2)}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {item.reasons.map((reason) => (
-                          <span
-                            key={`${item.id}-${reason}`}
-                            className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-container-high text-on-surface-variant"
-                            title={REASON_TOOLTIPS[reason] || reason}
-                          >
-                            {REASON_LABELS[reason] || reason}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <SelectionExplainPanel meta={lastSelectionMeta} requestedCount={pickCount} />
             )}
         </div>
       )}

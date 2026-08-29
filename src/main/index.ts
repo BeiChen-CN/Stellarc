@@ -1,39 +1,21 @@
-import { app, shell, BrowserWindow, session, ipcMain, protocol, net, screen } from 'electron'
+import { app, shell, BrowserWindow, session, protocol, net } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
 import icon from '../../resources/icon.png?asset'
 import { AppController } from './controllers/AppController'
 import { FileController } from './controllers/FileController'
 import { DialogController } from './controllers/DialogController'
+import { WindowController } from './controllers/WindowController'
+import { UpdateController } from './controllers/UpdateController'
+import { SystemController } from './controllers/SystemController'
 import { runDataMigrations } from './migrations'
 import { runDataSelfCheck } from './health/selfCheck'
-import {
-  createImmersiveWindowController,
-  isImmersiveWindowPhase,
-  type ImmersiveWindowPhaseOptions
-} from './immersiveWindow'
 
 log.transports.file.level = 'info'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
-
-const immersiveWindowControllers = new WeakMap<
-  BrowserWindow,
-  ReturnType<typeof createImmersiveWindowController>
->()
-
-function getImmersiveWindowController(
-  win: BrowserWindow
-): ReturnType<typeof createImmersiveWindowController> {
-  const existing = immersiveWindowControllers.get(win)
-  if (existing) return existing
-  const controller = createImmersiveWindowController(win)
-  immersiveWindowControllers.set(win, controller)
-  return controller
-}
 
 function getDataPath(): string {
   const userDataPath = join(app.getPath('userData'), 'data')
@@ -113,7 +95,6 @@ function createWindow(): BrowserWindow {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  getImmersiveWindowController(mainWindow)
   return mainWindow
 }
 
@@ -128,6 +109,8 @@ app.whenReady().then(() => {
   })
 
   // Set app user model id for windows
+  // Windows 通知/任务栏分组身份。沿用旧 com.spotlight.classroom 会导致
+  // 已安装用户升级后通知归属变化，计划随下一个大版本迁移到 com.stellarc.app
   electronApp.setAppUserModelId('com.spotlight.classroom')
 
   // Default open or close DevTools by F12 in development
@@ -159,94 +142,11 @@ app.whenReady().then(() => {
   new AppController(dataPath)
   new FileController(dataPath)
   new DialogController()
+  new WindowController()
+  new UpdateController()
+  new SystemController(dataPath)
 
   createWindow()
-
-  // Window control IPC
-  ipcMain.handle('window-minimize', () => {
-    BrowserWindow.getFocusedWindow()?.minimize()
-  })
-  ipcMain.handle('window-maximize', () => {
-    const win = BrowserWindow.getFocusedWindow()
-    if (win) {
-      win.isMaximized() ? win.unmaximize() : win.maximize()
-    }
-  })
-  ipcMain.handle('window-close', () => {
-    BrowserWindow.getFocusedWindow()?.close()
-  })
-  ipcMain.handle('window-is-maximized', () => {
-    return BrowserWindow.getFocusedWindow()?.isMaximized() ?? false
-  })
-  ipcMain.handle(
-    'set-immersive-window-phase',
-    (event, phase: unknown, options?: ImmersiveWindowPhaseOptions) => {
-      if (!isImmersiveWindowPhase(phase)) return false
-      const win =
-        BrowserWindow.fromWebContents(event.sender) ??
-        BrowserWindow.getFocusedWindow() ??
-        BrowserWindow.getAllWindows()[0]
-      if (!win || win.isDestroyed()) return false
-
-      const workArea = screen.getDisplayMatching(win.getBounds()).workArea
-      getImmersiveWindowController(win).setPhase(phase, workArea, options)
-      return true
-    }
-  )
-
-  // Auto-updater setup
-  autoUpdater.logger = log
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
-
-  function sendUpdateStatus(status: string, info?: Record<string, unknown>): void {
-    const win = BrowserWindow.getAllWindows()[0]
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('update-status', status, info)
-    }
-  }
-
-  autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'))
-  autoUpdater.on('update-available', (info) =>
-    sendUpdateStatus('available', { version: info.version, releaseNotes: info.releaseNotes })
-  )
-  autoUpdater.on('update-not-available', () => sendUpdateStatus('up-to-date'))
-  autoUpdater.on('download-progress', (progress) =>
-    sendUpdateStatus('downloading', {
-      percent: Math.round(progress.percent),
-      transferred: progress.transferred,
-      total: progress.total,
-      bytesPerSecond: progress.bytesPerSecond
-    })
-  )
-  autoUpdater.on('update-downloaded', (info) =>
-    sendUpdateStatus('downloaded', { version: info.version })
-  )
-  autoUpdater.on('error', (err) => sendUpdateStatus('error', { message: err.message }))
-
-  ipcMain.handle('check-for-updates', async () => {
-    try {
-      await autoUpdater.checkForUpdates()
-      return true
-    } catch (err) {
-      log.error('[Updater] check failed:', err)
-      return false
-    }
-  })
-
-  ipcMain.handle('download-update', async () => {
-    try {
-      await autoUpdater.downloadUpdate()
-      return true
-    } catch (err) {
-      log.error('[Updater] download failed:', err)
-      return false
-    }
-  })
-
-  ipcMain.handle('install-update', () => {
-    autoUpdater.quitAndInstall()
-  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

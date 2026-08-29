@@ -152,6 +152,16 @@ function weightedPickOne(
   return winner
 }
 
+/**
+ * 公平策略权重系数（抽选概率的调节参数，改动会直接影响抽选分布）：
+ * - BALANCE_TERM_PICK_DECAY：学期均衡——累计被抽中每 4 次权重约降为 1/2
+ * - STAGE_FAIRNESS_DECAY：阶段公平——近 N 轮每被抽中 2~3 次权重约降为 1/2
+ * - MIN_FINAL_WEIGHT：权重下限，保证任何学生都不会被完全排除
+ */
+const BALANCE_TERM_PICK_DECAY = 0.25
+const STAGE_FAIRNESS_DECAY = 0.4
+const MIN_FINAL_WEIGHT = 0.1
+
 function applyAdvancedWeights(
   req: SelectionRequest,
   candidates: CandidateSnapshot[],
@@ -169,17 +179,17 @@ function applyAdvancedWeights(
     let finalWeight = strategy.adjustWeight(student, baseWeight)
 
     if (req.policy.balanceByTerm) {
-      finalWeight *= 1 / (1 + Math.max(0, student.pickCount || 0) * 0.25)
+      finalWeight *= 1 / (1 + Math.max(0, student.pickCount || 0) * BALANCE_TERM_PICK_DECAY)
       appendReason(trace, 'balance_target_boost')
     }
 
     const recentCount = recentCounts.get(student.id) || 0
     if (req.policy.stageFairnessRounds > 0 && recentCount > 0) {
-      finalWeight *= 1 / (1 + recentCount * 0.4)
+      finalWeight *= 1 / (1 + recentCount * STAGE_FAIRNESS_DECAY)
       appendReason(trace, 'stage_fairness_boost')
     }
 
-    finalWeight = Math.max(0.1, finalWeight)
+    finalWeight = Math.max(MIN_FINAL_WEIGHT, finalWeight)
 
     trace.baseWeight = baseWeight
     trace.finalWeight = finalWeight
@@ -291,6 +301,7 @@ function assignBalancedGroups(
 
     groups.forEach((group, index) => {
       const scoreCost = scoreByGroup(group)
+      // 拆分组时的代价权重：避免重复同组远比组大小均衡重要（10:1）
       const pairCost = pairPenalty(candidate, group, pairCounts) * 100
       const sizeCost = group.length * 10
       const cost = scoreCost + pairCost + sizeCost
