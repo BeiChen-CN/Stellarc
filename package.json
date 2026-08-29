@@ -4,7 +4,7 @@
   "description": "隐私优先、算法公平、高度可定制的离线课堂随机点名工具",
   "main": "./out/main/index.js",
   "author": "Stellarc Team",
-  "homepage": "https://github.com/stellarc-app/stellarc",
+  "homepage": "https://github.com/BeiChen-CN/Stellarc",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
