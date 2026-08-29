@@ -67,3 +67,18 @@ describe('settingsStore immersive island style', () => {
     expect(useSettingsStore.getState().immersiveIslandStyle).toBe('beam')
   })
 })
+
+describe('settingsStore persistence whitelist', () => {
+  it('persists optional fields instead of silently dropping them', () => {
+    // 回归防护：saveSettings 按 defaults 的键做白名单，
+    // 可选字段若未在 defaults 登记会被静默丢弃（重启后丢失）
+    useSettingsStore.getState().setCustomColor('#123456')
+    useSettingsStore.getState().setBackgroundImage('C:/wall.jpg')
+
+    const payloads = (
+      writeJson.mock.calls as unknown as Array<[string, Record<string, unknown>]>
+    ).map((call) => call[1])
+    expect(payloads.some((p) => p.customColor === '#123456')).toBe(true)
+    expect(payloads.some((p) => p.backgroundImage === 'C:/wall.jpg')).toBe(true)
+  })
+})

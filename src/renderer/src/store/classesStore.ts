@@ -116,7 +116,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       undoStack: undoStack.slice(0, -1),
       canUndo: undoStack.length > 1
     })
-    flushSoon(get)
+    get().saveClasses()
   },
 
   loadClasses: async () => {
@@ -169,7 +169,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       currentClassId: newClass.id,
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   removeClass: (id) => {
@@ -186,7 +186,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
         ...pushUndo(state)
       }
     })
-    flushSoon(get)
+    get().saveClasses()
   },
 
   addStudent: (classId, student) => {
@@ -197,7 +197,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   addStudents: (classId, students) => {
@@ -207,7 +207,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   removeStudent: (classId, studentId) => {
@@ -217,12 +217,12 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   setCurrentClass: (id) => {
     set({ currentClassId: id })
-    flushSoon(get)
+    get().saveClasses()
   },
 
   incrementPickCount: (classId, studentId) => {
@@ -259,7 +259,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   updateStudentWeight: (classId, studentId, weight) => {
@@ -332,7 +332,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   updateStudentName: (classId, studentId, name) => {
@@ -350,7 +350,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   updateStudentId: (classId, studentId, newStudentId) => {
@@ -367,7 +367,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   updateStudentGender: (classId, studentId, gender) => {
@@ -382,7 +382,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   updateStudentTags: (classId, studentId, tags) => {
@@ -403,7 +403,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   batchUpdateStudents: (classId, studentIds, patch) => {
@@ -471,7 +471,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   applyTaskScore: (classId, studentIds, taskName, delta, source = 'manual') => {
@@ -581,7 +581,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ...pushUndo(state)
     }))
     if (success) {
-      flushSoon(get)
+      get().saveClasses()
     }
     return { ok: success, message }
   },
@@ -592,7 +592,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       classes: state.classes.map((c) => (c.id === classId ? { ...c, name: name.trim() } : c)),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   duplicateClass: (classId) => {
@@ -615,7 +615,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       currentClassId: newClass.id,
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   resetClassScores: (classId) => {
@@ -625,7 +625,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       ),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
   },
 
   dedupeClassStudents: (classId) => {
@@ -647,7 +647,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       }),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
     return { removed }
   },
 
@@ -710,7 +710,20 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       }),
       ...pushUndo(state)
     }))
-    flushSoon(get)
+    get().saveClasses()
     return { updated, removed }
   }
 }))
+
+
+// 高频操作的落盘有 300ms 防抖窗口；窗口关闭/刷新前尽力把未落盘的
+// 变更冲出去（Electron 退出期间 IPC 可能来不及完成，此为尽力而为的兜底）
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+      void useClassesStore.getState().saveClasses()
+    }
+  })
+}

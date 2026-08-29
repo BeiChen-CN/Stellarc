@@ -199,6 +199,10 @@ interface SettingsState extends SettingsData {
 const defaults: SettingsData = {
   theme: 'system',
   colorTheme: 'blue',
+  // 注意：saveSettings 以 defaults 的键为持久化白名单——任何 SettingsData
+  // 字段（含可选字段）都必须在此登记，否则会被静默丢弃、重启后丢失
+  customColor: undefined,
+  backgroundImage: undefined,
   designStyle: 'material-design-3',
   showStudentId: true,
   photoMode: true,
