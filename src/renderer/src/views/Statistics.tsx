@@ -4,6 +4,7 @@ import { useHistoryStore } from '../store/historyStore'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
+import { logger } from '../lib/logger'
 import { getStrategyDescriptor } from '../engine/selection/strategies'
 import { StatisticsChartsPanel } from './statistics/StatisticsChartsPanel'
 import {
@@ -271,8 +272,13 @@ export function Statistics(): ReactElement {
     }
 
     const csv = '\uFEFF' + lines.join('\n')
-    const ok = await window.electronAPI.writeExportFile(filePath, csv)
-    addToast(ok ? '统计数据已导出' : '导出失败', ok ? 'success' : 'error')
+    try {
+      await window.electronAPI.writeExportFile(filePath, csv)
+      addToast('统计数据已导出', 'success')
+    } catch (error) {
+      logger.error('Statistics', 'Stats export failed:', error)
+      addToast('导出失败', 'error')
+    }
   }
 
   const handleGenerateReport = async (): Promise<void> => {
@@ -330,8 +336,13 @@ ${leaderboard.length > 0 ? `<h2>积分排行榜</h2><table><tr><th>#</th><th>姓
 <div class="footer">由 Stellarc 自动生成 · 可直接打印此页面</div>
 </body></html>`
 
-    const ok = await window.electronAPI.writeExportFile(filePath, html)
-    addToast(ok ? '课堂报告已生成' : '生成失败', ok ? 'success' : 'error')
+    try {
+      await window.electronAPI.writeExportFile(filePath, html)
+      addToast('课堂报告已生成', 'success')
+    } catch (error) {
+      logger.error('Statistics', 'Report generation failed:', error)
+      addToast('生成失败', 'error')
+    }
   }
 
   return (

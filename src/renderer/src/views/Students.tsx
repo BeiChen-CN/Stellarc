@@ -522,7 +522,8 @@ export function Students(): ReactElement {
           const photoPath = await window.electronAPI.copyPhoto(filePath, targetName)
           updateStudentPhoto(classId, studentId, photoPath)
           addToast('照片上传成功！', 'success')
-        } catch {
+        } catch (error) {
+          logger.error('Students', 'Photo upload failed:', error)
           addToast('照片上传失败。', 'error')
         }
       }
@@ -616,8 +617,13 @@ export function Students(): ReactElement {
         (s) =>
           `${s.name},${s.studentId || ''},${s.gender ? genderMap[s.gender] : ''},${s.weight},${s.score},${statusMap[s.status] || s.status}`
       )
-      const ok = await window.electronAPI.writeExportFile(filePath, [header, ...rows].join('\n'))
-      addToast(ok ? '导出成功' : '导出失败', ok ? 'success' : 'error')
+      try {
+        await window.electronAPI.writeExportFile(filePath, [header, ...rows].join('\n'))
+        addToast('导出成功', 'success')
+      } catch (error) {
+        logger.error('Students', 'Student export failed:', error)
+        addToast('导出失败', 'error')
+      }
     }
   }, [currentClass, addToast])
 

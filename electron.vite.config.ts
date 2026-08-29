@@ -9,7 +9,8 @@ export default defineConfig({
   renderer: {
     server: {
       host: '127.0.0.1',
-      port: 4173,
+      // 默认 4173；端口被占用时可用 STELLARC_RENDERER_PORT 覆盖
+      port: Number(process.env.STELLARC_RENDERER_PORT) || 4173,
       strictPort: true
     },
     define: {

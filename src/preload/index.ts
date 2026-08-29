@@ -6,6 +6,10 @@ type ImmersiveWindowPhaseOptions = { anchor?: { x: number; y: number } }
 
 // Custom APIs for renderer
 const api = {
+  // Logging（渲染端 error/warn 转发主进程 electron-log 落盘）
+  appendLog: (level: 'error' | 'warn' | 'info', message: string): Promise<boolean> =>
+    ipcRenderer.invoke('renderer-log', level, message),
+
   // Data Storage
   readJson: (filename: string): Promise<unknown> => ipcRenderer.invoke('read-json', filename),
   writeJson: (filename: string, data: unknown): Promise<boolean> =>

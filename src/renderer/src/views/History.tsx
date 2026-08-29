@@ -20,6 +20,7 @@ import {
   FileText
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { logger } from '../lib/logger'
 
 function summarizeNames(names: string[], max = 6): string {
   if (names.length <= max) return names.join('、')
@@ -162,10 +163,15 @@ export function History(): ReactElement {
         const names = r.pickedStudents.map((s) => s.name).join('、')
         return `${escapeCsv(time)},${escapeCsv(r.className)},${escapeCsv(names)}`
       })
-      const csv = '\uFEFF' + [header, ...rows].join('\n')
-      const success = await window.electronAPI.writeExportFile(filePath, csv)
-      addToast(success ? '历史记录已导出！' : '导出失败。', success ? 'success' : 'error')
+    const csv = '\uFEFF' + [header, ...rows].join('\n')
+    try {
+      await window.electronAPI.writeExportFile(filePath, csv)
+      addToast('历史记录已导出！', 'success')
+    } catch (error) {
+      logger.error('History', 'CSV export failed:', error)
+      addToast('导出失败。', 'error')
     }
+  }
   }
 
   const handleExportStructuredCSV = async (): Promise<void> => {
@@ -242,8 +248,13 @@ export function History(): ReactElement {
     })
 
     const csv = '\uFEFF' + lines.join('\n')
-    const success = await window.electronAPI.writeExportFile(filePath, csv)
-    addToast(success ? '结构化 CSV 导出成功' : '结构化 CSV 导出失败', success ? 'success' : 'error')
+    try {
+      await window.electronAPI.writeExportFile(filePath, csv)
+      addToast('结构化 CSV 导出成功', 'success')
+    } catch (error) {
+      logger.error('History', 'Structured CSV export failed:', error)
+      addToast('结构化 CSV 导出失败', 'error')
+    }
   }
 
   const handleExportClassReport = async (): Promise<void> => {
@@ -364,8 +375,13 @@ export function History(): ReactElement {
       ''
     ].join('\n')
 
-    const success = await window.electronAPI.writeExportFile(filePath, content)
-    addToast(success ? '课堂报告导出成功' : '课堂报告导出失败', success ? 'success' : 'error')
+    try {
+      await window.electronAPI.writeExportFile(filePath, content)
+      addToast('课堂报告导出成功', 'success')
+    } catch (error) {
+      logger.error('History', 'Class report export failed:', error)
+      addToast('课堂报告导出失败', 'error')
+    }
   }
 
   const handleDeleteRecord = (id: string): void => {

@@ -7,6 +7,7 @@ declare global {
   interface Window {
     electron: ElectronAPI
     electronAPI: {
+      appendLog: (level: 'error' | 'warn' | 'info', message: string) => Promise<boolean>
       readJson: (filename: string) => Promise<unknown>
       writeJson: (filename: string, data: unknown) => Promise<boolean>
       selectFile: (options: Electron.OpenDialogOptions) => Promise<string | null>

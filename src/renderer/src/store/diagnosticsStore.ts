@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logger } from '../lib/logger'
 
 interface MigrationState {
   status: string
@@ -74,7 +75,8 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set) => ({
         events: Array.isArray(events) ? (events.slice(-20) as DiagnosticEvent[]) : [],
         lastLoadedAt: new Date().toISOString()
       })
-    } catch {
+    } catch (e) {
+      logger.error('DiagnosticsStore', 'Failed to load diagnostics:', e)
       set({ loading: false, lastLoadedAt: new Date().toISOString() })
     }
   }

@@ -2,6 +2,11 @@ import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod/v4'
 import log from 'electron-log'
 
+/**
+ * 统一 IPC 错误契约：handler 抛出的异常记录日志后向渲染端透传 rejection，
+ * 渲染端通过 await 的 try/catch 感知失败。禁止把错误包装成正常返回值
+ * （否则渲染端会把失败结果当作数据使用）。
+ */
 export abstract class BaseController {
   constructor() {
     this.init()
@@ -16,7 +21,7 @@ export abstract class BaseController {
         return await handler.call(this, event, ...args)
       } catch (error) {
         log.error(`[IPC Error] ${channel}:`, error)
-        return { success: false, error: error instanceof Error ? error.message : String(error) }
+        throw error instanceof Error ? error : new Error(String(error))
       }
     })
   }
@@ -34,10 +39,10 @@ export abstract class BaseController {
       } catch (error) {
         if (error instanceof z.ZodError) {
           log.error(`[IPC Validation Error] ${channel}:`, error.issues)
-          return { success: false, error: 'Invalid parameters' }
+          throw new Error('Invalid parameters')
         }
         log.error(`[IPC Error] ${channel}:`, error)
-        return { success: false, error: error instanceof Error ? error.message : String(error) }
+        throw error instanceof Error ? error : new Error(String(error))
       }
     })
   }

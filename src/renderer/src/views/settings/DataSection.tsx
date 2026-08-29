@@ -21,6 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { logger } from '../../lib/logger'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToastStore } from '../../store/toastStore'
 import { useConfirmStore } from '../../store/confirmStore'
@@ -315,11 +316,17 @@ export function DataSection(): ReactElement {
       '清除所有数据',
       '此操作将删除所有班级、历史记录和设置，且不可撤销。确定要继续吗？',
       async () => {
-        await window.electronAPI.writeJson('classes.json', { classes: [], currentClassId: null })
-        await window.electronAPI.writeJson('history.json', [])
-        await window.electronAPI.writeJson('settings.json', {})
-        addToast('所有数据已清除，即将重新加载...', 'success')
-        setTimeout(() => window.location.reload(), 1500)
+        try {
+          await window.electronAPI.writeJson('classes.json', { classes: [], currentClassId: null })
+          // 与 historyStore 的持久化格式保持一致（{ records: [] }），不得写成裸数组
+          await window.electronAPI.writeJson('history.json', { records: [] })
+          await window.electronAPI.writeJson('settings.json', {})
+          addToast('所有数据已清除，即将重新加载...', 'success')
+          setTimeout(() => window.location.reload(), 1500)
+        } catch (error) {
+          logger.error('DataSection', 'Failed to clear all data:', error)
+          addToast('数据清除失败，请检查磁盘空间', 'error')
+        }
       }
     )
   }

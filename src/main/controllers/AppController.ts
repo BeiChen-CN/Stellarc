@@ -12,6 +12,7 @@ const shortcutSchema = z.tuple([z.string(), z.string()])
 const pathSchema = z.tuple([z.string().min(1)])
 const urlSchema = z.tuple([z.string().url()])
 const boolSchema = z.tuple([z.boolean()])
+const rendererLogSchema = z.tuple([z.enum(['error', 'warn', 'info']), z.string().max(4000)])
 const diagnosticEventSchema = z.tuple([
   z.object({
     category: z.enum(['sync', 'shortcut', 'plugin', 'self-check']),
@@ -56,6 +57,7 @@ export class AppController extends BaseController {
   protected init(): void {
     this.handle('get-system-theme', this.getSystemTheme)
     this.handleValidated('register-shortcut', shortcutSchema, this.registerShortcut)
+    this.handleValidated('renderer-log', rendererLogSchema, this.appendRendererLog)
     this.handleValidated('backup-data', pathSchema, this.backupData)
     this.handleValidated('restore-data', pathSchema, this.restoreData)
     this.handleValidated('open-external', urlSchema, this.openExternal)
@@ -118,6 +120,19 @@ export class AppController extends BaseController {
 
   private async getSystemTheme(): Promise<string> {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+  }
+
+  /**
+   * 渲染进程的 error/warn 转发到主进程 electron-log 落盘，
+   * 保证生产环境下渲染侧故障可被诊断。
+   */
+  private async appendRendererLog(
+    _event: Electron.IpcMainInvokeEvent,
+    level: 'error' | 'warn' | 'info',
+    message: string
+  ): Promise<boolean> {
+    log[level](`[Renderer] ${message}`)
+    return true
   }
 
   private async registerShortcut(

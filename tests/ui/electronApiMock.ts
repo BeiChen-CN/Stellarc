@@ -47,6 +47,7 @@ export async function installElectronApiMock(
     }
 
     const api = {
+      appendLog: async (): Promise<boolean> => true,
       readJson: async (filename: string): Promise<unknown> => jsonStore.get(filename) ?? null,
       writeJson: async (filename: string, data: unknown): Promise<boolean> => {
         jsonStore.set(filename, data)
