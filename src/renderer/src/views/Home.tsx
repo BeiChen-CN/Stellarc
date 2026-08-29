@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactElement } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useClassesStore } from '../store/classesStore'
 import { useHistoryStore } from '../store/historyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -150,8 +151,32 @@ export function Home({
     animationStyle,
     animationSpeed,
     animationDurationScale,
-    immersiveIslandStyle
-  } = useSettingsStore()
+    immersiveIslandStyle} = useSettingsStore(
+    useShallow((state) => ({
+      fairness: state.fairness,
+      pickCount: state.pickCount,
+      setPickCount: state.setPickCount,
+      projectorMode: state.projectorMode,
+      showTemporaryExclusion: state.showTemporaryExclusion,
+      showAutoDraw: state.showAutoDraw,
+      showSelectionExplanation: state.showSelectionExplanation,
+      showPickGenderFilter: state.showPickGenderFilter,
+      showPickEligibleCount: state.showPickEligibleCount,
+      showPickPreviewPanel: state.showPickPreviewPanel,
+      showPickMissReasonPanel: state.showPickMissReasonPanel,
+      revealSettleMs: state.revealSettleMs,
+      showStudentId: state.showStudentId,
+      photoMode: state.photoMode,
+      backgroundImage: state.backgroundImage,
+      soundEnabled: state.soundEnabled,
+      soundIntensity: state.soundIntensity,
+      confettiEnabled: state.confettiEnabled,
+      animationStyle: state.animationStyle,
+      animationSpeed: state.animationSpeed,
+      animationDurationScale: state.animationDurationScale,
+      immersiveIslandStyle: state.immersiveIslandStyle
+    }))
+  )
 
   const effectivePickGenderFilter = showPickGenderFilter ? pickGenderFilter : 'all'
   const { immersiveMode, immersivePickMode, immersivePhase, setImmersiveMode, setImmersivePhase } =

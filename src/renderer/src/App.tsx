@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useCallback, type ReactElement } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './views/Home'
@@ -62,7 +63,23 @@ function MainApp(): ReactElement {
     extractAndApplyDynamicColor,
     onboardingCompleted,
     completeOnboarding
-  } = useSettingsStore()
+  } = useSettingsStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      colorTheme: state.colorTheme,
+      customColor: state.customColor,
+      designStyle: state.designStyle,
+      shortcutKey: state.shortcutKey,
+      m3Mode: state.m3Mode,
+      animationSpeed: state.animationSpeed,
+      dynamicColor: state.dynamicColor,
+      dynamicColorPalette: state.dynamicColorPalette,
+      backgroundImage: state.backgroundImage,
+      extractAndApplyDynamicColor: state.extractAndApplyDynamicColor,
+      onboardingCompleted: state.onboardingCompleted,
+      completeOnboarding: state.completeOnboarding
+    }))
+  )
 
   const handleHomeImmersiveChange = useCallback((immersive: boolean): void => {
     applyImmersiveDocumentBackground(immersive)

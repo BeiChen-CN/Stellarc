@@ -425,19 +425,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setPickCount: (count) =>
       updateAndSave({ pickCount: Math.max(1, Math.min(10, count)) }, set, get),
     setMaxHistoryRecords: async (max) => {
+      // 截断逻辑由 historyStore 订阅本 store 完成（见 historyStore.ts）
       updateAndSave({ maxHistoryRecords: max }, set, get)
-      // Trigger immediate truncation in historyStore
-      try {
-        const { useHistoryStore } = await import('./historyStore')
-        const historyState = useHistoryStore.getState()
-        if (historyState.history.length > max) {
-          const trimmed = historyState.history.slice(0, max)
-          useHistoryStore.setState({ history: trimmed })
-          await window.electronAPI.writeJson('history.json', { records: trimmed })
-        }
-      } catch (e) {
-        logger.error('SettingsStore', 'Failed to truncate history', e)
-      }
     },
     setShortcutKey: async (key) => {
       const prev = get().shortcutKey

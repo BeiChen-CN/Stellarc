@@ -19,6 +19,7 @@ import {
   PencilLine
 } from 'lucide-react'
 import { useState, useCallback, useRef, useMemo, type ReactElement } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { cn } from '../lib/utils'
 import { logger } from '../lib/logger'
 import {
@@ -83,7 +84,36 @@ export function Students(): ReactElement {
     normalizeClassStudents,
     undoLastChange,
     canUndo
-  } = useClassesStore()
+  } = useClassesStore(
+    useShallow((state) => ({
+      classes: state.classes,
+      currentClassId: state.currentClassId,
+      addClass: state.addClass,
+      removeClass: state.removeClass,
+      renameClass: state.renameClass,
+      duplicateClass: state.duplicateClass,
+      addStudent: state.addStudent,
+      addStudents: state.addStudents,
+      removeStudent: state.removeStudent,
+      updateStudentStatus: state.updateStudentStatus,
+      updateStudentWeight: state.updateStudentWeight,
+      updateStudentScore: state.updateStudentScore,
+      updateStudentPhoto: state.updateStudentPhoto,
+      updateStudentName: state.updateStudentName,
+      updateStudentId: state.updateStudentId,
+      updateStudentGender: state.updateStudentGender,
+      updateStudentTags: state.updateStudentTags,
+      batchUpdateStudents: state.batchUpdateStudents,
+      applyTaskScore: state.applyTaskScore,
+      rollbackScoreLog: state.rollbackScoreLog,
+      setClassTaskTemplates: state.setClassTaskTemplates,
+      resetClassScores: state.resetClassScores,
+      dedupeClassStudents: state.dedupeClassStudents,
+      normalizeClassStudents: state.normalizeClassStudents,
+      undoLastChange: state.undoLastChange,
+      canUndo: state.canUndo
+    }))
+  )
   const {
     fairness,
     showStudentId,
@@ -91,7 +121,16 @@ export function Students(): ReactElement {
     showBatchEditPanel,
     showScoreLogPanel,
     showGroupTaskTemplatePanel
-  } = useSettingsStore()
+  } = useSettingsStore(
+    useShallow((state) => ({
+      fairness: state.fairness,
+      showStudentId: state.showStudentId,
+      showTaskScorePanel: state.showTaskScorePanel,
+      showBatchEditPanel: state.showBatchEditPanel,
+      showScoreLogPanel: state.showScoreLogPanel,
+      showGroupTaskTemplatePanel: state.showGroupTaskTemplatePanel
+    }))
+  )
   const addToast = useToastStore((state) => state.addToast)
   const showConfirm = useConfirmStore((state) => state.show)
   const [newStudentName, setNewStudentName] = useState('')

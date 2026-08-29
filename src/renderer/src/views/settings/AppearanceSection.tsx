@@ -1,4 +1,5 @@
 import { useState, type ReactElement, type ReactNode } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import {
   BarChart3,
   Camera,
@@ -163,8 +164,66 @@ export function AppearanceSection({
     showGroupTaskTemplatePanel,
     toggleShowGroupTaskTemplatePanel,
     colorThemesExpanded,
-    setColorThemesExpanded
-  } = useSettingsStore()
+    setColorThemesExpanded} = useSettingsStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      setTheme: state.setTheme,
+      colorTheme: state.colorTheme,
+      setColorTheme: state.setColorTheme,
+      customColor: state.customColor,
+      setCustomColor: state.setCustomColor,
+      designStyle: state.designStyle,
+      setDesignStyle: state.setDesignStyle,
+      animationStyle: state.animationStyle,
+      setAnimationStyle: state.setAnimationStyle,
+      animationSpeed: state.animationSpeed,
+      setAnimationSpeed: state.setAnimationSpeed,
+      animationDurationScale: state.animationDurationScale,
+      setAnimationDurationScale: state.setAnimationDurationScale,
+      immersiveIslandStyle: state.immersiveIslandStyle,
+      setImmersiveIslandStyle: state.setImmersiveIslandStyle,
+      projectorMode: state.projectorMode,
+      toggleProjectorMode: state.toggleProjectorMode,
+      backgroundImage: state.backgroundImage,
+      setBackgroundImage: state.setBackgroundImage,
+      dynamicColor: state.dynamicColor,
+      toggleDynamicColor: state.toggleDynamicColor,
+      soundEnabled: state.soundEnabled,
+      soundIntensity: state.soundIntensity,
+      toggleSoundEnabled: state.toggleSoundEnabled,
+      setSoundIntensity: state.setSoundIntensity,
+      confettiEnabled: state.confettiEnabled,
+      toggleConfettiEnabled: state.toggleConfettiEnabled,
+      photoMode: state.photoMode,
+      togglePhotoMode: state.togglePhotoMode,
+      showStudentId: state.showStudentId,
+      toggleShowStudentId: state.toggleShowStudentId,
+      showTemporaryExclusion: state.showTemporaryExclusion,
+      toggleShowTemporaryExclusion: state.toggleShowTemporaryExclusion,
+      showAutoDraw: state.showAutoDraw,
+      toggleShowAutoDraw: state.toggleShowAutoDraw,
+      showSelectionExplanation: state.showSelectionExplanation,
+      toggleShowSelectionExplanation: state.toggleShowSelectionExplanation,
+      showPickGenderFilter: state.showPickGenderFilter,
+      showPickEligibleCount: state.showPickEligibleCount,
+      toggleShowPickGenderFilter: state.toggleShowPickGenderFilter,
+      toggleShowPickEligibleCount: state.toggleShowPickEligibleCount,
+      showPickPreviewPanel: state.showPickPreviewPanel,
+      toggleShowPickPreviewPanel: state.toggleShowPickPreviewPanel,
+      showPickMissReasonPanel: state.showPickMissReasonPanel,
+      toggleShowPickMissReasonPanel: state.toggleShowPickMissReasonPanel,
+      showTaskScorePanel: state.showTaskScorePanel,
+      toggleShowTaskScorePanel: state.toggleShowTaskScorePanel,
+      showBatchEditPanel: state.showBatchEditPanel,
+      toggleShowBatchEditPanel: state.toggleShowBatchEditPanel,
+      showScoreLogPanel: state.showScoreLogPanel,
+      toggleShowScoreLogPanel: state.toggleShowScoreLogPanel,
+      showGroupTaskTemplatePanel: state.showGroupTaskTemplatePanel,
+      toggleShowGroupTaskTemplatePanel: state.toggleShowGroupTaskTemplatePanel,
+      colorThemesExpanded: state.colorThemesExpanded,
+      setColorThemesExpanded: state.setColorThemesExpanded
+    }))
+  )
   const visibleColorThemes = colorThemesExpanded ? COLOR_THEMES : COLOR_THEMES.slice(0, 9)
 
   if (!isAppearance) {
