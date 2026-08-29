@@ -1,4 +1,4 @@
-import { nativeTheme, globalShortcut, BrowserWindow } from 'electron'
+import { globalShortcut, BrowserWindow } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
@@ -8,15 +8,6 @@ import { BaseController } from './BaseController'
 
 const shortcutSchema = z.tuple([z.string(), z.string()])
 const rendererLogSchema = z.tuple([z.enum(['error', 'warn', 'info']), z.string().max(4000)])
-const diagnosticEventSchema = z.tuple([
-  z.object({
-    category: z.enum(['sync', 'shortcut', 'plugin', 'self-check']),
-    level: z.enum(['info', 'warn', 'error']),
-    code: z.string().min(1).max(80),
-    message: z.string().min(1).max(200),
-    context: z.record(z.string(), z.unknown()).optional()
-  })
-])
 
 interface DiagnosticEvent {
   id: string
@@ -28,6 +19,7 @@ interface DiagnosticEvent {
   context?: Record<string, unknown>
 }
 
+/** 全局快捷键注册与诊断事件落盘 */
 export class AppController extends BaseController {
   private dataPath: string
   private registeredShortcut: string | null = null
@@ -35,40 +27,11 @@ export class AppController extends BaseController {
   constructor(dataPath: string) {
     super()
     this.dataPath = dataPath
-
-    nativeTheme.on('updated', () => {
-      const win = BrowserWindow.getAllWindows()[0]
-      if (win && !win.isDestroyed()) {
-        win.webContents.send(
-          'system-theme-changed',
-          nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
-        )
-      }
-    })
   }
 
   protected init(): void {
-    this.handle('get-system-theme', this.getSystemTheme)
     this.handleValidated('register-shortcut', shortcutSchema, this.registerShortcut)
     this.handleValidated('renderer-log', rendererLogSchema, this.appendRendererLog)
-    this.handleValidated(
-      'append-diagnostic-event',
-      diagnosticEventSchema,
-      this.appendDiagnosticEventFromIPC
-    )
-  }
-
-  private async appendDiagnosticEventFromIPC(
-    _event: Electron.IpcMainInvokeEvent,
-    payload: Omit<DiagnosticEvent, 'id' | 'timestamp'>
-  ): Promise<boolean> {
-    try {
-      this.appendDiagnosticEvent(payload)
-      return true
-    } catch (error) {
-      log.error('Failed to append diagnostic event from IPC:', error)
-      return false
-    }
   }
 
   private diagnosticLogPath(): string {
@@ -104,10 +67,6 @@ export class AppController extends BaseController {
     } catch (error) {
       log.warn('Failed to write diagnostics log:', error)
     }
-  }
-
-  private async getSystemTheme(): Promise<string> {
-    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   }
 
   /**
@@ -175,5 +134,4 @@ export class AppController extends BaseController {
       return false
     }
   }
-
 }

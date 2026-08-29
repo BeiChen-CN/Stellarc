@@ -21,6 +21,7 @@ interface HealthReport {
   appVersion?: string
   timestamp?: string
   checkedAt?: string
+  /** 兼容旧版报告的 checks 字段（现统一为 items） */
   checks?: Array<{
     name: string
     status: string

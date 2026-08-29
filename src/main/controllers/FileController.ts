@@ -13,8 +13,6 @@ const filenameSchema = z.tuple([z.string().min(1)])
 const filenameDataSchema = z.tuple([z.string().min(1), z.any()])
 const filePathSchema = z.tuple([z.string().min(1)])
 const filePathContentSchema = z.tuple([z.string().min(1), z.string()])
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- IPC binary payload
-const filePathBufferSchema = z.tuple([z.string().min(1), z.any()])
 const copyPhotoSchema = z.tuple([z.string().min(1), z.string().min(1)])
 
 export class FileController extends BaseController {
@@ -43,12 +41,8 @@ export class FileController extends BaseController {
     this.handleValidated('read-file', filePathSchema, this.readFile)
     this.handleValidated('read-text-file', filePathSchema, this.readTextFile)
     this.handleValidated('copy-photo', copyPhotoSchema, this.copyPhoto)
-    this.handleValidated('delete-photo', filenameSchema, this.deletePhoto)
-    this.handleValidated('get-photo-path', filenameSchema, this.getPhotoPath)
-    this.handle('get-data-path', this.getDataPath)
     this.handleValidated('extract-wallpaper-colors', filePathSchema, this.extractWallpaperColors)
     this.handleValidated('write-export-file', filePathContentSchema, this.writeExportFile)
-    this.handleValidated('write-binary-file', filePathBufferSchema, this.writeBinaryFile)
   }
 
   private getSafePath(relativePath: string, baseDir: string = this.dataPath): string {
@@ -98,7 +92,7 @@ export class FileController extends BaseController {
         typeof data === 'object' &&
         !Array.isArray(data)
       ) {
-        const existing = await this.readJson(_event, filename) as Record<string, unknown> | null
+        const existing = (await this.readJson(_event, filename)) as Record<string, unknown> | null
         if (
           existing &&
           typeof existing === 'object' &&
@@ -145,28 +139,6 @@ export class FileController extends BaseController {
     return 'photos/' + targetFile
   }
 
-  private async deletePhoto(_event: IpcMainInvokeEvent, photoPath: string): Promise<boolean> {
-    const fullPath = this.getSafePath(photoPath)
-    try {
-      await fsp.unlink(fullPath)
-    } catch (e: unknown) {
-      if (e instanceof Error && 'code' in e && e.code !== 'ENOENT') throw e
-    }
-    return true
-  }
-
-  private async getPhotoPath(
-    _event: IpcMainInvokeEvent,
-    relativePath: string
-  ): Promise<string | null> {
-    if (!relativePath) return null
-    return this.getSafePath(relativePath)
-  }
-
-  private async getDataPath(): Promise<string> {
-    return this.dataPath
-  }
-
   private async extractWallpaperColors(
     _event: IpcMainInvokeEvent,
     imagePath: string
@@ -202,16 +174,6 @@ export class FileController extends BaseController {
   ): Promise<boolean> {
     this.assertAuthorized(filePath)
     await fsp.writeFile(filePath, content, 'utf-8')
-    return true
-  }
-
-  private async writeBinaryFile(
-    _event: IpcMainInvokeEvent,
-    filePath: string,
-    buffer: Buffer
-  ): Promise<boolean> {
-    this.assertAuthorized(filePath)
-    await fsp.writeFile(filePath, Buffer.from(buffer))
     return true
   }
 }

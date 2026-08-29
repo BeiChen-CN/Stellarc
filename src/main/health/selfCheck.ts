@@ -11,7 +11,6 @@ interface SelfCheckReport {
   checkedAt: string
   appVersion: string
   items: SelfCheckItem[]
-  checks: SelfCheckItem[]
   summary: {
     ok: number
     repaired: number
@@ -182,7 +181,6 @@ export function runDataSelfCheck(dataPath: string, appVersion: string): SelfChec
     checkedAt: new Date().toISOString(),
     appVersion,
     items,
-    checks: items,
     summary: summarize(items)
   }
 

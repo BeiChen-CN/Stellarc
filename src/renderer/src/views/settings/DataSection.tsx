@@ -87,7 +87,7 @@ export function DataSection(): ReactElement {
   const handleBackup = async (): Promise<void> => {
     const filePath = await window.electronAPI.saveFile({
       title: '备份数据文件',
-      defaultPath: 'spotlight-backup.zip',
+      defaultPath: 'stellarc-backup.zip',
       filters: [{ name: 'Zip 压缩文件', extensions: ['zip'] }]
     })
     if (filePath) {

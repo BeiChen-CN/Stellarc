@@ -11,7 +11,7 @@ import {
   XOctagon
 } from 'lucide-react'
 
-import { getStrategyDisplayList } from '../../engine/selection/strategies'
+import { listStrategyDescriptors } from '../../engine/selection/strategies'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MD3Switch } from './MD3Switch'
@@ -69,7 +69,7 @@ export function FairnessSection(): ReactElement {
           </div>
 
           <div className="pl-14 mt-3 grid grid-cols-3 gap-3">
-            {getStrategyDisplayList().map((item) => {
+            {listStrategyDescriptors().map((item) => {
               const iconMap: Record<string, typeof Shuffle> = {
                 classic: Shuffle,
                 balanced: BarChart3,

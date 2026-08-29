@@ -32,7 +32,7 @@ interface ClassesState {
   updateStudentScore: (classId: string, studentId: string, score: number) => void
   updateStudentPhoto: (classId: string, studentId: string, photo: string | undefined) => void
   updateStudentName: (classId: string, studentId: string, name: string) => void
-  updateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  updateStudentId: (classId: string, studentId: string, newStudentId: string | undefined) => void
   updateStudentGender: (
     classId: string,
     studentId: string,

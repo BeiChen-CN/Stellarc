@@ -27,7 +27,7 @@ interface StudentRowProps {
     status: 'active' | 'absent' | 'excluded'
   ) => void
   onUpdateName: (classId: string, studentId: string, name: string) => void
-  onUpdateStudentId: (classId: string, studentId: string, studentId2: string | undefined) => void
+  onUpdateStudentId: (classId: string, studentId: string, newStudentId: string | undefined) => void
   onUpdateGender: (
     classId: string,
     studentId: string,

@@ -12,8 +12,6 @@ export class DialogController extends BaseController {
 
   protected init(): void {
     this.handle('select-file', this.selectFile)
-    this.handle('select-files', this.selectFiles)
-    this.handle('select-folder', this.selectFolder)
     this.handle('save-file', this.saveFile)
   }
 
@@ -36,27 +34,7 @@ export class DialogController extends BaseController {
     return result.filePaths[0]
   }
 
-  private async selectFiles(_event: Electron.IpcMainInvokeEvent, options: OpenDialogOptions): Promise<string[] | null> {
-    const win = this.getMainWindow()
-    if (!win) return null
-    const result = await this.showDialog(() =>
-      dialog.showOpenDialog(win, { ...options, properties: ['openFile', 'multiSelections'] })
-    )
-    if (!result || result.canceled) return null
-    result.filePaths.forEach((p) => this.authorize(p))
-    return result.filePaths
-  }
 
-  private async selectFolder(_event: Electron.IpcMainInvokeEvent): Promise<string | null> {
-    const win = this.getMainWindow()
-    if (!win) return null
-    const result = await this.showDialog(() =>
-      dialog.showOpenDialog(win, { properties: ['openDirectory'] })
-    )
-    if (!result || result.canceled) return null
-    this.authorize(result.filePaths[0])
-    return result.filePaths[0]
-  }
 
   private async saveFile(_event: Electron.IpcMainInvokeEvent, options: SaveDialogOptions): Promise<string | null> {
     const win = this.getMainWindow()

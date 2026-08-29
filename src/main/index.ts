@@ -109,6 +109,8 @@ app.whenReady().then(() => {
   })
 
   // Set app user model id for windows
+  // Windows 通知/任务栏分组身份。沿用旧 com.spotlight.classroom 会导致
+  // 已安装用户升级后通知归属变化，计划随下一个大版本迁移到 com.stellarc.app
   electronApp.setAppUserModelId('com.spotlight.classroom')
 
   // Default open or close DevTools by F12 in development
