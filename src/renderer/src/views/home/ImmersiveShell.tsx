@@ -107,7 +107,7 @@ export function ImmersiveShell({
           onPointerMove={handleBallPointerMove}
           onPointerUp={releaseBallPointer}
           onPointerCancel={releaseBallPointer}
-          className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-primary text-primary-foreground shadow-[0_16px_36px_hsl(var(--primary)/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-primary text-primary-foreground shadow-[inset_0_-4px_10px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <Shuffle className="h-7 w-7" />
         </button>
@@ -145,7 +145,7 @@ export function ImmersiveShell({
           onClick={onCollapse}
           initial={{ opacity: 0, scale: 0.86 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute right-2 top-1/2 flex h-16 w-16 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-primary text-primary-foreground shadow-[0_14px_32px_hsl(var(--primary)/0.32)]"
+          className="absolute right-2 top-1/2 flex h-16 w-16 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-primary text-primary-foreground shadow-[inset_0_-4px_10px_rgba(0,0,0,0.28)]"
         >
           <Shuffle className="h-7 w-7" />
         </motion.button>
@@ -165,7 +165,7 @@ export function ImmersiveShell({
               animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
               transition={{ type: 'spring', stiffness: 520, damping: 28, delay: index * 0.04 }}
               className={cn(
-                'absolute flex h-14 w-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full border border-white/60 bg-surface-container-high text-on-surface shadow-lg backdrop-blur-md transition-colors',
+                'absolute flex h-14 w-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full border border-white/60 bg-surface-container-high text-on-surface backdrop-blur-md transition-colors',
                 'hover:bg-secondary-container hover:text-secondary-container-foreground disabled:cursor-not-allowed disabled:opacity-45',
                 action.className
               )}

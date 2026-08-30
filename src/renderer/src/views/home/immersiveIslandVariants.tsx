@@ -43,7 +43,7 @@ export function ImmersiveIslandStyleThumbnail({
       data-testid={testId}
       aria-hidden="true"
       className={cn(
-        'relative flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-white/10 bg-[#07080d] shadow-[0_10px_28px_rgba(0,0,0,0.22)]',
+        'relative flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-white/10 bg-[#07080d]',
         className
       )}
     >
@@ -109,7 +109,7 @@ export function ClassicIsland({
       data-testid="immersive-island-classic"
       animate={{ width: isReveal ? 352 : 304 }}
       transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-      className="h-[68px] overflow-hidden rounded-full border border-white/10 bg-black px-4 text-white shadow-[0_18px_42px_rgba(0,0,0,0.52)]"
+      className="h-[68px] overflow-hidden rounded-full border border-white/10 bg-black px-4 text-white"
     >
       <div className="flex h-full min-w-0 items-center gap-3">
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
@@ -189,7 +189,7 @@ export function FocusBeamIsland({
     <div
       data-testid="immersive-island-beam"
       data-visual-tone="transparent"
-      className="relative h-[68px] w-[364px] max-w-[calc(100vw-16px)] overflow-hidden rounded-full border border-white/12 bg-black/[0.82] px-4 text-white shadow-[0_18px_44px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+      className="relative h-[68px] w-[364px] max-w-[calc(100vw-16px)] overflow-hidden rounded-full border border-white/12 bg-black/[0.82] px-4 text-white backdrop-blur-xl"
     >
       <motion.div
         className="absolute inset-y-1 w-24 rounded-full bg-white/16 blur-lg"
@@ -268,7 +268,7 @@ export function CapsuleSlotIsland({
     <div
       data-testid="immersive-island-slot"
       data-visual-tone="transparent"
-      className="flex h-[72px] w-[380px] max-w-[calc(100vw-16px)] items-center gap-3 rounded-full border border-white/12 bg-black/[0.84] px-3 text-white shadow-[0_18px_46px_rgba(0,0,0,0.44)] backdrop-blur-xl"
+      className="flex h-[72px] w-[380px] max-w-[calc(100vw-16px)] items-center gap-3 rounded-full border border-white/12 bg-black/[0.84] px-3 text-white backdrop-blur-xl"
     >
       <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white/85">
         <motion.div
@@ -331,7 +331,7 @@ export function PulseBadgeIsland({
     <div
       data-testid="immersive-island-pulse"
       data-visual-tone="transparent"
-      className="flex h-[70px] w-[348px] max-w-[calc(100vw-16px)] items-center gap-3 rounded-full border border-white/12 bg-black/[0.82] px-4 text-white shadow-[0_18px_42px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+      className="flex h-[70px] w-[348px] max-w-[calc(100vw-16px)] items-center gap-3 rounded-full border border-white/12 bg-black/[0.82] px-4 text-white backdrop-blur-xl"
     >
       <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white/85">
         <motion.span
