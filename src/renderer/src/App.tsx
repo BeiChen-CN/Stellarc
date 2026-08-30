@@ -14,9 +14,7 @@ import { Home } from './views/Home'
 import { Students } from './views/Students'
 import { Settings } from './views/Settings'
 import { History } from './views/History'
-const Statistics = lazy(() =>
-  import('./views/Statistics').then((m) => ({ default: m.Statistics }))
-)
+const Statistics = lazy(() => import('./views/Statistics').then((m) => ({ default: m.Statistics })))
 import { About } from './views/About'
 import { ImmersiveIslandPreview } from './views/dev/ImmersiveIslandPreview'
 import { ToastContainer } from './components/Toast'
