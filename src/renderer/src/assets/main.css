@@ -2330,11 +2330,35 @@
     --ui-space-2: 0.75rem;
   }
 
+  /* 断开 body overflow 向视口的传播（根元素 overflow 非 visible 时
+     body 才保留自身裁剪行为），否则 body 圆角无法裁剪方形子内容 */
+  html {
+    overflow: hidden;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    /* 注意：body 背景会被 CSS 提升为整个画布（canvas）背景、铺满视口，
+       不受 body 圆角/裁剪约束——圆角外会出现方形色块。背景色必须由
+       #root 内的 App 容器承载（窗口 ready-to-show 才显示，无闪烁问题） */
+    @apply text-foreground;
+    background: transparent;
+    /* 窗口圆角：主窗口为 transparent 窗口，body 圆角外透出桌面。
+       最大化时由 TitleBar 切换 body.maximized 去圆角贴边 */
+    border-radius: 20px;
+    overflow: hidden;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
+  }
+
+  body.maximized {
+    border-radius: 0;
+  }
+
+  /* 双保险：#root 同步圆角裁剪，App 容器的方形背景不会盖住圆角 */
+  #root {
+    border-radius: 20px;
+    overflow: hidden;
   }
 
   html {

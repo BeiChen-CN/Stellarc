@@ -15,6 +15,12 @@ export function TitleBar() {
     return () => window.removeEventListener('resize', syncMaximized)
   }, [syncMaximized])
 
+  // 最大化时通知 body 去掉窗口圆角（贴边全屏形态）
+  useEffect(() => {
+    document.body.classList.toggle('maximized', maximized)
+    return () => document.body.classList.remove('maximized')
+  }, [maximized])
+
   const isMac = navigator.platform.toLowerCase().includes('mac')
 
   // macOS uses native traffic lights via titleBarStyle: 'hiddenInset'
