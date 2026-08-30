@@ -37,6 +37,7 @@
     "electron-updater": "^6.7.3",
     "extract-zip": "^2.0.1",
     "framer-motion": "^12.34.0",
+    "koffi": "^3.1.6",
     "lucide-react": "^0.563.0",
     "node-vibrant": "^4.0.4",
     "recharts": "^3.7.0",

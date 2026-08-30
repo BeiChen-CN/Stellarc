@@ -1,6 +1,7 @@
 import { BrowserWindow, screen } from 'electron'
 import { z } from 'zod/v4'
 import { BaseController } from './BaseController'
+import { applyWindowShape } from '../windowShape'
 import {
   createImmersiveWindowController,
   isImmersiveWindowPhase,
@@ -76,6 +77,9 @@ export class WindowController extends BaseController {
 
     const workArea = screen.getDisplayMatching(win.getBounds()).workArea
     this.getImmersiveController(win).setPhase(phase, workArea, options)
+    // 窗口物理形状随 phase 裁剪（球=圆、岛=胶囊、菜单=圆角矩形），
+    // 不依赖透明合成——DWM 底板存在的机器上同样不会出现方形画布
+    applyWindowShape(win, phase)
     return true
   }
 }
