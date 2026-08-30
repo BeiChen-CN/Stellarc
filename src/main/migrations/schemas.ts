@@ -128,6 +128,16 @@ export const settingsV2Schema = z.object({
     .optional(),
   theme: z.enum(['light', 'dark', 'system']).default('system'),
   colorTheme: z.string().default('blue'),
+  customColor: z.string().optional(),
+  colorThemesExpanded: z.boolean().default(true),
+  semester: z
+    .object({
+      name: z.string(),
+      startDate: z.string(),
+      endDate: z.string()
+    })
+    .nullable()
+    .default(null),
   designStyle: z.string().default('material-design-3'),
   showStudentId: z.boolean().default(true),
   photoMode: z.boolean().default(true),

@@ -7,6 +7,7 @@ import { Vibrant } from 'node-vibrant/node'
 import log from 'electron-log'
 import { BaseController } from './BaseController'
 import { assertPathAuthorized } from '../fileAuth'
+import { writeJsonAtomic } from '../migrations/io'
 
 const filenameSchema = z.tuple([z.string().min(1)])
 // IPC payload 为未类型化 JSON，故用 z.any()
@@ -103,7 +104,9 @@ export class FileController extends BaseController {
         }
       }
 
-      await fsp.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8')
+      // 原子写（临时文件 + rename）：断电/崩溃不再产生截断 JSON
+      // （截断会被启动自检当作损坏文件重置为默认值，导致用户数据丢失）
+      writeJsonAtomic(filePath, payload)
       return true
     } catch (error) {
       log.error('Failed to write JSON:', error)

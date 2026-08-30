@@ -1,5 +1,12 @@
-import { app, shell, BrowserWindow, session, protocol, net } from 'electron'
-import { join } from 'path'
+import { app, shell, BrowserWindow, session, protocol, net, globalShortcut } from 'electron'
+import {
+  join,
+  normalize as normalizePath,
+  relative as relativePath,
+  resolve as resolvePath,
+  extname,
+  isAbsolute
+} from 'path'
 import { pathToFileURL } from 'url'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -11,6 +18,7 @@ import { DialogController } from './controllers/DialogController'
 import { WindowController } from './controllers/WindowController'
 import { UpdateController } from './controllers/UpdateController'
 import { SystemController } from './controllers/SystemController'
+import { assertPathAuthorized } from './fileAuth'
 import { runDataMigrations } from './migrations'
 import { runDataSelfCheck } from './health/selfCheck'
 
@@ -43,7 +51,7 @@ function createWindow(): BrowserWindow {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self' file: local-file:; script-src 'self' file: 'unsafe-inline'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: local-file: data:; font-src 'self' file: data:; connect-src 'self' https:"
+            "default-src 'self' file: local-file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: local-file: data:; font-src 'self' file: data:; connect-src 'self'"
           ]
         }
       })
@@ -67,7 +75,8 @@ function createWindow(): BrowserWindow {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true
     }
   })
 
@@ -102,9 +111,31 @@ function createWindow(): BrowserWindow {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Register local-file protocol for loading local images in renderer
+  const dataPath = getDataPath()
+  const resolveLocalFile = (request: Request): string =>
+    normalizePath(decodeURIComponent(request.url.replace('local-file://', '')))
+
+  // Register local-file protocol for loading local images in renderer.
+  // 仅放行图片扩展名，且路径必须位于数据目录内或经对话框授权——
+  // 否则该协议等价于渲染端的任意文件读取原语
   protocol.handle('local-file', (request) => {
-    const filePath = decodeURIComponent(request.url.replace('local-file://', ''))
+    const filePath = resolveLocalFile(request)
+    const allowedImageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+    if (!allowedImageExts.includes(extname(filePath).toLowerCase())) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    const rel = relativePath(resolvePath(dataPath), filePath)
+    const insideDataDir = rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+    let authorized = false
+    try {
+      assertPathAuthorized(filePath)
+      authorized = true
+    } catch {
+      authorized = false
+    }
+    if (!insideDataDir && !authorized) {
+      return new Response('Forbidden', { status: 403 })
+    }
     return net.fetch(pathToFileURL(filePath).href)
   })
 
@@ -121,8 +152,23 @@ app.whenReady().then(() => {
   })
 
   // Initialize Controllers
-  const dataPath = getDataPath()
-  const migrationResult = runDataMigrations(dataPath, app.getVersion())
+  // runDataMigrations 读入阶段遇损坏 JSON 会抛错（readJsonFile 无容错），
+  // 不能让启动崩溃——记日志后交给随后的启动自检修复（损坏文件会先备份
+  // 为 .corrupt.*.bak 再重置）
+  let migrationResult: ReturnType<typeof runDataMigrations>
+  try {
+    migrationResult = runDataMigrations(dataPath, app.getVersion())
+  } catch (migrationError) {
+    log.error('[Migration] threw during data read, deferring to self-check:', migrationError)
+    migrationResult = {
+      success: false,
+      skipped: false,
+      backupPath: '',
+      stateFilePath: '',
+      errorCode: 'MIGRATION_UNKNOWN_ERROR',
+      errorMessage: String(migrationError)
+    }
+  }
   if (migrationResult.skipped) {
     log.info('[Migration] data schema already up to date, skipped')
   }
@@ -162,4 +208,9 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// 系统级热键不随窗口销毁自动释放，退出前统一注销（崩溃恢复场景防残留）
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
