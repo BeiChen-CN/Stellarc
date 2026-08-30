@@ -4,8 +4,6 @@ import { logger } from '../lib/logger'
 import { COLOR_THEMES } from '../lib/appearance'
 import type { SoundIntensity } from '../types'
 
-export type { SoundIntensity }
-
 export type ColorTheme =
   | 'blue'
   | 'violet'

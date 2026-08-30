@@ -32,6 +32,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Unused exports check
+        run: npm run knip
+
       - name: Build
         run: npm run build
 

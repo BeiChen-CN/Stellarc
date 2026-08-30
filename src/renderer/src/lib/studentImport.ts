@@ -5,7 +5,7 @@ export type ImportedStudentRow = Pick<
   'name' | 'studentId' | 'gender' | 'weight' | 'score' | 'status'
 >
 
-export function studentDedupeKey(name: string, studentId: string | undefined): string {
+function studentDedupeKey(name: string, studentId: string | undefined): string {
   return `${name}::${studentId || ''}`.toLowerCase()
 }
 

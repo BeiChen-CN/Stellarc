@@ -13,8 +13,6 @@ export type SelectionReasonCode =
   | 'fallback_relaxed_constraints'
   | 'fallback_random'
 
-export type BuiltinStrategyPreset = 'classic' | 'balanced' | 'momentum'
-
 export type SelectionStrategyPreset = string
 
 export interface SelectionPolicy {
