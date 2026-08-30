@@ -65,7 +65,7 @@ npm install
 npm run dev
 ```
 
-开发服务默认使用 `http://127.0.0.1:4173`。如果端口被旧进程占用, 先结束残留的 `electron-vite dev` 进程再启动。
+开发服务默认使用 `http://127.0.0.1:4173`。如果端口被其他应用占用, 可用 `STELLARC_RENDERER_PORT=4199 npx electron-vite dev` 换端口启动 (Playwright UI 测试会读取同一变量, 见 `playwright.config.ts`)。
 
 ### 常用命令
 
@@ -76,6 +76,7 @@ npm run dev
 | `npm run typecheck`        | 同时检查主进程与渲染进程 TypeScript。 |
 | `npm run test`             | 运行 Vitest 单元测试。                |
 | `npm run test:ui`          | 运行 Playwright UI 回归测试。         |
+| `npm run knip`             | 检查未使用的文件、导出与依赖。        |
 | `npm run lint`             | 运行 ESLint。                         |
 | `npm run format`           | 使用 Prettier 格式化。                |
 | `npm run build`            | 类型检查并生成生产构建。              |
@@ -97,7 +98,7 @@ npm run typecheck
 npm run test
 npm run test:ui -- tests/ui/immersive-mode.spec.ts
 npm run build
-npx knip --no-exit-code
+npm run knip
 ```
 
 `knip.json` 已配置 Electron、Vite、Playwright 与 Vitest 的入口, 用于辅助检查未使用文件和导出。不要仅凭无配置的 knip 结果删除入口文件或打包资源。
