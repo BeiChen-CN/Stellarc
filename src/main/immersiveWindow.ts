@@ -26,10 +26,10 @@ export interface ImmersiveWindowSnapshot {
 interface ImmersiveWindowLayout {
   bounds: ImmersiveWindowBounds
   alwaysOnTop: boolean
-  /** 恒为 true：Windows 上对 transparent 窗口调用 setResizable(false) 会移除
-   * WS_THICKFRAME，破坏 DWM 透明合成，窗口显示为半透明方块。保留可调整
-   * 大小的代价仅是窗口边缘数像素的拖拽热区，视觉上不可感知 */
-  resizable: true
+  /** 三个透明小形态（球/菜单/岛）恒为 false：Electron 官方文档要求
+   * transparent 窗口不可 resizable——设置 resizable: true 会破坏 Windows
+   * 的透明合成（画布显示为灰白底板）。expanded 为常规不透明窗口 */
+  resizable: boolean
   /** 沉浸小窗关闭系统阴影：DWM 阴影沿窗口矩形绘制，叠加在透明区域上
    * 会形成可见的方形轮廓；视觉阴影由渲染层 CSS 提供 */
   hasShadow: boolean
@@ -143,7 +143,7 @@ export function calculateImmersiveWindowLayout(
         workArea
       ),
       alwaysOnTop: true,
-      resizable: true,
+      resizable: false,
       hasShadow: false,
       skipTaskbar: true,
       minimumSize: [0, 0]
@@ -165,7 +165,7 @@ export function calculateImmersiveWindowLayout(
     return {
       bounds: ballBounds,
       alwaysOnTop: true,
-      resizable: true,
+      resizable: false,
       hasShadow: false,
       skipTaskbar: true,
       minimumSize: [0, 0]
@@ -183,7 +183,7 @@ export function calculateImmersiveWindowLayout(
       workArea
     ),
     alwaysOnTop: true,
-    resizable: true,
+    resizable: false,
     hasShadow: false,
     skipTaskbar: true,
     minimumSize: [0, 0]

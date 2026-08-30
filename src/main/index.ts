@@ -25,6 +25,12 @@ import { runDataSelfCheck } from './health/selfCheck'
 log.transports.file.level = 'info'
 log.transports.console.level = is.dev ? 'debug' : 'warn'
 
+// 沉浸模式依赖 transparent 窗口。新版 Windows 11（24H2+）的 DWM 会给
+// 无边框窗口强制绘制系统底板（Mica 色调化），透明区域显示为灰白画布；
+// 该开关让 Chromium 走分层透明视觉路径，窗口空白区域才能真正透出桌面
+// （悬浮球画布方块问题的根修复，需在 app ready 前注册）
+app.commandLine.appendSwitch('enable-transparent-visuals')
+
 function getDataPath(): string {
   const userDataPath = join(app.getPath('userData'), 'data')
   const legacyPath = join(process.cwd(), 'data')
@@ -67,6 +73,11 @@ function createWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 720,
     transparent: true,
+    // Win11 DWM 会给无边框窗口绘制系统底板（Mica 色调化材质，roundedCorners
+    // 关不掉）——透明窗口的空白区域会显示为灰白画布而非透出桌面，
+    // 必须显式声明无材质；backgroundColor 需为全透明配合
+    roundedCorners: false,
+    backgroundMaterial: 'none',
     backgroundColor: '#00000000',
     show: false,
     autoHideMenuBar: true,

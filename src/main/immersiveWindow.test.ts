@@ -94,7 +94,7 @@ describe('immersiveWindow', () => {
 
     expect(layout.bounds).toEqual({ x: 1824, y: 504, width: 72, height: 72 })
     expect(layout.alwaysOnTop).toBe(true)
-    expect(layout.resizable).toBe(true)
+    expect(layout.resizable).toBe(false)
     expect(layout.skipTaskbar).toBe(true)
   })
 
@@ -103,7 +103,7 @@ describe('immersiveWindow', () => {
 
     expect(layout.bounds).toEqual({ x: 730, y: 0, width: 460, height: 92 })
     expect(layout.alwaysOnTop).toBe(true)
-    expect(layout.resizable).toBe(true)
+    expect(layout.resizable).toBe(false)
     expect(layout.skipTaskbar).toBe(true)
   })
 
@@ -112,7 +112,7 @@ describe('immersiveWindow', () => {
 
     expect(layout.bounds).toEqual({ x: 1732, y: 472, width: 188, height: 136 })
     expect(layout.alwaysOnTop).toBe(true)
-    expect(layout.resizable).toBe(true)
+    expect(layout.resizable).toBe(false)
     expect(layout.skipTaskbar).toBe(true)
   })
 
