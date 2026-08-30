@@ -22,6 +22,17 @@ export default defineConfig({
         '@': resolve('src/renderer/src')
       }
     },
-    plugins: [react()]
+    plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          // 大体积依赖独立分包：Statistics 懒加载 recharts，
+          // 首屏无需解析图表库
+          manualChunks: {
+            recharts: ['recharts']
+          }
+        }
+      }
+    }
   }
 })

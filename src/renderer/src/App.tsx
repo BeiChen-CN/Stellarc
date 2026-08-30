@@ -1,4 +1,12 @@
-import { useState, useEffect, useLayoutEffect, useCallback, type ReactElement } from 'react'
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  Suspense,
+  lazy,
+  type ReactElement
+} from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
@@ -6,7 +14,9 @@ import { Home } from './views/Home'
 import { Students } from './views/Students'
 import { Settings } from './views/Settings'
 import { History } from './views/History'
-import { Statistics } from './views/Statistics'
+const Statistics = lazy(() =>
+  import('./views/Statistics').then((m) => ({ default: m.Statistics }))
+)
 import { About } from './views/About'
 import { ImmersiveIslandPreview } from './views/dev/ImmersiveIslandPreview'
 import { ToastContainer } from './components/Toast'
@@ -368,7 +378,17 @@ function MainApp(): ReactElement {
       case 'history':
         return <History />
       case 'statistics':
-        return <Statistics />
+        return (
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center text-sm text-on-surface-variant">
+                正在加载统计面板...
+              </div>
+            }
+          >
+            <Statistics />
+          </Suspense>
+        )
       case 'settings':
         return <Settings />
       case 'about':
