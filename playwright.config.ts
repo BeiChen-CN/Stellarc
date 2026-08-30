@@ -17,7 +17,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev -- --rendererOnly',
+        // --noSandbox：Linux CI 无 SUID sandbox 配置，electron-vite dev --rendererOnly
+        // 仍会拉起 electron 主进程（仅跳过重新构建），无此标志会在 Linux 上 FATAL
+        command: 'npm run dev -- --rendererOnly --noSandbox',
         url: `http://127.0.0.1:${rendererPort}`,
         reuseExistingServer: true,
         timeout: 120_000
