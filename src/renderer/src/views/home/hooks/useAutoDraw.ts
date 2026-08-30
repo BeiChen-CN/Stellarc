@@ -5,8 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * Home 只需在每轮揭晓后调用 scheduleNextRound/resetRemaining。
  */
 
-const AUTO_DRAW_DEFAULT_INTERVAL_MS = 3600
+/** 连抽参数边界（DrawToolbar 输入 clamp 与调度延时共用此单一来源） */
+export const AUTO_DRAW_DEFAULT_INTERVAL_MS = 3600
 export const AUTO_DRAW_MIN_INTERVAL_MS = 2500
+export const AUTO_DRAW_MAX_INTERVAL_MS = 12000
+export const AUTO_DRAW_MAX_ROUNDS = 20
 
 /** ok=false 且无 message 时为静默忽略（如旋转中），有 message 时向用户提示 */
 export type AutoDrawGate = { ok: true } | { ok: false; message?: string }

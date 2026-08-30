@@ -8,7 +8,14 @@ import { z } from 'zod/v4'
 import { BaseController } from './BaseController'
 
 const pathSchema = z.tuple([z.string().min(1)])
-const urlSchema = z.tuple([z.string().url()])
+// 仅允许 http/https 外链：z.string().url() 会放行 file:/ftp: 等，
+// shell.openExternal 会用系统默认程序处理它们
+const urlSchema = z.tuple([
+  z
+    .string()
+    .url()
+    .refine((url) => /^https?:\/\//i.test(url), 'Only http(s) URLs are allowed')
+])
 const boolSchema = z.tuple([z.boolean()])
 
 /** 系统级操作：数据备份/恢复与开机自启动 */

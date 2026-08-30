@@ -2,6 +2,12 @@ import type { ReactElement } from 'react'
 import { Check } from 'lucide-react'
 import type { Student } from '../../types'
 import { cn } from '../../lib/utils'
+import {
+  AUTO_DRAW_DEFAULT_INTERVAL_MS,
+  AUTO_DRAW_MAX_INTERVAL_MS,
+  AUTO_DRAW_MAX_ROUNDS,
+  AUTO_DRAW_MIN_INTERVAL_MS
+} from './hooks/useAutoDraw'
 import type { TemporaryExclusionState } from './hooks/useTemporaryExclusion'
 
 /** 临时禁选入口按钮与下拉菜单（状态由 useTemporaryExclusion 持有） */
@@ -179,7 +185,7 @@ export function AutoDrawBar({
             <input
               type="number"
               min={1}
-              max={20}
+              max={AUTO_DRAW_MAX_ROUNDS}
               value={autoDrawRounds}
               onChange={(e) =>
                 onRoundsChange(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
@@ -191,12 +197,20 @@ export function AutoDrawBar({
             <span className="text-[11px] text-on-surface-variant">间隔ms</span>
             <input
               type="number"
-              min={2500}
-              max={12000}
+              min={AUTO_DRAW_MIN_INTERVAL_MS}
+              max={AUTO_DRAW_MAX_INTERVAL_MS}
               step={100}
               value={autoDrawIntervalMs}
               onChange={(e) =>
-                onIntervalChange(Math.max(2500, Math.min(12000, Number(e.target.value) || 3600)))
+                onIntervalChange(
+                  Math.max(
+                    AUTO_DRAW_MIN_INTERVAL_MS,
+                    Math.min(
+                      AUTO_DRAW_MAX_INTERVAL_MS,
+                      Number(e.target.value) || AUTO_DRAW_DEFAULT_INTERVAL_MS
+                    )
+                  )
+                )
               }
               className="w-16 bg-transparent text-xs text-on-surface text-center outline-none"
             />

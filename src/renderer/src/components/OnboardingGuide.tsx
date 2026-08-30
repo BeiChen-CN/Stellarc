@@ -9,6 +9,7 @@ import {
 } from '../lib/studentImport'
 import { getColorThemeMeta, ANIMATION_STYLES, ANIMATION_SPEEDS } from '../lib/appearance'
 import { cn } from '../lib/utils'
+import { logger } from '../lib/logger'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
@@ -204,7 +205,8 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
       addStudents(currentClass.id, newStudents)
       setNotice({ type: 'success', message: `成功导入 ${newStudents.length} 名学生。` })
       addToast(`成功导入 ${newStudents.length} 名学生。`, 'success')
-    } catch {
+    } catch (e) {
+      logger.error('OnboardingGuide', 'Student import failed:', e)
       setNotice({ type: 'error', message: '导入失败, 请检查文件格式。' })
       addToast('导入失败, 请检查文件格式。', 'error')
     } finally {
