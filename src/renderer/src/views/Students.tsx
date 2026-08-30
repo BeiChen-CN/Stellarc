@@ -12,11 +12,7 @@ import {
   RotateCcw,
   Copy,
   RotateCw,
-  TrendingUp,
-  BadgeCheck,
-  Undo2,
-  Clock3,
-  PencilLine
+  TrendingUp
 } from 'lucide-react'
 import { useState, useCallback, useRef, useMemo, type ReactElement } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -29,32 +25,14 @@ import {
 } from '../lib/studentImport'
 import { StudentMobileCard, StudentRow } from './students/StudentRow'
 import { StatePanel } from '../components/StatePanel'
-import { Dropdown, type DropdownOption } from '../components/Dropdown'
-
-/** 表格行内紧凑下拉（交互逻辑复用 components/Dropdown） */
-function InlineSelect({
-  value,
-  options,
-  onChange,
-  placeholder
-}: {
-  value: string
-  options: DropdownOption[]
-  onChange: (value: string) => void
-  placeholder: string
-}): ReactElement {
-  return (
-    <Dropdown
-      value={value}
-      options={options}
-      onChange={onChange}
-      placeholder={placeholder}
-      triggerClassName="px-2.5 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none cursor-pointer inline-flex items-center gap-1.5"
-      panelClassName="absolute z-30 mt-1 min-w-[150px] max-h-56 overflow-y-auto custom-scrollbar rounded-xl border border-outline-variant/30 bg-surface-container p-1 elevation-2"
-      itemClassName="w-full text-left px-2 py-1.5 text-xs rounded-lg cursor-pointer"
-    />
-  )
-}
+import { type DropdownOption } from '../components/Dropdown'
+import {
+  BatchEditBar,
+  GroupTaskTemplateBar,
+  ScoreLogPanel,
+  TaskScoreBar,
+  type BatchEditPatch
+} from './students/StudentToolbars'
 
 export function Students(): ReactElement {
   const {
@@ -141,17 +119,11 @@ export function Students(): ReactElement {
   const [taskName, setTaskName] = useState('课堂任务')
   const [taskDelta, setTaskDelta] = useState(1)
   const [taskTagQuery, setTaskTagQuery] = useState('')
-  const [taskTemplateDraft, setTaskTemplateDraft] = useState('观察记录:+1,快问快答:+2,上台展示:+3')
   const [logStudentFilter, setLogStudentFilter] = useState('all')
   const [logTaskFilter, setLogTaskFilter] = useState('')
   const [logSourceFilter, setLogSourceFilter] = useState<
     'all' | 'manual' | 'task-assignment' | 'batch'
   >('all')
-  const [batchGender, setBatchGender] = useState<'keep' | 'male' | 'female'>('keep')
-  const [batchStatus, setBatchStatus] = useState<'keep' | 'active' | 'absent' | 'excluded'>('keep')
-  const [batchWeight, setBatchWeight] = useState('')
-  const [batchTags, setBatchTags] = useState('')
-  const [batchTagsMode, setBatchTagsMode] = useState<'replace' | 'append'>('append')
   const classNameInputRef = useRef<HTMLInputElement>(null)
 
   const currentClass = classes.find((c) => c.id === currentClassId)
@@ -340,29 +312,32 @@ export function Students(): ReactElement {
     setSelectedStudentIds(currentClass.students.map((student) => student.id))
   }, [currentClass, effectiveSelectedStudentIds.length])
 
-  const handleSaveTaskTemplates = useCallback(() => {
-    if (!currentClassId) return
-    const templates = taskTemplateDraft
-      .split(',')
-      .map((chunk) => chunk.trim())
-      .filter((chunk) => chunk.length > 0)
-      .map((chunk) => {
-        const [namePart, scorePart] = chunk.split(':')
-        const scoreDelta = Number(scorePart?.replace('+', ''))
-        return {
-          id: crypto.randomUUID(),
-          name: (namePart || '').trim(),
-          scoreDelta: Number.isFinite(scoreDelta) ? Math.trunc(scoreDelta) : 1
-        }
-      })
-      .filter((item) => item.name.length > 0)
-    if (templates.length === 0) {
-      addToast('模板格式无效，请使用：任务:+分值', 'error')
-      return
-    }
-    setClassTaskTemplates(currentClassId, templates)
-    addToast(`已保存 ${templates.length} 条分组任务模板`, 'success')
-  }, [currentClassId, taskTemplateDraft, setClassTaskTemplates, addToast])
+  const handleSaveTaskTemplates = useCallback(
+    (taskTemplateDraft: string) => {
+      if (!currentClassId) return
+      const templates = taskTemplateDraft
+        .split(',')
+        .map((chunk) => chunk.trim())
+        .filter((chunk) => chunk.length > 0)
+        .map((chunk) => {
+          const [namePart, scorePart] = chunk.split(':')
+          const scoreDelta = Number(scorePart?.replace('+', ''))
+          return {
+            id: crypto.randomUUID(),
+            name: (namePart || '').trim(),
+            scoreDelta: Number.isFinite(scoreDelta) ? Math.trunc(scoreDelta) : 1
+          }
+        })
+        .filter((item) => item.name.length > 0)
+      if (templates.length === 0) {
+        addToast('模板格式无效，请使用：任务:+分值', 'error')
+        return
+      }
+      setClassTaskTemplates(currentClassId, templates)
+      addToast(`已保存 ${templates.length} 条分组任务模板`, 'success')
+    },
+    [currentClassId, setClassTaskTemplates, addToast]
+  )
 
   const handleRollbackScoreLog = useCallback(
     (studentId: string, logId: string) => {
@@ -373,38 +348,21 @@ export function Students(): ReactElement {
     [currentClassId, rollbackScoreLog, addToast]
   )
 
-  const handleBatchEditSelected = useCallback(() => {
-    if (!currentClassId) return
-    if (effectiveSelectedStudentIds.length === 0) {
-      addToast('请先选择要批量编辑的学生', 'error')
-      return
-    }
-    const tags = batchTags
-      .split('/')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0)
-    const result = batchUpdateStudents(currentClassId, effectiveSelectedStudentIds, {
-      gender: batchGender === 'keep' ? undefined : batchGender,
-      status: batchStatus === 'keep' ? undefined : batchStatus,
-      weight: batchWeight.trim() ? Math.max(1, Math.trunc(Number(batchWeight) || 1)) : undefined,
-      tags: tags.length > 0 ? tags : undefined,
-      tagsMode: batchTagsMode
-    })
-    addToast(
-      `批量编辑完成，已更新 ${result.affected} 名学生`,
-      result.affected > 0 ? 'success' : 'info'
-    )
-  }, [
-    currentClassId,
-    effectiveSelectedStudentIds,
-    batchTags,
-    batchGender,
-    batchStatus,
-    batchWeight,
-    batchTagsMode,
-    batchUpdateStudents,
-    addToast
-  ])
+  const handleBatchEditSelected = useCallback(
+    (patch: BatchEditPatch) => {
+      if (!currentClassId) return
+      if (effectiveSelectedStudentIds.length === 0) {
+        addToast('请先选择要批量编辑的学生', 'error')
+        return
+      }
+      const result = batchUpdateStudents(currentClassId, effectiveSelectedStudentIds, patch)
+      addToast(
+        `批量编辑完成，已更新 ${result.affected} 名学生`,
+        result.affected > 0 ? 'success' : 'info'
+      )
+    },
+    [currentClassId, effectiveSelectedStudentIds, batchUpdateStudents, addToast]
+  )
 
   const handleUploadPhoto = useCallback(
     async (classId: string, studentId: string) => {
@@ -738,230 +696,49 @@ export function Students(): ReactElement {
                   </div>
 
                   {showBatchEditPanel && (
-                    <div className="mb-3 rounded-2xl border border-outline-variant/30 bg-surface-container-high/70 px-3 py-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <PencilLine className="w-3.5 h-3.5 text-primary" />
-                        <span className="text-xs text-on-surface-variant">
-                          批量编辑（仅已选 {effectiveSelectedStudentIds.length} 人）
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <InlineSelect
-                          value={batchGender}
-                          onChange={(value) => setBatchGender(value as 'keep' | 'male' | 'female')}
-                          options={batchGenderOptions}
-                          placeholder="性别不变"
-                        />
-                        <InlineSelect
-                          value={batchStatus}
-                          onChange={(value) =>
-                            setBatchStatus(value as 'keep' | 'active' | 'absent' | 'excluded')
-                          }
-                          options={batchStatusOptions}
-                          placeholder="状态不变"
-                        />
-                        <input
-                          value={batchWeight}
-                          onChange={(e) => setBatchWeight(e.target.value)}
-                          className="w-24 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                          placeholder="权重"
-                        />
-                        <input
-                          value={batchTags}
-                          onChange={(e) => setBatchTags(e.target.value)}
-                          className="w-44 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                          placeholder="标签（/分隔）"
-                        />
-                        <button
-                          onClick={() =>
-                            setBatchTagsMode((m) => (m === 'append' ? 'replace' : 'append'))
-                          }
-                          className="px-2.5 py-1.5 rounded-xl text-xs bg-surface-container-low text-on-surface-variant border border-outline-variant/40 cursor-pointer"
-                        >
-                          标签模式：{batchTagsMode === 'append' ? '追加' : '替换'}
-                        </button>
-                        <button
-                          onClick={handleBatchEditSelected}
-                          className="px-3 py-1.5 rounded-xl text-xs bg-primary text-primary-foreground cursor-pointer"
-                        >
-                          应用批量编辑
-                        </button>
-                      </div>
-                    </div>
+                    <BatchEditBar
+                      selectedCount={effectiveSelectedStudentIds.length}
+                      genderOptions={batchGenderOptions}
+                      statusOptions={batchStatusOptions}
+                      onApply={handleBatchEditSelected}
+                    />
                   )}
 
                   {showTaskScorePanel && (
-                    <div className="mb-3 flex items-center gap-2 rounded-2xl border border-outline-variant/30 bg-surface-container-high/70 px-3 py-2">
-                      <span className="text-xs text-on-surface-variant">任务积分</span>
-                      <input
-                        value={taskName}
-                        onChange={(e) => setTaskName(e.target.value)}
-                        className="w-40 px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                        placeholder="任务名称"
-                      />
-                      <input
-                        type="number"
-                        value={taskDelta}
-                        onChange={(e) => setTaskDelta(Number(e.target.value) || 0)}
-                        className="w-20 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none text-center"
-                        title="分值"
-                      />
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 5, -1, -2].map((preset) => (
-                          <button
-                            key={preset}
-                            onClick={() => setTaskDelta(preset)}
-                            className="px-2 py-1 rounded-lg text-[11px] bg-surface-container-low text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                          >
-                            {preset > 0 ? '+' : ''}
-                            {preset}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => handleApplyTaskScore('selected')}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-primary text-primary-foreground cursor-pointer"
-                      >
-                        应用到已选（{effectiveSelectedStudentIds.length}）
-                      </button>
-                      <button
-                        onClick={() => handleApplyTaskScore('all')}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-secondary-container text-secondary-container-foreground cursor-pointer"
-                      >
-                        应用到全体
-                      </button>
-                      <div className="flex items-center gap-1 pl-2 border-l border-outline-variant/30">
-                        <BadgeCheck className="w-3.5 h-3.5 text-primary" />
-                        <input
-                          value={taskTagQuery}
-                          onChange={(e) => setTaskTagQuery(e.target.value)}
-                          className="w-24 px-2 py-1 rounded-lg border border-outline-variant/40 bg-surface-container-low text-[11px] text-on-surface outline-none"
-                          placeholder="按标签"
-                        />
-                        <button
-                          onClick={() => handleApplyTaskScore('tag')}
-                          className="px-2.5 py-1.5 rounded-xl text-xs bg-primary/10 text-primary border border-primary/20 cursor-pointer"
-                        >
-                          标签应用（{matchedTagStudentIds.length}）
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {showTaskScorePanel && classTagOptions.length > 0 && (
-                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                      {classTagOptions.slice(0, 10).map((item) => (
-                        <button
-                          key={item.tag}
-                          onClick={() => setTaskTagQuery(item.tag)}
-                          className="px-2 py-1 rounded-full text-[11px] bg-surface-container-high text-on-surface-variant hover:text-on-surface cursor-pointer"
-                        >
-                          {item.tag} ({item.count})
-                        </button>
-                      ))}
-                    </div>
+                    <TaskScoreBar
+                      taskName={taskName}
+                      onTaskNameChange={setTaskName}
+                      taskDelta={taskDelta}
+                      onTaskDeltaChange={setTaskDelta}
+                      taskTagQuery={taskTagQuery}
+                      onTaskTagQueryChange={setTaskTagQuery}
+                      selectedCount={effectiveSelectedStudentIds.length}
+                      matchedTagCount={matchedTagStudentIds.length}
+                      tagOptions={classTagOptions}
+                      onApply={handleApplyTaskScore}
+                    />
                   )}
 
                   {showGroupTaskTemplatePanel && (
-                    <div className="mb-3 flex items-center gap-2 rounded-2xl border border-outline-variant/30 bg-surface-container-high/70 px-3 py-2">
-                      <span className="text-xs text-on-surface-variant">分组任务模板</span>
-                      <input
-                        value={taskTemplateDraft}
-                        onChange={(e) => setTaskTemplateDraft(e.target.value)}
-                        className="flex-1 px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                        placeholder="格式：任务A:+1,任务B:+2"
-                      />
-                      <button
-                        onClick={handleSaveTaskTemplates}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-primary/10 text-primary border border-primary/20 cursor-pointer"
-                      >
-                        保存模板
-                      </button>
-                    </div>
+                    <GroupTaskTemplateBar
+                      defaultDraft="观察记录:+1,快问快答:+2,上台展示:+3"
+                      onSave={handleSaveTaskTemplates}
+                    />
                   )}
 
                   {showScoreLogPanel && (
-                    <div className="mb-3 rounded-2xl border border-outline-variant/30 bg-surface-container-high/50 p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock3 className="w-4 h-4 text-primary" />
-                        <span className="text-xs text-on-surface-variant">积分日志面板</span>
-                        <span className="text-[11px] text-on-surface-variant">
-                          共 {filteredScoreLogs.length} 条
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <InlineSelect
-                          value={effectiveLogStudentFilter}
-                          onChange={setLogStudentFilter}
-                          options={logStudentOptions}
-                          placeholder="全部学生"
-                        />
-
-                        <InlineSelect
-                          value={logSourceFilter}
-                          onChange={(value) =>
-                            setLogSourceFilter(
-                              value as 'all' | 'manual' | 'task-assignment' | 'batch'
-                            )
-                          }
-                          options={logSourceOptions}
-                          placeholder="全部来源"
-                        />
-
-                        <input
-                          value={logTaskFilter}
-                          onChange={(e) => setLogTaskFilter(e.target.value)}
-                          placeholder="筛选任务名"
-                          className="px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-                        />
-                      </div>
-
-                      <div className="max-h-44 overflow-y-auto custom-scrollbar space-y-1.5">
-                        {filteredScoreLogs.slice(0, 120).map((log) => (
-                          <div
-                            key={log.id}
-                            className="flex items-center justify-between gap-2 rounded-xl bg-surface-container px-2.5 py-1.5 border border-outline-variant/20"
-                          >
-                            <div className="min-w-0">
-                              <div className="text-xs text-on-surface truncate">
-                                {log.studentName} · {log.taskName}
-                              </div>
-                              <div className="text-[10px] text-on-surface-variant">
-                                {new Date(log.timestamp).toLocaleString()} · {log.source}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span
-                                className={cn(
-                                  'text-xs font-semibold',
-                                  log.delta > 0
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : log.delta < 0
-                                      ? 'text-destructive'
-                                      : 'text-on-surface-variant'
-                                )}
-                              >
-                                {log.delta > 0 ? '+' : ''}
-                                {log.delta}
-                              </span>
-                              <button
-                                onClick={() => handleRollbackScoreLog(log.studentId, log.id)}
-                                className="px-2 py-1 rounded-lg text-[11px] bg-destructive/10 text-destructive cursor-pointer inline-flex items-center gap-1"
-                              >
-                                <Undo2 className="w-3 h-3" />
-                                回滚
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {filteredScoreLogs.length === 0 && (
-                          <div className="text-xs text-on-surface-variant text-center py-4">
-                            暂无匹配日志
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <ScoreLogPanel
+                      logs={filteredScoreLogs}
+                      studentFilter={effectiveLogStudentFilter}
+                      onStudentFilterChange={(v) => setLogStudentFilter(v)}
+                      sourceFilter={logSourceFilter}
+                      onSourceFilterChange={setLogSourceFilter}
+                      taskFilter={logTaskFilter}
+                      onTaskFilterChange={setLogTaskFilter}
+                      studentOptions={logStudentOptions}
+                      sourceOptions={logSourceOptions}
+                      onRollback={handleRollbackScoreLog}
+                    />
                   )}
 
                   <div className="sm:hidden space-y-2 pb-2">
