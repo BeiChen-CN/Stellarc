@@ -26,7 +26,10 @@ export interface ImmersiveWindowSnapshot {
 interface ImmersiveWindowLayout {
   bounds: ImmersiveWindowBounds
   alwaysOnTop: boolean
-  resizable: boolean
+  /** 恒为 true：Windows 上对 transparent 窗口调用 setResizable(false) 会移除
+   * WS_THICKFRAME，破坏 DWM 透明合成，窗口显示为半透明方块。保留可调整
+   * 大小的代价仅是窗口边缘数像素的拖拽热区，视觉上不可感知 */
+  resizable: true
   skipTaskbar: boolean
   minimumSize: [number, number]
 }
@@ -135,7 +138,7 @@ export function calculateImmersiveWindowLayout(
         workArea
       ),
       alwaysOnTop: true,
-      resizable: false,
+      resizable: true,
       skipTaskbar: true,
       minimumSize: [0, 0]
     }
@@ -156,7 +159,7 @@ export function calculateImmersiveWindowLayout(
     return {
       bounds: ballBounds,
       alwaysOnTop: true,
-      resizable: false,
+      resizable: true,
       skipTaskbar: true,
       minimumSize: [0, 0]
     }
@@ -173,7 +176,7 @@ export function calculateImmersiveWindowLayout(
       workArea
     ),
     alwaysOnTop: true,
-    resizable: false,
+    resizable: true,
     skipTaskbar: true,
     minimumSize: [0, 0]
   }
