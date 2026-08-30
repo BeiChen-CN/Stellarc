@@ -21,9 +21,9 @@ import { UpdateChecker } from './UpdateChecker'
 import { ShortcutRecorder } from './ShortcutRecorder'
 import { formatAccelerator } from '../../lib/accelerator'
 import { DatePicker } from '../../components/DatePicker'
+import i18next from 'i18next'
 
 type DiagnosticEventFilter = 'all' | 'error' | 'warn'
-
 export function DataSection(): ReactElement {
   const {
     maxHistoryRecords,
@@ -98,10 +98,10 @@ export function DataSection(): ReactElement {
       if (filePath) {
         const success = await window.electronAPI.restoreData(filePath)
         if (success) {
-          addToast('恢复成功！应用将重新加载。', 'success')
+          addToast(i18next.t('恢复成功！应用将重新加载。'), 'success')
           setTimeout(() => window.location.reload(), 1500)
         } else {
-          addToast('恢复失败。', 'error')
+          addToast(i18next.t('恢复失败。'), 'error')
         }
       }
     })
@@ -117,11 +117,11 @@ export function DataSection(): ReactElement {
           // 与 historyStore 的持久化格式保持一致（{ records: [] }），不得写成裸数组
           await window.electronAPI.writeJson('history.json', { records: [] })
           await window.electronAPI.writeJson('settings.json', {})
-          addToast('所有数据已清除，即将重新加载...', 'success')
+          addToast(i18next.t('所有数据已清除，即将重新加载...'), 'success')
           setTimeout(() => window.location.reload(), 1500)
         } catch (error) {
           logger.error('DataSection', 'Failed to clear all data:', error)
-          addToast('数据清除失败，请检查磁盘空间', 'error')
+          addToast(i18next.t('数据清除失败，请检查磁盘空间'), 'error')
         }
       }
     )
@@ -134,20 +134,20 @@ export function DataSection(): ReactElement {
       setAutoLaunchState(next)
       addToast(next ? '已启用开机自启动' : '已关闭开机自启动', 'success')
     } else {
-      addToast('设置失败', 'error')
+      addToast(i18next.t('设置失败'), 'error')
     }
   }
 
   const handleSetShortcutKey = async (key: string): Promise<boolean> => {
     const success = await setShortcutKey(key)
     if (!success) {
-      addToast('快捷键注册失败，可能已被系统或其他应用占用。', 'error')
+      addToast(i18next.t('快捷键注册失败，可能已被系统或其他应用占用。'), 'error')
       return false
     }
     if (key) {
       addToast(`快捷键已设置为 ${formatAccelerator(key)}`, 'success')
     } else {
-      addToast('已清除全局快捷键', 'success')
+      addToast(i18next.t('已清除全局快捷键'), 'success')
     }
     return true
   }
@@ -158,7 +158,7 @@ export function DataSection(): ReactElement {
       <section className="space-y-4">
         <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
           <Database className="w-5 h-5 text-primary" />
-          数据管理
+          {i18next.t('数据管理')}
         </h3>
         <div className="bg-surface-container rounded-[28px] overflow-hidden">
           <div className="flex items-center justify-between p-5 hover:bg-surface-container-high/50 transition-colors">
@@ -167,8 +167,10 @@ export function DataSection(): ReactElement {
                 <History className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-medium text-on-surface">历史记录上限</h4>
-                <p className="text-xs text-on-surface-variant mt-0.5">最多保留的历史记录条数</p>
+                <h4 className="font-medium text-on-surface">{i18next.t('历史记录上限')}</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  {i18next.t('最多保留的历史记录条数')}
+                </p>
               </div>
             </div>
             <input
@@ -192,7 +194,7 @@ export function DataSection(): ReactElement {
             <div className="p-3 bg-primary/5 text-primary rounded-full mb-3 group-hover:scale-110 transition-transform">
               <Save className="w-6 h-6" />
             </div>
-            <span className="font-medium mb-1 text-on-surface">备份数据</span>
+            <span className="font-medium mb-1 text-on-surface">{i18next.t('备份数据')}</span>
             <span className="text-xs text-on-surface-variant text-center">
               导出所有设置和记录为 ZIP 文件
             </span>
@@ -204,7 +206,7 @@ export function DataSection(): ReactElement {
             <div className="p-3 bg-primary/5 text-primary rounded-full mb-3 group-hover:scale-110 transition-transform">
               <Database className="w-6 h-6" />
             </div>
-            <span className="font-medium mb-1 text-on-surface">恢复数据</span>
+            <span className="font-medium mb-1 text-on-surface">{i18next.t('恢复数据')}</span>
             <span className="text-xs text-on-surface-variant text-center">
               从 ZIP 备份恢复并覆盖当前数据
             </span>
@@ -217,8 +219,10 @@ export function DataSection(): ReactElement {
             className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer hover:bg-destructive/10 transition-colors"
           >
             <div>
-              <div className="text-sm font-semibold text-destructive">危险操作</div>
-              <div className="text-xs text-on-surface-variant mt-0.5">清空本地数据</div>
+              <div className="text-sm font-semibold text-destructive">{i18next.t('危险操作')}</div>
+              <div className="text-xs text-on-surface-variant mt-0.5">
+                {i18next.t('清空本地数据')}
+              </div>
             </div>
             <ChevronDown
               className={cn(
@@ -238,9 +242,11 @@ export function DataSection(): ReactElement {
                   <div className="p-2.5 bg-destructive/10 text-destructive rounded-full mb-2 group-hover:scale-110 transition-transform">
                     <Trash2 className="w-5 h-5" />
                   </div>
-                  <span className="font-medium text-destructive text-sm">清除数据</span>
+                  <span className="font-medium text-destructive text-sm">
+                    {i18next.t('清除数据')}
+                  </span>
                   <span className="text-[11px] text-on-surface-variant text-center mt-1">
-                    删除所有班级/历史/设置
+                    {i18next.t('删除所有班级/历史/设置')}
                   </span>
                 </button>
               </div>
@@ -253,7 +259,7 @@ export function DataSection(): ReactElement {
       <section className="space-y-4">
         <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
           <CalendarDays className="w-5 h-5 text-primary" />
-          学期设置
+          {i18next.t('学期设置')}
         </h3>
         <div className="bg-surface-container rounded-[28px] overflow-hidden">
           <div className="p-5 space-y-4">
@@ -262,7 +268,7 @@ export function DataSection(): ReactElement {
                 <CalendarDays className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-on-surface">当前学期</h4>
+                <h4 className="font-medium text-on-surface">{i18next.t('当前学期')}</h4>
                 <p className="text-xs text-on-surface-variant mt-0.5">
                   {semester
                     ? `${semester.name}（${semester.startDate} 至 ${semester.endDate || '至今'}）`
@@ -273,7 +279,7 @@ export function DataSection(): ReactElement {
                 <button
                   onClick={() => setSemester(null)}
                   className="p-1.5 rounded-full hover:bg-destructive/10 text-on-surface-variant hover:text-destructive transition-colors cursor-pointer"
-                  title="清除学期设置"
+                  title={i18next.t('清除学期设置')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -281,10 +287,12 @@ export function DataSection(): ReactElement {
             </div>
             <div className="pl-14 space-y-3">
               <div>
-                <label className="text-xs text-on-surface-variant block mb-1">学期名称</label>
+                <label className="text-xs text-on-surface-variant block mb-1">
+                  {i18next.t('学期名称')}
+                </label>
                 <input
                   type="text"
-                  placeholder="例如：2025 年春季学期"
+                  placeholder={i18next.t('例如：2025 年春季学期')}
                   value={semester?.name || ''}
                   onChange={(e) => {
                     const name = e.target.value
@@ -303,7 +311,9 @@ export function DataSection(): ReactElement {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-on-surface-variant block mb-1">开始日期</label>
+                  <label className="text-xs text-on-surface-variant block mb-1">
+                    {i18next.t('开始日期')}
+                  </label>
                   <DatePicker
                     value={semester?.startDate || ''}
                     onChange={(date) => {
@@ -311,11 +321,13 @@ export function DataSection(): ReactElement {
                       setSemester({ ...semester, startDate: date })
                     }}
                     disabled={!semester?.name}
-                    placeholder="选择开始日期"
+                    placeholder={i18next.t('选择开始日期')}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-on-surface-variant block mb-1">结束日期</label>
+                  <label className="text-xs text-on-surface-variant block mb-1">
+                    {i18next.t('结束日期')}
+                  </label>
                   <DatePicker
                     value={semester?.endDate || ''}
                     onChange={(date) => {
@@ -323,7 +335,7 @@ export function DataSection(): ReactElement {
                       setSemester({ ...semester, endDate: date })
                     }}
                     disabled={!semester?.name}
-                    placeholder="选择结束日期"
+                    placeholder={i18next.t('选择结束日期')}
                   />
                 </div>
               </div>
@@ -341,7 +353,7 @@ export function DataSection(): ReactElement {
         >
           <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
             <Stethoscope className="w-5 h-5 text-primary" />
-            可观测性与诊断
+            {i18next.t('数据健康')}
           </h3>
           <span className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all cursor-pointer">
             <ChevronDown
@@ -357,9 +369,12 @@ export function DataSection(): ReactElement {
             <div className="bg-surface-container rounded-[28px] overflow-hidden p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-on-surface">诊断报告</h4>
+                  <h4 className="font-medium text-on-surface">{i18next.t('检查报告')}</h4>
                   <p className="text-xs text-on-surface-variant">
-                    最近刷新：{lastLoadedAt ? new Date(lastLoadedAt).toLocaleString() : '未加载'}
+                    上次刷新：
+                    {lastLoadedAt
+                      ? new Date(lastLoadedAt).toLocaleString()
+                      : '尚未检查，点击右侧刷新'}
                   </p>
                 </div>
                 <button
@@ -371,19 +386,23 @@ export function DataSection(): ReactElement {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-2xl bg-surface-container-high/40 p-3">
-                  <div className="text-xs text-on-surface-variant">迁移状态</div>
+                  <div className="text-xs text-on-surface-variant">{i18next.t('数据格式')}</div>
                   <div className="text-sm font-semibold text-on-surface mt-1">
-                    {migrationState?.status || 'unknown'}
+                    {migrationState?.status === 'ok' || migrationState?.status === 'success'
+                      ? '最新'
+                      : migrationState?.status
+                        ? '需要关注'
+                        : '正常'}
                   </div>
                 </div>
                 <div className="rounded-2xl bg-surface-container-high/40 p-3">
-                  <div className="text-xs text-on-surface-variant">自检修复数</div>
+                  <div className="text-xs text-on-surface-variant">{i18next.t('已自动修复')}</div>
                   <div className="text-sm font-semibold text-on-surface mt-1">
                     {healthReport?.summary?.repaired ?? '-'}
                   </div>
                 </div>
                 <div className="rounded-2xl bg-surface-container-high/40 p-3">
-                  <div className="text-xs text-on-surface-variant">自检错误数</div>
+                  <div className="text-xs text-on-surface-variant">{i18next.t('待处理问题')}</div>
                   <div className="text-sm font-semibold text-on-surface mt-1">
                     {healthReport?.summary?.error ?? '-'}
                   </div>
@@ -393,7 +412,9 @@ export function DataSection(): ReactElement {
               {Array.isArray(healthReport?.checks || healthReport?.items) &&
                 (healthReport?.checks || healthReport?.items)!.length > 0 && (
                   <div className="rounded-2xl bg-surface-container-high/30 p-3">
-                    <div className="text-xs text-on-surface-variant mb-2">自检详情</div>
+                    <div className="text-xs text-on-surface-variant mb-2">
+                      {i18next.t('检查明细')}
+                    </div>
                     <div className="space-y-1.5 max-h-28 overflow-y-auto custom-scrollbar">
                       {(healthReport?.checks || healthReport?.items || [])
                         .slice(0, 8)
@@ -423,7 +444,7 @@ export function DataSection(): ReactElement {
 
               <div className="rounded-2xl bg-surface-container-high/30 p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-on-surface-variant">最近事件</div>
+                  <div className="text-xs text-on-surface-variant">{i18next.t('最近记录')}</div>
                   <div className="ui-stack-row">
                     <button
                       onClick={() => setDiagnosticEventFilter('all')}
@@ -433,7 +454,7 @@ export function DataSection(): ReactElement {
                           : 'px-2 py-0.5 rounded-full text-[10px] bg-surface-container-high text-on-surface-variant cursor-pointer'
                       }
                     >
-                      全部
+                      {i18next.t('全部')}
                     </button>
                     <button
                       onClick={() => setDiagnosticEventFilter('error')}
@@ -459,7 +480,9 @@ export function DataSection(): ReactElement {
                 </div>
                 <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
                   {visibleDiagnosticEvents.length === 0 ? (
-                    <div className="text-xs text-on-surface-variant">暂无诊断事件</div>
+                    <div className="text-xs text-on-surface-variant">
+                      {i18next.t('暂无诊断事件')}
+                    </div>
                   ) : (
                     visibleDiagnosticEvents.map((event) => (
                       <div
@@ -498,7 +521,7 @@ export function DataSection(): ReactElement {
       <section className="space-y-4">
         <h3 className="text-xl font-semibold flex items-center gap-2 text-on-surface">
           <Power className="w-5 h-5 text-primary" />
-          系统
+          {i18next.t('系统')}
         </h3>
         <div className="bg-surface-container rounded-[28px] overflow-hidden">
           <ShortcutRecorder shortcutKey={shortcutKey} setShortcutKey={handleSetShortcutKey} />
@@ -509,18 +532,20 @@ export function DataSection(): ReactElement {
                 <Power className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-medium text-on-surface">新手引导</h4>
-                <p className="text-xs text-on-surface-variant mt-0.5">重新打开首次使用引导</p>
+                <h4 className="font-medium text-on-surface">{i18next.t('新手引导')}</h4>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  {i18next.t('重新打开首次使用引导')}
+                </p>
               </div>
             </div>
             <button
               onClick={() => {
                 resetOnboarding()
-                addToast('已重置新手引导，下次将自动显示', 'success')
+                addToast(i18next.t('已重置新手引导，下次将自动显示'), 'success')
               }}
               className="px-3 py-1.5 rounded-full text-xs bg-secondary-container text-secondary-container-foreground cursor-pointer"
             >
-              重新显示
+              {i18next.t('重新显示')}
             </button>
           </div>
 
@@ -530,7 +555,7 @@ export function DataSection(): ReactElement {
                 <Power className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-medium text-on-surface">开机自启动</h4>
+                <h4 className="font-medium text-on-surface">{i18next.t('开机自启动')}</h4>
                 <p className="text-xs text-on-surface-variant mt-0.5">
                   系统启动时自动运行 Stellarc
                 </p>

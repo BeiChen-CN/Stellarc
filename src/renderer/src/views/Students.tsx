@@ -33,7 +33,7 @@ import {
   TaskScoreBar,
   type BatchEditPatch
 } from './students/StudentToolbars'
-
+import i18next from 'i18next'
 export function Students(): ReactElement {
   const {
     classes,
@@ -330,7 +330,7 @@ export function Students(): ReactElement {
         })
         .filter((item) => item.name.length > 0)
       if (templates.length === 0) {
-        addToast('模板格式无效，请使用：任务:+分值', 'error')
+        addToast(i18next.t('模板格式无效，请使用：任务:+分值'), 'error')
         return
       }
       setClassTaskTemplates(currentClassId, templates)
@@ -352,7 +352,7 @@ export function Students(): ReactElement {
     (patch: BatchEditPatch) => {
       if (!currentClassId) return
       if (effectiveSelectedStudentIds.length === 0) {
-        addToast('请先选择要批量编辑的学生', 'error')
+        addToast(i18next.t('请先选择要批量编辑的学生'), 'error')
         return
       }
       const result = batchUpdateStudents(currentClassId, effectiveSelectedStudentIds, patch)
@@ -381,10 +381,10 @@ export function Students(): ReactElement {
           const targetName = `${studentId}.jpg`
           const photoPath = await window.electronAPI.copyPhoto(filePath, targetName)
           updateStudentPhoto(classId, studentId, photoPath)
-          addToast('照片上传成功！', 'success')
+          addToast(i18next.t('照片上传成功！'), 'success')
         } catch (error) {
           logger.error('Students', 'Photo upload failed:', error)
-          addToast('照片上传失败。', 'error')
+          addToast(i18next.t('照片上传失败。'), 'error')
         }
       }
     },
@@ -412,16 +412,14 @@ export function Students(): ReactElement {
       try {
         const content = await window.electronAPI.readTextFile(filePath)
         const parsedRows = parseStudentImportRows(content)
-
         if (parsedRows.length === 0) {
-          addToast('文件内容为空或格式无效。', 'error')
+          addToast(i18next.t('文件内容为空或格式无效。'), 'error')
           return
         }
 
         const newStudents = buildUniqueImportedStudents(parsedRows, currentClass?.students || [])
-
         if (newStudents.length === 0) {
-          addToast('没有可导入的新学生（已自动去重）。', 'error')
+          addToast(i18next.t('名单与现有学生完全重复，未新增'), 'info')
           return
         }
 
@@ -429,7 +427,7 @@ export function Students(): ReactElement {
         addToast(`成功导入 ${newStudents.length} 名学生（已去重）。`, 'success')
       } catch (error) {
         logger.error('Students', 'Import failed:', error)
-        addToast('导入失败，请检查文件格式。', 'error')
+        addToast(i18next.t('导入失败，请检查文件格式。'), 'error')
       }
     }
   }, [currentClassId, currentClass, addStudents, addToast])
@@ -451,10 +449,10 @@ export function Students(): ReactElement {
       )
       try {
         await window.electronAPI.writeExportFile(filePath, [header, ...rows].join('\n'))
-        addToast('导出成功', 'success')
+        addToast(i18next.t('导出成功'), 'success')
       } catch (error) {
         logger.error('Students', 'Student export failed:', error)
-        addToast('导出失败', 'error')
+        addToast(i18next.t('导出失败'), 'error')
       }
     }
   }, [currentClass, addToast])
@@ -463,7 +461,7 @@ export function Students(): ReactElement {
     if (!currentClassId) return
     showConfirm('重置积分', '确定要将当前班级所有学生的积分归零吗？', () => {
       resetClassScores(currentClassId)
-      addToast('积分已重置', 'success')
+      addToast(i18next.t('积分已重置'), 'success')
     })
   }, [currentClassId, showConfirm, resetClassScores, addToast])
 
@@ -472,7 +470,7 @@ export function Students(): ReactElement {
     const normalize = normalizeClassStudents(currentClassId)
     const dedupe = dedupeClassStudents(currentClassId)
     addToast(
-      `治理完成：规范化 ${normalize.updated} 项，移除空名 ${normalize.removed} 项，去重 ${dedupe.removed} 项`,
+      `整理完成：修正 ${normalize.updated} 处格式，清除空白姓名 ${normalize.removed} 个、重复学生 ${dedupe.removed} 名`,
       'success'
     )
   }, [currentClassId, normalizeClassStudents, dedupeClassStudents, addToast])
@@ -480,7 +478,7 @@ export function Students(): ReactElement {
   const handleDuplicateClass = useCallback(
     (classId: string) => {
       duplicateClass(classId)
-      addToast('班级已复制', 'success')
+      addToast(i18next.t('班级已复制'), 'success')
     },
     [duplicateClass, addToast]
   )
@@ -501,26 +499,26 @@ export function Students(): ReactElement {
   return (
     <div className="h-full overflow-y-auto flex flex-col space-y-3 p-3 sm:p-5">
       <header className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-bold text-on-surface">学生管理</h2>
+        <h2 className="text-2xl font-bold text-on-surface">{i18next.t('学生管理')}</h2>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={undoLastChange}
             disabled={!canUndo}
             className="p-2.5 bg-surface-container-high text-on-surface rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-container-low transition-colors cursor-pointer"
-            title="撤销上一步"
+            title={i18next.t('撤销上一步')}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
           <input
             value={newClassName}
             onChange={(e) => setNewClassName(e.target.value)}
-            placeholder="新班级名称"
+            placeholder={i18next.t('新班级名称')}
             className="w-full sm:w-52 px-4 py-2 border border-outline-variant rounded-full text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
           />
           <button
             onClick={handleAddClass}
             className="p-2.5 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors elevation-1 cursor-pointer"
-            title="添加班级"
+            title={i18next.t('添加班级')}
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -533,14 +531,14 @@ export function Students(): ReactElement {
             <div className="p-4 bg-surface-container-high rounded-full">
               <Plus className="w-8 h-8 opacity-50" />
             </div>
-            <p>暂无班级。请在上方输入名称并点击添加。</p>
+            <p>{i18next.t('暂无班级。请在上方输入名称并点击添加。')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full">
             <div className="col-span-1 pr-2 space-y-2 overflow-y-auto">
               <h3 className="font-semibold text-lg mb-4 flex items-center gap-2 text-on-surface">
                 <span className="w-1 h-6 bg-primary rounded-full"></span>
-                班级列表
+                {i18next.t('班级列表')}
               </h3>
               <div className="space-y-1.5">
                 {classes.map((c) => {
@@ -608,7 +606,7 @@ export function Students(): ReactElement {
                           handleDuplicateClass(c.id)
                         }}
                         className="text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-primary transition-all duration-200 p-1.5 hover:bg-primary/10 rounded-full shrink-0"
-                        title="复制班级"
+                        title={i18next.t('复制班级')}
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
@@ -620,7 +618,7 @@ export function Students(): ReactElement {
                           )
                         }}
                         className="text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-destructive transition-all duration-200 p-1.5 hover:bg-destructive/10 rounded-full shrink-0"
-                        title="删除班级"
+                        title={i18next.t('删除班级')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -638,37 +636,37 @@ export function Students(): ReactElement {
                       value={newStudentName}
                       onChange={(e) => setNewStudentName(e.target.value)}
                       className="flex-1 min-w-0 sm:min-w-[220px] border border-outline-variant px-4 py-2 rounded-full focus:ring-2 focus:ring-primary/20 focus:border-primary bg-surface-container-low outline-none transition-colors"
-                      placeholder="输入学生姓名..."
+                      placeholder={i18next.t('输入学生姓名...')}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddStudent()}
                     />
                     <button
                       onClick={handleAddStudent}
                       className="ui-btn ui-btn-sm bg-primary text-primary-foreground hover:bg-primary/90 elevation-1 whitespace-nowrap"
                     >
-                      添加学生
+                      {i18next.t('添加学生')}
                     </button>
                     <button
                       onClick={handleImportStudents}
                       className="ui-btn ui-btn-sm bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 whitespace-nowrap"
-                      title="从文本文件导入（每行一个名字）"
+                      title={i18next.t('从文本文件导入（每行一个名字）')}
                     >
                       <Upload className="w-4 h-4" />
-                      导入
+                      {i18next.t('导入')}
                     </button>
                     <button
                       onClick={handleExportStudents}
                       disabled={!currentClass || currentClass.students.length === 0}
                       className="ui-btn ui-btn-sm bg-secondary-container text-secondary-container-foreground hover:bg-secondary-container/80 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="导出学生名单为 CSV"
+                      title={i18next.t('导出学生名单为 CSV')}
                     >
                       <Download className="w-4 h-4" />
-                      导出
+                      {i18next.t('导出')}
                     </button>
                     <button
                       onClick={handleResetScores}
                       disabled={!currentClass || currentClass.students.length === 0}
                       className="p-2.5 bg-surface-container-high text-on-surface rounded-full hover:bg-surface-container-low transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="重置当前班级所有积分"
+                      title={i18next.t('重置当前班级所有积分')}
                     >
                       <RotateCw className="w-4 h-4" />
                     </button>
@@ -676,9 +674,9 @@ export function Students(): ReactElement {
                       onClick={handleDataGovernance}
                       disabled={!currentClass || currentClass.students.length === 0}
                       className="px-3 py-2 bg-surface-container-high text-on-surface rounded-full hover:bg-surface-container-low transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-sm"
-                      title="执行数据治理（规范化与去重）"
+                      title={i18next.t('检查并整理当前名单：修正格式、清除重复项')}
                     >
-                      治理
+                      {i18next.t('治理')}
                     </button>
                   </div>
 
@@ -766,7 +764,7 @@ export function Students(): ReactElement {
                       <div className="bg-surface-container rounded-xl">
                         <StatePanel
                           icon={UserX}
-                          title="该班级暂无学生"
+                          title={i18next.t('该班级暂无学生')}
                           description="请添加学生或导入名单"
                           compact
                         />
@@ -791,24 +789,24 @@ export function Students(): ReactElement {
                               </button>
                             </th>
                             <th className="px-4 py-3 text-left font-semibold text-on-surface-variant">
-                              姓名
+                              {i18next.t('姓名')}
                             </th>
                             {fairness.weightedRandom && (
                               <th className="px-4 py-3 text-center font-semibold text-on-surface-variant">
-                                权重
+                                {i18next.t('权重')}
                               </th>
                             )}
                             <th className="px-4 py-3 text-center font-semibold text-on-surface-variant">
-                              积分
+                              {i18next.t('积分')}
                             </th>
                             <th className="px-4 py-3 text-center font-semibold text-on-surface-variant">
-                              被抽中
+                              {i18next.t('被抽中')}
                             </th>
                             <th className="px-4 py-3 text-center font-semibold text-on-surface-variant">
-                              状态
+                              {i18next.t('状态')}
                             </th>
                             <th className="px-4 py-3 text-center font-semibold text-on-surface-variant">
-                              操作
+                              {i18next.t('操作')}
                             </th>
                           </tr>
                         </thead>
@@ -839,8 +837,10 @@ export function Students(): ReactElement {
                                 colSpan={6 + (fairness.weightedRandom ? 1 : 0)}
                                 className="p-10 text-center text-on-surface-variant"
                               >
-                                <p>该班级暂无学生。</p>
-                                <p className="text-xs opacity-70 mt-1">请添加学生或导入名单</p>
+                                <p>{i18next.t('该班级暂无学生。')}</p>
+                                <p className="text-xs opacity-70 mt-1">
+                                  {i18next.t('请添加学生或导入名单')}
+                                </p>
                               </td>
                             </tr>
                           )}
@@ -852,7 +852,7 @@ export function Students(): ReactElement {
               ) : (
                 <StatePanel
                   icon={UserX}
-                  title="请选择一个班级"
+                  title={i18next.t('请选择一个班级')}
                   description="选择班级后即可管理学生数据"
                 />
               )}

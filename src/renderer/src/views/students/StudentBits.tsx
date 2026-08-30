@@ -1,6 +1,7 @@
 import { CheckCircle, Camera, Plus, Minus } from 'lucide-react'
 import { cn, toFileUrl } from '../../lib/utils'
 import type { Student } from '../../types'
+import i18next from 'i18next'
 
 /**
  * StudentRow（桌面表格行）与 StudentMobileCard（移动卡片）共用的子组件。
@@ -53,7 +54,7 @@ export function AvatarButton({
         'relative rounded-full shrink-0 group/avatar cursor-pointer overflow-hidden',
         sizeClass
       )}
-      title="点击上传照片"
+      title={i18next.t('点击上传照片')}
     >
       {student.photo ? (
         <img
@@ -101,7 +102,7 @@ export function GenderToggle({
             : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
         )}
       >
-        男
+        {i18next.t('男')}
       </button>
       <button
         onClick={() => onUpdateGender(classId, studentId, 'female')}
@@ -112,7 +113,7 @@ export function GenderToggle({
             : 'bg-surface-container-low text-on-surface-variant border-outline-variant/40'
         )}
       >
-        女
+        {i18next.t('女')}
       </button>
     </>
   )

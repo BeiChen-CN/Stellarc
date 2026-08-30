@@ -4,6 +4,7 @@ import { Student, ClassGroup, ClassTaskTemplate, ScoreLogEntry } from '../types'
 import { useToastStore } from './toastStore'
 import { useSettingsStore } from './settingsStore'
 import { logger } from '../lib/logger'
+import i18next from 'i18next'
 
 interface ClassesSnapshot {
   classes: ClassGroup[]
@@ -154,7 +155,9 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
       await window.electronAPI.writeJson('classes.json', { classes, currentClassId })
     } catch (e) {
       logger.error('ClassesStore', 'Failed to save classes', e)
-      useToastStore.getState().addToast('班级数据保存失败，请检查磁盘空间', 'error')
+      useToastStore
+        .getState()
+        .addToast(i18next.t('班级数据保存失败，请重试；若持续出现请检查磁盘空间与权限'), 'error')
     }
   },
 
@@ -303,7 +306,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
                   id: crypto.randomUUID(),
                   timestamp: new Date().toISOString(),
                   delta: appliedDelta,
-                  taskName: '手动调整',
+                  taskName: i18next.t('手动调整'),
                   source: 'manual'
                 }
                 return {
@@ -476,7 +479,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
 
   applyTaskScore: (classId, studentIds, taskName, delta, source = 'manual') => {
     const targetIds = new Set(studentIds)
-    const safeTaskName = taskName.trim() || '任务积分'
+    const safeTaskName = taskName.trim() || i18next.t('任务积分')
     const normalizedTaskName = safeTaskName.toLowerCase()
     const scoreRules = useSettingsStore.getState().scoreRules
     const blockedSet = new Set((scoreRules.blockedTasks || []).map((item) => item.toLowerCase()))
@@ -546,7 +549,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
 
   rollbackScoreLog: (classId, studentId, logId) => {
     let success = false
-    let message = '未找到可回滚记录'
+    let message = i18next.t('未找到可撤销的记录')
     set((state) => ({
       classes: state.classes.map((c) => {
         if (c.id !== classId) return c
@@ -563,10 +566,10 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
               id: crypto.randomUUID(),
               timestamp: new Date().toISOString(),
               delta: -target.delta,
-              taskName: `回滚:${target.taskName}`,
+              taskName: `${i18next.t('撤销')}:${target.taskName}`,
               source: 'manual'
             }
-            message = '回滚成功'
+            message = i18next.t('已撤销该记录')
             return {
               ...s,
               score: nextScore,
@@ -684,7 +687,7 @@ export const useClassesStore = create<ClassesState>((set, get) => ({
                     id: entry.id || crypto.randomUUID(),
                     timestamp: entry.timestamp || new Date().toISOString(),
                     delta: Math.trunc(entry.delta || 0),
-                    taskName: entry.taskName.trim() || '任务积分',
+                    taskName: entry.taskName.trim() || i18next.t('任务积分'),
                     source:
                       entry.source === 'manual' ||
                       entry.source === 'task-assignment' ||

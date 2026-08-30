@@ -20,6 +20,7 @@ import {
   X,
   ChevronDown
 } from 'lucide-react'
+import i18next from 'i18next'
 
 const PIE_COLORS = [
   'hsl(var(--primary))',
@@ -120,7 +121,9 @@ function StudentPicker({
             </span>
           </div>
         ) : (
-          <span className="flex-1 text-left text-on-surface-variant">选择学生查看趋势...</span>
+          <span className="flex-1 text-left text-on-surface-variant">
+            {i18next.t('选择学生查看趋势...')}
+          </span>
         )}
         <ChevronDown
           className={`w-4 h-4 text-on-surface-variant shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
@@ -149,7 +152,7 @@ function StudentPicker({
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索姓名或班级..."
+                placeholder={i18next.t('搜索姓名或班级...')}
                 className="w-full pl-8 pr-3 py-2 text-sm bg-surface-container-high/50 rounded-xl outline-none text-on-surface placeholder:text-on-surface-variant/50"
               />
             </div>
@@ -157,7 +160,7 @@ function StudentPicker({
           <div className="max-h-[240px] overflow-auto py-1">
             {filtered.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-on-surface-variant/60">
-                没有匹配的学生
+                {i18next.t('没有匹配的学生')}
               </div>
             ) : (
               filtered.map((s) => (
@@ -265,7 +268,7 @@ export function StatisticsChartsPanel({
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-on-surface-variant space-y-4">
               <TrendingUp className="w-8 h-8 opacity-30" />
-              <p>暂无统计数据</p>
+              <p>{i18next.t('暂无统计数据')}</p>
             </div>
           )}
         </div>
@@ -299,7 +302,7 @@ export function StatisticsChartsPanel({
         <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
             <PieChartIcon className="w-5 h-5 text-primary" />
-            班级抽选占比
+            {i18next.t('班级抽选占比')}
           </h3>
           <div className="flex-1 min-h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -342,7 +345,7 @@ export function StatisticsChartsPanel({
       <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
           <User className="w-5 h-5 text-primary" />
-          学生被抽中趋势
+          {i18next.t('学生被抽中趋势')}
         </h3>
         <StudentPicker
           students={allStudentOptions}

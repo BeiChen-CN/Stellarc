@@ -9,6 +9,7 @@ import {
   AUTO_DRAW_MIN_INTERVAL_MS
 } from './hooks/useAutoDraw'
 import type { TemporaryExclusionState } from './hooks/useTemporaryExclusion'
+import i18next from 'i18next'
 
 /** 临时禁选入口按钮与下拉菜单（状态由 useTemporaryExclusion 持有） */
 export function TemporaryExclusionMenu({
@@ -55,7 +56,7 @@ export function TemporaryExclusionMenu({
             <input
               value={excludedSearch}
               onChange={(e) => setExcludedSearch(e.target.value)}
-              placeholder="搜索姓名/学号"
+              placeholder={i18next.t('搜索姓名/学号')}
               className="w-full px-3 py-1.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-on-surface outline-none"
             />
             <button
@@ -77,7 +78,7 @@ export function TemporaryExclusionMenu({
               >
                 {excludedOnly && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
               </span>
-              仅显示已禁选
+              {i18next.t('仅显示已禁选')}
             </button>
           </div>
 
@@ -108,7 +109,7 @@ export function TemporaryExclusionMenu({
             })}
             {filteredExcludedCandidates.length === 0 && (
               <div className="px-2.5 py-4 text-xs text-on-surface-variant text-center">
-                无匹配学生
+                {i18next.t('无匹配学生')}
               </div>
             )}
           </div>
@@ -122,13 +123,13 @@ export function TemporaryExclusionMenu({
               }}
               className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-on-surface hover:bg-surface-container-high cursor-pointer"
             >
-              全部禁选
+              {i18next.t('全部禁选')}
             </button>
             <button
               onClick={() => updateManualExcludedIds([])}
               className="flex-1 px-2.5 py-1.5 rounded-xl text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
             >
-              清空禁选
+              {i18next.t('清空禁选')}
             </button>
           </div>
         </div>
@@ -167,7 +168,7 @@ export function AutoDrawBar({
     <>
       <button
         onClick={onToggleEnabled}
-        title="Ctrl/Cmd + Enter 可快速开始/停止连抽"
+        title={i18next.t('Ctrl + Enter 可快速开始/停止连抽')}
         className={cn(
           'px-3 py-1.5 rounded-full text-xs border border-outline-variant/40 cursor-pointer',
           autoDrawEnabled
@@ -181,7 +182,7 @@ export function AutoDrawBar({
       {autoDrawEnabled && (
         <>
           <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
-            <span className="text-[11px] text-on-surface-variant">轮次</span>
+            <span className="text-[11px] text-on-surface-variant">{i18next.t('轮次')}</span>
             <input
               type="number"
               min={1}
@@ -194,7 +195,7 @@ export function AutoDrawBar({
             />
           </div>
           <div className="flex items-center gap-1 rounded-full bg-surface-container border border-outline-variant/40 px-2 py-1">
-            <span className="text-[11px] text-on-surface-variant">间隔ms</span>
+            <span className="text-[11px] text-on-surface-variant">{i18next.t('间隔（毫秒）')}</span>
             <input
               type="number"
               min={AUTO_DRAW_MIN_INTERVAL_MS}
@@ -219,15 +220,15 @@ export function AutoDrawBar({
             <button
               onClick={onStart}
               disabled={isSpinning || !canDraw}
-              title="Ctrl/Cmd + Enter"
+              title="Ctrl + Enter"
               className="px-3 py-1.5 rounded-full text-xs bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              开始连抽
+              {i18next.t('开始连抽')}
             </button>
           ) : (
             <button
               onClick={onStop}
-              title="Ctrl/Cmd + Enter"
+              title="Ctrl + Enter"
               className="px-3 py-1.5 rounded-full text-xs bg-destructive/10 text-destructive border border-destructive/20 cursor-pointer"
             >
               停止连抽（剩余 {autoDrawRemaining}）

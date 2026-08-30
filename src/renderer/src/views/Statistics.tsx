@@ -19,6 +19,7 @@ import {
   Users,
   Scale
 } from 'lucide-react'
+import i18next from 'i18next'
 
 type TimeRange = '7d' | '14d' | '30d' | 'semester' | 'all'
 
@@ -59,7 +60,6 @@ function getTimeRangeStart(
       return { start: null, end: null }
   }
 }
-
 export function Statistics(): ReactElement {
   const { history } = useHistoryStore()
   const { classes } = useClassesStore()
@@ -265,10 +265,10 @@ export function Statistics(): ReactElement {
           leaderboard
         })
       )
-      addToast('统计数据已导出', 'success')
+      addToast(i18next.t('统计数据已导出'), 'success')
     } catch (error) {
       logger.error('Statistics', 'Stats export failed:', error)
-      addToast('导出失败', 'error')
+      addToast(i18next.t('导出失败'), 'error')
     }
   }
 
@@ -295,10 +295,10 @@ export function Statistics(): ReactElement {
           leaderboard
         })
       )
-      addToast('课堂报告已生成', 'success')
+      addToast(i18next.t('课堂报告已生成'), 'success')
     } catch (error) {
       logger.error('Statistics', 'Report generation failed:', error)
-      addToast('生成失败', 'error')
+      addToast(i18next.t('生成失败'), 'error')
     }
   }
 
@@ -306,7 +306,7 @@ export function Statistics(): ReactElement {
     <div className="h-full overflow-y-auto flex flex-col p-3 sm:p-5 space-y-4 sm:space-y-5">
       <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-on-surface">数据统计</h2>
+          <h2 className="text-2xl font-bold text-on-surface">{i18next.t('数据统计')}</h2>
           <p className="text-sm text-on-surface-variant mt-1">
             共 {filteredHistory.length} 条抽选记录
             {timeRange !== 'all' &&
@@ -334,14 +334,14 @@ export function Statistics(): ReactElement {
             className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Download className="w-4 h-4 mr-1.5" />
-            导出
+            {i18next.t('导出')}
           </button>
           <button
             onClick={handleGenerateReport}
             className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Award className="w-4 h-4 mr-1.5" />
-            报告
+            {i18next.t('报告')}
           </button>
         </div>
       </header>
@@ -353,14 +353,14 @@ export function Statistics(): ReactElement {
             <Hash className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="text-3xl font-black text-primary">{filteredHistory.length}</div>
-          <div className="text-xs text-on-surface-variant mt-1">总抽选次数</div>
+          <div className="text-xs text-on-surface-variant mt-1">{i18next.t('总抽选次数')}</div>
         </div>
         <div className="bg-surface-container rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
           <div className="absolute top-3 right-3 p-1.5 rounded-full bg-primary/10">
             <Activity className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="text-3xl font-black text-primary">{weeklyComparison.thisWeek}</div>
-          <div className="text-xs text-on-surface-variant mt-1">本周抽选</div>
+          <div className="text-xs text-on-surface-variant mt-1">{i18next.t('本周抽选')}</div>
           {weeklyComparison.lastWeek > 0 && (
             <div
               className={`flex items-center gap-0.5 text-[10px] mt-1 ${weeklyComparison.thisWeek >= weeklyComparison.lastWeek ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}
@@ -387,21 +387,26 @@ export function Statistics(): ReactElement {
             <Users className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="text-3xl font-black text-primary">{classData.length}</div>
-          <div className="text-xs text-on-surface-variant mt-1">涉及班级</div>
+          <div className="text-xs text-on-surface-variant mt-1">{i18next.t('涉及班级')}</div>
         </div>
         <div className="bg-surface-container rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
           <div className="absolute top-3 right-3 p-1.5 rounded-full bg-primary/10">
             <User className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="text-3xl font-black text-primary">{fairnessMetrics.uniquePicked}</div>
-          <div className="text-xs text-on-surface-variant mt-1">参与学生数</div>
+          <div className="text-xs text-on-surface-variant mt-1">{i18next.t('参与学生数')}</div>
         </div>
         <div className="bg-surface-container rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
           <div className="absolute top-3 right-3 p-1.5 rounded-full bg-primary/10">
             <Scale className="w-3.5 h-3.5 text-primary" />
           </div>
           <div className="text-3xl font-black text-primary">{fairnessMetrics.balanceIndex}</div>
-          <div className="text-xs text-on-surface-variant mt-1">均衡指数</div>
+          <div
+            className="text-xs text-on-surface-variant mt-1"
+            title={i18next.t('数值越接近 1，抽选分布越均匀')}
+          >
+            {i18next.t('均衡指数')}
+          </div>
           <div className="w-full mt-2 h-1.5 rounded-full bg-surface-container-high overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
@@ -428,7 +433,7 @@ export function Statistics(): ReactElement {
           <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
               <Award className="w-5 h-5 text-primary" />
-              积分排行榜
+              {i18next.t('积分排行榜')}
             </h3>
             <div className="flex-1 space-y-2 overflow-auto">
               {leaderboard.map((s, i) => {
@@ -466,7 +471,7 @@ export function Statistics(): ReactElement {
           <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
               <Scale className="w-5 h-5 text-primary" />
-              策略使用分布
+              {i18next.t('策略使用分布')}
             </h3>
             <div className="space-y-3">
               {(() => {
@@ -489,7 +494,7 @@ export function Statistics(): ReactElement {
                 ))
               })()}
               <div className="pt-2 mt-1 border-t border-outline-variant/30 flex items-center justify-between text-sm">
-                <span className="text-on-surface-variant">冷却命中轮次</span>
+                <span className="text-on-surface-variant">{i18next.t('冷却命中轮次')}</span>
                 <span className="font-semibold text-primary">
                   {fairnessMetrics.cooldownHitCount}
                 </span>

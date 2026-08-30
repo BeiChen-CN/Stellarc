@@ -12,9 +12,9 @@ import { cn } from '../lib/utils'
 import { logger } from '../lib/logger'
 import { useClassesStore } from '../store/classesStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { useToastStore } from '../store/toastStore'
 import { DesignStylePreview } from '../views/settings/DesignStylePreview'
 import { designStyles } from '../views/settings/designStyles'
+import { useTranslation } from 'react-i18next'
 
 interface OnboardingGuideProps {
   open: boolean
@@ -65,6 +65,7 @@ const formatDuration = (value: number): string =>
   Number.isFinite(value) ? value.toFixed(1).replace(/\.0$/, '') : '1'
 
 export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactElement {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
   const [className, setClassName] = useState('')
   const [studentName, setStudentName] = useState('')
@@ -72,7 +73,6 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
   const [importing, setImporting] = useState(false)
 
   const { classes, currentClassId, addClass, addStudent, addStudents } = useClassesStore()
-  const addToast = useToastStore((state) => state.addToast)
   const {
     colorTheme,
     customColor,
@@ -190,7 +190,6 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
       const parsedRows = parseStudentImportRows(content)
       if (parsedRows.length === 0) {
         setNotice({ type: 'error', message: '文件内容为空或格式无效。' })
-        addToast('文件内容为空或格式无效。', 'error')
         return
       }
 
@@ -198,21 +197,18 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
 
       if (newStudents.length === 0) {
         setNotice({ type: 'error', message: '没有可导入的新学生, 已自动去重。' })
-        addToast('没有可导入的新学生, 已自动去重。', 'error')
         return
       }
 
       addStudents(currentClass.id, newStudents)
       setNotice({ type: 'success', message: `成功导入 ${newStudents.length} 名学生。` })
-      addToast(`成功导入 ${newStudents.length} 名学生。`, 'success')
     } catch (e) {
       logger.error('OnboardingGuide', 'Student import failed:', e)
       setNotice({ type: 'error', message: '导入失败, 请检查文件格式。' })
-      addToast('导入失败, 请检查文件格式。', 'error')
     } finally {
       setImporting(false)
     }
-  }, [addStudents, addToast, currentClass])
+  }, [addStudents, currentClass])
 
   const updateDuration = useCallback(
     (value: string): void => {
@@ -231,9 +227,9 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-sm font-semibold text-on-surface">创建班级</h4>
+              <h4 className="text-sm font-semibold text-on-surface">{t('创建班级')}</h4>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                输入一个课堂班级名称, 后续学生都会加入当前班级。
+                {t('输入一个课堂班级名称, 后续学生都会加入当前班级。')}
               </p>
             </div>
             {currentClass && (
@@ -251,7 +247,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                 if (event.key === 'Enter') handleCreateClass()
               }}
               className="min-w-0 flex-1 rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
-              placeholder="例如: 三年级二班"
+              placeholder={t('例如: 三年级二班')}
             />
             <button
               type="button"
@@ -260,14 +256,14 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             >
               <Plus className="h-4 w-4" />
-              创建
+              {t('创建')}
             </button>
           </div>
         </div>
 
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-on-surface">添加或导入学生</h4>
+            <h4 className="text-sm font-semibold text-on-surface">{t('添加或导入学生')}</h4>
             <p className="mt-0.5 text-xs text-on-surface-variant">
               可以逐个输入学生姓名, 也可以导入 txt/csv 名单。
             </p>
@@ -281,7 +277,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                 if (event.key === 'Enter') handleAddStudent()
               }}
               className="min-w-0 flex-1 rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
-              placeholder="输入学生姓名"
+              placeholder={t('输入学生姓名')}
             />
             <button
               type="button"
@@ -290,7 +286,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-secondary-container px-3 py-2 text-sm font-medium text-secondary-container-foreground"
             >
               <Plus className="h-4 w-4" />
-              添加
+              {t('添加')}
             </button>
           </div>
           <button
@@ -314,8 +310,10 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
       <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
-            <h4 className="text-sm font-semibold text-on-surface">当前名单</h4>
-            <p className="mt-0.5 text-xs text-on-surface-variant">下一步前至少需要 1 名学生。</p>
+            <h4 className="text-sm font-semibold text-on-surface">{t('当前名单')}</h4>
+            <p className="mt-0.5 text-xs text-on-surface-variant">
+              {t('下一步前至少需要 1 名学生。')}
+            </p>
           </div>
           <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-xs text-on-surface-variant">
             {currentClass?.students.length || 0} 人
@@ -324,7 +322,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
         {currentClass ? (
           <div className="space-y-2">
             <div className="rounded-xl bg-surface-container px-3 py-2">
-              <div className="text-xs text-on-surface-variant">班级</div>
+              <div className="text-xs text-on-surface-variant">{t('班级')}</div>
               <div className="mt-0.5 truncate text-sm font-semibold text-on-surface">
                 {currentClass.name}
               </div>
@@ -345,14 +343,14 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
               ))}
               {currentClass.students.length === 0 && (
                 <div className="rounded-xl border border-dashed border-outline-variant/50 px-3 py-8 text-center text-sm text-on-surface-variant">
-                  还没有学生
+                  {t('还没有学生')}
                 </div>
               )}
             </div>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-outline-variant/50 px-3 py-10 text-center text-sm text-on-surface-variant">
-            还没有创建班级
+            {t('还没有创建班级')}
           </div>
         )}
       </div>
@@ -363,9 +361,9 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
     <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
       <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-3">
-          <h4 className="text-sm font-semibold text-on-surface">设计风格</h4>
+          <h4 className="text-sm font-semibold text-on-surface">{t('设计风格')}</h4>
           <p className="mt-0.5 text-xs text-on-surface-variant">
-            选择整体视觉方向, 预览会同步显示当前选中状态。
+            {t('选择整体视觉方向, 预览会同步显示当前选中状态。')}
           </p>
         </div>
         <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
@@ -397,9 +395,9 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
 
       <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-3">
-          <h4 className="text-sm font-semibold text-on-surface">主题配色</h4>
+          <h4 className="text-sm font-semibold text-on-surface">{t('主题配色')}</h4>
           <p className="mt-0.5 text-xs text-on-surface-variant">
-            选择主色调, 这里会清除自定义取色并使用标准主题色。
+            {t('选择主色调, 这里会清除自定义取色并使用标准主题色。')}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -442,8 +440,10 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
     <div className="space-y-4">
       <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div className="mb-3">
-          <h4 className="text-sm font-semibold text-on-surface">动画样式</h4>
-          <p className="mt-0.5 text-xs text-on-surface-variant">选择点名时的结果揭晓方式。</p>
+          <h4 className="text-sm font-semibold text-on-surface">{t('动画样式')}</h4>
+          <p className="mt-0.5 text-xs text-on-surface-variant">
+            {t('选择点名时的结果揭晓方式。')}
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {ANIMATION_STYLE_OPTIONS.map((item) => {
@@ -476,7 +476,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
 
       <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
-          <h4 className="mb-3 text-sm font-semibold text-on-surface">动画速度</h4>
+          <h4 className="mb-3 text-sm font-semibold text-on-surface">{t('动画速度')}</h4>
           <div className="grid grid-cols-3 gap-2">
             {ANIMATION_SPEED_OPTIONS.map((item) => {
               const selected = animationSpeed === item.id
@@ -502,7 +502,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
         </div>
 
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
-          <h4 className="mb-3 text-sm font-semibold text-on-surface">持续时间</h4>
+          <h4 className="mb-3 text-sm font-semibold text-on-surface">{t('持续时间')}</h4>
           <div className="flex items-center gap-3">
             <input
               type="range"
@@ -512,7 +512,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
               value={animationDurationScale}
               onChange={(event) => updateDuration(event.target.value)}
               className="min-w-0 flex-1 accent-primary"
-              aria-label="动画持续时间"
+              aria-label={t('动画持续时间')}
             />
             <input
               type="number"
@@ -554,7 +554,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="新手引导"
+            aria-label={t('新手引导')}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -563,7 +563,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
           >
             <div className="flex items-center justify-between border-b border-outline-variant/20 px-5 py-4">
               <div>
-                <div className="text-sm font-semibold text-on-surface">新手引导</div>
+                <div className="text-sm font-semibold text-on-surface">{t('新手引导')}</div>
                 <div className="mt-0.5 text-xs text-on-surface-variant">
                   {step + 1} / {ONBOARDING_STEPS.length}
                 </div>
@@ -572,7 +572,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                 type="button"
                 onClick={() => onClose(false)}
                 className="cursor-pointer rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-high"
-                title="稍后再看"
+                title={t('稍后再看')}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -651,7 +651,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                 onClick={() => onClose(true)}
                 className="cursor-pointer rounded-full border border-outline-variant/40 px-3 py-1.5 text-xs text-on-surface-variant hover:bg-surface-container-high"
               >
-                跳过并不再提示
+                {t('跳过并不再提示')}
               </button>
               <div className="flex items-center gap-2">
                 <button
@@ -666,7 +666,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                       : 'cursor-pointer bg-surface-container-high text-on-surface'
                   )}
                 >
-                  上一步
+                  {t('上一步')}
                 </button>
                 {step < ONBOARDING_STEPS.length - 1 ? (
                   <button
@@ -681,7 +681,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                         : 'cursor-pointer bg-primary text-primary-foreground'
                     )}
                   >
-                    下一步
+                    {t('下一步')}
                   </button>
                 ) : (
                   <button
@@ -690,7 +690,7 @@ export function OnboardingGuide({ open, onClose }: OnboardingGuideProps): ReactE
                     onClick={() => onClose(true)}
                     className="cursor-pointer rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground"
                   >
-                    完成引导
+                    {t('完成引导')}
                   </button>
                 )}
               </div>

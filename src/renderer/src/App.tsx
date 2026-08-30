@@ -58,6 +58,7 @@ function MainApp(): ReactElement {
   const loadHistory = useHistoryStore((state) => state.loadHistory)
   const sf = useSpeedFactor()
   const {
+    language,
     theme,
     colorTheme,
     customColor,
@@ -73,6 +74,7 @@ function MainApp(): ReactElement {
     completeOnboarding
   } = useSettingsStore(
     useShallow((state) => ({
+      language: state.language,
       theme: state.theme,
       colorTheme: state.colorTheme,
       customColor: state.customColor,
@@ -148,6 +150,13 @@ function MainApp(): ReactElement {
       root.classList.remove('m3-mode')
     }
   }, [theme, colorTheme, m3Mode])
+
+  // 语言切换：settingsStore.language 驱动 i18next（组件经 useTranslation 订阅自动重渲染）
+  useEffect(() => {
+    void import('./i18n').then((mod) => {
+      if (mod.default.language !== language) void mod.default.changeLanguage(language)
+    })
+  }, [language])
 
   // Apply custom color as CSS variable override
   useEffect(() => {

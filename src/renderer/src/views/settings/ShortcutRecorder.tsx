@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Keyboard } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { formatAccelerator } from '../../lib/accelerator'
+import i18next from 'i18next'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
 
@@ -19,7 +20,6 @@ function keyEventToAccelerator(e: KeyboardEvent): string | null {
   parts.push(key)
   return parts.join('+')
 }
-
 export function ShortcutRecorder({
   shortcutKey,
   setShortcutKey
@@ -66,8 +66,10 @@ export function ShortcutRecorder({
           <Keyboard className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="font-medium text-on-surface">全局快捷键</h4>
-          <p className="text-xs text-on-surface-variant mt-0.5">在任意界面按下快捷键触发抽选</p>
+          <h4 className="font-medium text-on-surface">{i18next.t('全局快捷键')}</h4>
+          <p className="text-xs text-on-surface-variant mt-0.5">
+            {i18next.t('在任意界面按下快捷键触发抽选')}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -78,7 +80,7 @@ export function ShortcutRecorder({
             }}
             className="text-xs text-destructive hover:underline cursor-pointer"
           >
-            清除
+            {i18next.t('清除')}
           </button>
         )}
         <button

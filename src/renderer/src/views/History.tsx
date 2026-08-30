@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { getStrategyDescriptor } from '../engine/selection/strategies'
 import { logger } from '../lib/logger'
 import {
   buildHistoryCsv,
@@ -26,12 +27,12 @@ import {
   buildClassReportMarkdown
 } from '../lib/exporters'
 import { Dropdown } from '../components/Dropdown'
+import i18next from 'i18next'
 
 function summarizeNames(names: string[], max = 6): string {
   if (names.length <= max) return names.join('、')
   return `${names.slice(0, max).join('、')} 等 ${names.length} 人`
 }
-
 export function History(): ReactElement {
   const { history, clearHistory, removeHistoryRecord } = useHistoryStore()
   const classes = useClassesStore((state) => state.classes)
@@ -149,7 +150,7 @@ export function History(): ReactElement {
 
   const handleExportCSV = async (): Promise<void> => {
     if (history.length === 0) {
-      addToast('没有可导出的历史记录。', 'error')
+      addToast(i18next.t('没有可导出的历史记录。'), 'error')
       return
     }
     const filePath = await window.electronAPI.saveFile({
@@ -160,17 +161,17 @@ export function History(): ReactElement {
     if (filePath) {
       try {
         await window.electronAPI.writeExportFile(filePath, buildHistoryCsv(history))
-        addToast('历史记录已导出！', 'success')
+        addToast(i18next.t('历史记录已导出！'), 'success')
       } catch (error) {
         logger.error('History', 'CSV export failed:', error)
-        addToast('导出失败。', 'error')
+        addToast(i18next.t('导出失败。'), 'error')
       }
     }
   }
 
   const handleExportStructuredCSV = async (): Promise<void> => {
     if (history.length === 0) {
-      addToast('没有可导出的历史记录。', 'error')
+      addToast(i18next.t('没有可导出的历史记录。'), 'error')
       return
     }
     const filePath = await window.electronAPI.saveFile({
@@ -182,10 +183,10 @@ export function History(): ReactElement {
 
     try {
       await window.electronAPI.writeExportFile(filePath, buildStructuredReportCsv(history, classes))
-      addToast('结构化 CSV 导出成功', 'success')
+      addToast(i18next.t('结构化 CSV 导出成功'), 'success')
     } catch (error) {
       logger.error('History', 'Structured CSV export failed:', error)
-      addToast('结构化 CSV 导出失败', 'error')
+      addToast(i18next.t('结构化 CSV 导出失败'), 'error')
     }
   }
 
@@ -199,10 +200,10 @@ export function History(): ReactElement {
 
     try {
       await window.electronAPI.writeExportFile(filePath, buildClassReportMarkdown(history, classes))
-      addToast('课堂报告导出成功', 'success')
+      addToast(i18next.t('课堂报告导出成功'), 'success')
     } catch (error) {
       logger.error('History', 'Class report export failed:', error)
-      addToast('课堂报告导出失败', 'error')
+      addToast(i18next.t('课堂报告导出失败'), 'error')
     }
   }
 
@@ -222,7 +223,7 @@ export function History(): ReactElement {
     <div className="h-full flex flex-col p-3 sm:p-5">
       <header className="flex flex-col gap-3 pb-4 shrink-0 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-on-surface">历史记录</h2>
+          <h2 className="text-2xl font-bold text-on-surface">{i18next.t('历史记录')}</h2>
           <p className="text-sm text-on-surface-variant mt-1">
             共 {history.length} 条记录
             {filteredHistory.length !== history.length && `，已筛选 ${filteredHistory.length} 条`}
@@ -241,7 +242,7 @@ export function History(): ReactElement {
             className="ui-btn ui-btn-sm text-secondary-container-foreground bg-secondary-container hover:bg-secondary-container/80"
           >
             <FileText className="w-4 h-4 mr-2" />
-            导出课堂报告
+            {i18next.t('导出课堂报告')}
           </button>
           <button
             onClick={handleExportCSV}
@@ -257,7 +258,7 @@ export function History(): ReactElement {
             className="ui-btn ui-btn-sm text-destructive bg-destructive/10 hover:bg-destructive/15"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            清空历史
+            {i18next.t('清空历史')}
           </button>
         </div>
       </header>
@@ -269,7 +270,7 @@ export function History(): ReactElement {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜索学生或班级..."
+              placeholder={i18next.t('搜索学生或班级...')}
               className="w-full pl-9 pr-8 py-2 border border-outline-variant rounded-full text-sm bg-surface-container-low focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors text-on-surface"
             />
             {searchQuery && (
@@ -316,7 +317,7 @@ export function History(): ReactElement {
                 : 'bg-surface-container-low text-on-surface border-outline-variant/50'
             )}
           >
-            回放模式
+            {i18next.t('回放模式')}
           </button>
           <button
             onClick={() => setGroupBySession((prev) => !prev)}
@@ -327,7 +328,7 @@ export function History(): ReactElement {
                 : 'bg-surface-container-low text-on-surface border-outline-variant/50'
             )}
           >
-            课次分组
+            {i18next.t('课次分组')}
           </button>
         </div>
       )}
@@ -336,7 +337,7 @@ export function History(): ReactElement {
         <div className="mb-3 rounded-2xl border border-outline-variant/30 bg-surface-container px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs text-on-surface-variant">课堂回放</div>
+              <div className="text-xs text-on-surface-variant">{i18next.t('课堂回放')}</div>
               <div className="text-sm text-on-surface mt-0.5">
                 {new Date(playbackRecord.timestamp).toLocaleString()} · {playbackRecord.className}
               </div>
@@ -358,7 +359,7 @@ export function History(): ReactElement {
                 value={playbackIntervalMs}
                 onChange={(e) => setPlaybackIntervalMs(Number(e.target.value) || 1400)}
                 className="w-20 px-2 py-1 rounded-lg border border-outline-variant/40 bg-surface-container-low text-xs text-center outline-none"
-                title="回放间隔（毫秒）"
+                title={i18next.t('回放间隔（毫秒）')}
               />
               <button
                 onClick={() => setPlaybackRunning((prev) => !prev)}
@@ -380,7 +381,7 @@ export function History(): ReactElement {
                 className="px-3 py-1.5 rounded-lg text-xs bg-surface-container-high text-on-surface cursor-pointer inline-flex items-center gap-1"
               >
                 <SkipForward className="w-3.5 h-3.5" />
-                下一条
+                {i18next.t('下一条')}
               </button>
             </div>
           </div>
@@ -481,7 +482,7 @@ export function History(): ReactElement {
                             <button
                               onClick={() => handleDeleteRecord(record.id)}
                               className="p-1.5 rounded-full text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
-                              title="删除此记录"
+                              title={i18next.t('删除此记录')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -538,7 +539,7 @@ export function History(): ReactElement {
                           </span>
                           {record.selectionMeta?.policySnapshot.weightedRandom && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                              权重
+                              {i18next.t('权重')}
                             </span>
                           )}
                           {record.selectionMeta?.policySnapshot.preventRepeat && (
@@ -548,12 +549,17 @@ export function History(): ReactElement {
                           )}
                           {record.selectionMeta?.policySnapshot.strategyPreset && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-secondary-container text-secondary-container-foreground font-medium">
-                              策略 {record.selectionMeta.policySnapshot.strategyPreset}
+                              策略{' '}
+                              {
+                                getStrategyDescriptor(
+                                  record.selectionMeta.policySnapshot.strategyPreset
+                                ).name
+                              }
                             </span>
                           )}
                           {(record.selectionMeta?.fallbackNotes || []).length > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
-                              自动降级
+                              {i18next.t('自动放宽')}
                             </span>
                           )}
                         </div>
@@ -606,7 +612,12 @@ export function History(): ReactElement {
                               <div className="text-[11px] text-on-surface-variant">
                                 任务详情：{record.taskSummary.taskName}，分值
                                 {record.taskSummary.scoreDelta > 0 ? '+' : ''}
-                                {record.taskSummary.scoreDelta}，来源 {record.taskSummary.source}
+                                {record.taskSummary.scoreDelta}，来源{' '}
+                                {{
+                                  manual: '手动',
+                                  batch: '批量任务',
+                                  'task-assignment': '分组任务'
+                                }[record.taskSummary.source] || record.taskSummary.source}
                               </div>
                             )}
                             {record.groupSummary && (
@@ -622,7 +633,7 @@ export function History(): ReactElement {
                             )}
                             {(record.selectionMeta?.fallbackNotes || []).length > 0 && (
                               <div className="text-[11px] text-amber-700 dark:text-amber-400">
-                                降级说明：{(record.selectionMeta?.fallbackNotes || []).join('；')}
+                                放宽说明：{(record.selectionMeta?.fallbackNotes || []).join('；')}
                               </div>
                             )}
                           </div>
@@ -647,7 +658,7 @@ export function History(): ReactElement {
                       <button
                         onClick={() => handleDeleteRecord(record.id)}
                         className="p-1.5 rounded-full text-on-surface-variant opacity-70 sm:opacity-0 sm:group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
-                        title="删除此记录"
+                        title={i18next.t('删除此记录')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -682,7 +693,7 @@ function ClassFilterDropdown({
       value={value}
       options={allOptions}
       onChange={onChange}
-      placeholder="全部班级"
+      placeholder={i18next.t('全部班级')}
       triggerClassName="flex items-center gap-2 px-3 sm:px-4 py-2 border border-outline-variant rounded-full text-xs sm:text-sm bg-surface-container-low hover:bg-surface-container-high transition-colors text-on-surface cursor-pointer"
       panelClassName="absolute right-0 top-full mt-1 min-w-[140px] sm:min-w-[160px] bg-surface-container rounded-2xl elevation-2 border border-outline-variant/30 py-1 z-50 max-h-[240px] overflow-y-auto"
       itemClassName="w-full px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer text-left"

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../lib/logger'
+import i18next from 'i18next'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -25,22 +26,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.error) {
       return (
         <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background p-8 text-center">
-          <div className="text-xl font-semibold text-on-surface">界面出现了问题</div>
+          <div className="text-xl font-semibold text-on-surface">{i18next.t('界面出现了问题')}</div>
           <p className="max-w-md text-sm text-on-surface-variant">
-            渲染过程中发生未预期的错误，已记录到应用日志。您的数据文件不受影响。
+            {i18next.t('界面显示出现异常，已记录到应用日志。你的数据文件不受影响。')}
           </p>
           <div className="flex items-center gap-3">
             <button
               onClick={() => this.setState({ error: null })}
               className="rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground cursor-pointer"
             >
-              重试
+              {i18next.t('重试')}
             </button>
             <button
               onClick={() => window.location.reload()}
               className="rounded-full bg-surface-container-high px-5 py-2 text-sm text-on-surface cursor-pointer"
             >
-              重新加载
+              {i18next.t('重新加载')}
             </button>
           </div>
         </div>

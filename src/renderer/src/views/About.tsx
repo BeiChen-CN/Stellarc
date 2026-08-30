@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { ReactElement } from 'react'
+import i18next from 'i18next'
 
 const features = [
   { icon: Zap, title: '8 种抽选动画', desc: '老虎机、翻转、转盘、逐字揭晓等' },
@@ -45,9 +46,7 @@ const features = [
 
 const techStack = [
   { name: 'Electron', desc: '跨平台桌面' },
-  { name: 'React 19', desc: '声明式 UI' },
   { name: 'TypeScript', desc: '类型安全' },
-  { name: 'Tailwind CSS', desc: '原子化样式' },
   { name: 'Framer Motion', desc: '流畅动画' },
   { name: 'Zustand', desc: '状态管理' },
   { name: 'Recharts', desc: '数据可视化' },
@@ -71,7 +70,6 @@ const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 0.68, 0, 1.04] as const } }
 }
-
 export function About(): ReactElement {
   return (
     <div className="h-full flex flex-col p-3 sm:p-5 overflow-y-auto custom-scrollbar">
@@ -92,13 +90,15 @@ export function About(): ReactElement {
           </motion.div>
           <div className="space-y-2">
             <h1 className="text-4xl font-black text-on-surface tracking-tight">Stellarc</h1>
-            <p className="text-on-surface-variant text-sm">智能课堂点名助手</p>
+            <p className="text-on-surface-variant text-sm">{i18next.t('智能课堂点名助手')}</p>
             <span className="inline-block mt-1 px-3.5 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full font-mono tracking-wide">
               v{__APP_VERSION__}
             </span>
           </div>
           <p className="text-sm text-on-surface-variant/80 max-w-sm mx-auto leading-relaxed">
-            隐私优先、算法公平、高度可定制的离线课堂随机点名工具。 为教师打造流畅的课堂互动体验。
+            {i18next.t(
+              '隐私优先、算法公平、高度可定制的离线课堂随机点名工具。 为教师打造流畅的课堂互动体验。'
+            )}
           </p>
         </motion.div>
 
@@ -124,7 +124,7 @@ export function About(): ReactElement {
             <div className="p-1 bg-primary/10 rounded-md">
               <Zap className="w-3.5 h-3.5 text-primary" />
             </div>
-            核心特性
+            {i18next.t('核心特性')}
           </h2>
           <motion.div
             variants={stagger}
@@ -159,7 +159,7 @@ export function About(): ReactElement {
             <div className="p-1 bg-primary/10 rounded-md">
               <Code2 className="w-3.5 h-3.5 text-primary" />
             </div>
-            技术栈
+            {i18next.t('技术栈')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {techStack.map((tech, i) => (
@@ -205,7 +205,7 @@ export function About(): ReactElement {
               className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs font-medium text-on-surface bg-surface-container-high rounded-full hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
             >
               <Layers className="w-4 h-4" />
-              反馈问题
+              {i18next.t('反馈问题')}
               <ExternalLink className="w-3 h-3 opacity-40" />
             </motion.button>
           </div>

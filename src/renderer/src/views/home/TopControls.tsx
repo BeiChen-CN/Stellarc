@@ -1,5 +1,6 @@
 import { Shuffle, LayoutGrid, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import i18next from 'i18next'
 
 interface TopControlsProps {
   mode: 'pick' | 'group'
@@ -8,7 +9,6 @@ interface TopControlsProps {
   onModeChange: (mode: 'pick' | 'group') => void
   onGroupCountChange: (count: number) => void
 }
-
 export function TopControls({
   mode,
   groupCount,
@@ -34,7 +34,7 @@ export function TopControls({
           )}
         >
           <Shuffle className="w-3.5 h-3.5" />
-          抽选
+          {i18next.t('抽选')}
         </button>
         <button
           onClick={() => onModeChange('group')}
@@ -46,7 +46,7 @@ export function TopControls({
           )}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
-          分组
+          {i18next.t('分组')}
         </button>
       </div>
 
@@ -54,7 +54,7 @@ export function TopControls({
         <div className="flex items-center bg-surface-container-high rounded-full px-3 py-1.5 elevation-1">
           <span className="text-sm font-medium mr-2 text-on-surface-variant flex items-center gap-1">
             <LayoutGrid className="w-4 h-4" />
-            组数
+            {i18next.t('组数')}
           </span>
           <button
             onClick={() => onGroupCountChange(Math.max(2, groupCount - 1))}

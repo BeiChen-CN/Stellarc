@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useConfirmStore } from '../store/confirmStore'
 import { AlertTriangle } from 'lucide-react'
 import { useSpeedFactor } from '../lib/useSpeedFactor'
+import { useTranslation } from 'react-i18next'
 
 export function ConfirmDialog() {
+  const { t } = useTranslation()
   const { open, title, message, onConfirm, promptMode, promptPlaceholder, onPromptConfirm, close } =
     useConfirmStore()
   const [inputValue, setInputValue] = useState('')
@@ -77,7 +79,7 @@ export function ConfirmDialog() {
                 onClick={close}
                 className="px-5 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors cursor-pointer"
               >
-                取消
+                {t('取消')}
               </button>
               <button
                 onClick={handleConfirm}
@@ -88,7 +90,7 @@ export function ConfirmDialog() {
                     : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                 }`}
               >
-                确认
+                {t('确认')}
               </button>
             </div>
           </motion.div>

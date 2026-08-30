@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { LayoutGrid } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import type { Student } from '../../types'
+import i18next from 'i18next'
 
 interface GroupResultsProps {
   groups: Student[][]
@@ -23,7 +24,6 @@ interface GroupResultsProps {
   ) => void
   onApplyTemplateToGroup?: (groupIndex: number, templateId: string) => void
 }
-
 export function GroupResults({
   groups,
   assignments = [],
@@ -104,7 +104,7 @@ export function GroupResults({
     >
       <div className="flex items-center justify-center gap-2 mb-2">
         <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
-        <span className="text-base font-semibold text-on-surface">分组结果</span>
+        <span className="text-base font-semibold text-on-surface">{i18next.t('分组结果')}</span>
       </div>
 
       <div className="mb-3 text-center text-[11px] text-on-surface-variant">
@@ -145,7 +145,7 @@ export function GroupResults({
               {assignmentMap.has(gi + 1) && (
                 <div className="mb-2 rounded-lg bg-primary/10 border border-primary/20 px-2 py-1.5 text-[11px] text-primary">
                   <div className="flex items-center gap-1.5">
-                    <span className="shrink-0">任务：</span>
+                    <span className="shrink-0">{i18next.t('任务：')}</span>
                     <TaskListPicker
                       groupIndex={gi + 1}
                       taskTemplateId={assignmentMap.get(gi + 1)?.taskTemplateId || ''}
@@ -160,7 +160,7 @@ export function GroupResults({
                         })
                       }
                       className="w-16 px-2 py-1 rounded-md border border-primary/20 bg-white/65 dark:bg-black/10 text-[11px] text-primary text-center outline-none"
-                      title="该组任务分值"
+                      title={i18next.t('该组任务分值')}
                     />
                   </div>
                 </div>

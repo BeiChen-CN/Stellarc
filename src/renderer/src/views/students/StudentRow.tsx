@@ -10,6 +10,7 @@ import {
   StatusBadge,
   StepperButton
 } from './StudentBits'
+import i18next from 'i18next'
 
 interface StudentRowProps {
   student: Student
@@ -86,13 +87,12 @@ function EditableCell({
     <span
       onDoubleClick={startEdit}
       className="cursor-text hover:bg-surface-container-high/60 rounded px-1 -mx-1 transition-colors"
-      title="双击编辑"
+      title={i18next.t('双击编辑')}
     >
       {value || <span className="text-on-surface-variant/50">{placeholder}</span>}
     </span>
   )
 }
-
 export const StudentRow = memo(function StudentRow({
   student,
   classId,
@@ -130,18 +130,18 @@ export const StudentRow = memo(function StudentRow({
           <div className="flex flex-col min-w-0">
             <EditableCell
               value={student.name}
-              placeholder="姓名"
+              placeholder={i18next.t('姓名')}
               onSave={(name) => onUpdateName(classId, student.id, name)}
             />
             {showStudentId && (
               <EditableCell
                 value={student.studentId || ''}
-                placeholder="学号"
+                placeholder={i18next.t('学号')}
                 onSave={(sid) => onUpdateStudentId(classId, student.id, sid || undefined)}
               />
             )}
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-[10px] text-on-surface-variant">性别</span>
+              <span className="text-[10px] text-on-surface-variant">{i18next.t('性别')}</span>
               <GenderToggle
                 classId={classId}
                 studentId={student.id}
@@ -151,7 +151,7 @@ export const StudentRow = memo(function StudentRow({
             </div>
             <EditableCell
               value={(student.tags || []).join(' / ')}
-              placeholder="标签（/ 分隔）"
+              placeholder={i18next.t('标签（/ 分隔）')}
               onSave={(tags) => onUpdateTags(classId, student.id, splitTagInput(tags))}
             />
           </div>
@@ -230,7 +230,7 @@ export const StudentRow = memo(function StudentRow({
           )}
         </button>
         <button
-          title="删除学生"
+          title={i18next.t('删除学生')}
           onClick={() => onRemove(classId, student.id)}
           className="p-2 hover:bg-destructive/10 rounded-full text-on-surface-variant hover:text-destructive transition-colors cursor-pointer"
         >
@@ -283,7 +283,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
             <div className="font-medium text-on-surface truncate">
               <EditableCell
                 value={student.name}
-                placeholder="姓名"
+                placeholder={i18next.t('姓名')}
                 onSave={(name) => onUpdateName(classId, student.id, name)}
               />
             </div>
@@ -296,7 +296,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
             <div className="text-xs text-on-surface-variant">
               <EditableCell
                 value={student.studentId || ''}
-                placeholder="学号"
+                placeholder={i18next.t('学号')}
                 onSave={(sid) => onUpdateStudentId(classId, student.id, sid || undefined)}
               />
             </div>
@@ -318,7 +318,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
       <div className="grid grid-cols-2 gap-2 text-xs">
         {showWeight && (
           <div className="rounded-xl border border-outline-variant/30 px-2.5 py-2">
-            <div className="text-on-surface-variant mb-1">权重</div>
+            <div className="text-on-surface-variant mb-1">{i18next.t('权重')}</div>
             <div className="flex items-center justify-between">
               <StepperButton
                 direction="down"
@@ -336,7 +336,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
         )}
 
         <div className="rounded-xl border border-outline-variant/30 px-2.5 py-2">
-          <div className="text-on-surface-variant mb-1">积分</div>
+          <div className="text-on-surface-variant mb-1">{i18next.t('积分')}</div>
           <div className="flex items-center justify-between">
             <StepperButton
               direction="down"
@@ -356,7 +356,7 @@ export const StudentMobileCard = memo(function StudentMobileCard({
       <div className="text-xs text-on-surface-variant">
         <EditableCell
           value={(student.tags || []).join(' / ')}
-          placeholder="标签（/ 分隔）"
+          placeholder={i18next.t('标签（/ 分隔）')}
           onSave={(tags) => onUpdateTags(classId, student.id, splitTagInput(tags))}
         />
       </div>
@@ -372,11 +372,11 @@ export const StudentMobileCard = memo(function StudentMobileCard({
           {student.status === 'active' ? '设缺席' : '设正常'}
         </button>
         <button
-          title="删除学生"
+          title={i18next.t('删除学生')}
           onClick={() => onRemove(classId, student.id)}
           className="h-9 px-3 rounded-full bg-destructive/10 text-destructive cursor-pointer"
         >
-          删除
+          {i18next.t('删除')}
         </button>
       </div>
     </div>

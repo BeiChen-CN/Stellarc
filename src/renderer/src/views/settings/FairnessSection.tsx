@@ -15,7 +15,7 @@ import { listStrategyDescriptors } from '../../engine/selection/strategies'
 import { cn } from '../../lib/utils'
 import { useSettingsStore } from '../../store/settingsStore'
 import { MD3Switch } from './MD3Switch'
-
+import i18next from 'i18next'
 export function FairnessSection(): ReactElement {
   const { fairness, setFairness, scoreRules, setScoreRules } = useSettingsStore()
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
@@ -24,7 +24,7 @@ export function FairnessSection(): ReactElement {
     <section className="space-y-4">
       <h3 className="flex items-center gap-2 text-xl font-semibold text-on-surface">
         <Scale className="h-5 w-5 text-primary" />
-        抽选规则
+        {i18next.t('抽选规则')}
       </h3>
 
       <div className="overflow-hidden rounded-[28px] bg-surface-container">
@@ -37,8 +37,10 @@ export function FairnessSection(): ReactElement {
               <Target className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">启用权重系统</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">允许为学生设置不同的抽中概率</p>
+              <h4 className="font-medium text-on-surface">{i18next.t('启用权重系统')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {i18next.t('允许为学生设置不同的抽中概率')}
+              </p>
             </div>
           </div>
           <div
@@ -60,9 +62,9 @@ export function FairnessSection(): ReactElement {
                 <SlidersHorizontal className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-medium text-sm text-on-surface">策略预设</h4>
+                <h4 className="font-medium text-sm text-on-surface">{i18next.t('策略预设')}</h4>
                 <p className="mt-0.5 text-xs text-on-surface-variant">
-                  经典: 按权重抽取；均衡: 降低高频学生权重；激励: 提高高分学生权重
+                  {i18next.t('经典: 按权重抽取；均衡: 降低高频学生权重；激励: 提高高分学生权重')}
                 </p>
               </div>
             </div>
@@ -116,9 +118,9 @@ export function FairnessSection(): ReactElement {
               <XOctagon className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">防止重复抽选</h4>
+              <h4 className="font-medium text-on-surface">{i18next.t('防止重复抽选')}</h4>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                被抽中的学生在一定轮次内不会再次被抽中
+                {i18next.t('被抽中的学生在一定轮次内不会再次被抽中')}
               </p>
             </div>
           </div>
@@ -137,9 +139,9 @@ export function FairnessSection(): ReactElement {
         {fairness.preventRepeat && (
           <div className="border-t border-outline-variant/20 bg-surface-container-high/30 p-5 transition-colors hover:bg-surface-container-high/50">
             <div className="pl-14">
-              <h4 className="font-medium text-sm text-on-surface">冷却轮次</h4>
+              <h4 className="font-medium text-sm text-on-surface">{i18next.t('冷却轮次')}</h4>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                多少轮后可再次被抽中 (0 = 直到所有人都被抽过一轮)
+                {i18next.t('多少轮后可再次被抽中 (0 = 直到所有人都被抽过一轮)')}
               </p>
               <input
                 type="number"
@@ -170,10 +172,8 @@ export function FairnessSection(): ReactElement {
                 />
               </div>
               <div className="text-left">
-                <h4 className="font-medium text-on-surface">高级公平</h4>
-                <p className="mt-0.5 text-xs text-on-surface-variant">
-                  默认折叠，只有需要细调时再展开
-                </p>
+                <h4 className="font-medium text-on-surface">{i18next.t('高级公平')}</h4>
+                <p className="mt-0.5 text-xs text-on-surface-variant"></p>
               </div>
             </div>
           </button>
@@ -182,9 +182,11 @@ export function FairnessSection(): ReactElement {
             <div className="mt-4 space-y-4 pl-14">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <h4 className="font-medium text-sm text-on-surface">阶段公平轮次</h4>
+                  <h4 className="font-medium text-sm text-on-surface">
+                    {i18next.t('阶段公平轮次')}
+                  </h4>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    最近 N 轮被抽中越多，权重衰减越明显
+                    {i18next.t('最近 N 轮被抽中越多，权重衰减越明显')}
                   </p>
                   <input
                     type="number"
@@ -205,9 +207,11 @@ export function FairnessSection(): ReactElement {
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-sm text-on-surface">优先未抽中人数</h4>
+                  <h4 className="font-medium text-sm text-on-surface">
+                    {i18next.t('优先未抽中人数')}
+                  </h4>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    每次至少优先抽取 N 名本学期未抽中过的学生
+                    {i18next.t('每次至少优先抽取 N 名本学期未抽中过的学生')}
                   </p>
                   <input
                     type="number"
@@ -264,9 +268,9 @@ export function FairnessSection(): ReactElement {
                     <BarChart3 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-on-surface">分组算法</h4>
+                    <h4 className="font-medium text-on-surface">{i18next.t('分组算法')}</h4>
                     <p className="mt-0.5 text-xs text-on-surface-variant">
-                      随机分组或按积分均衡分组，减少历史搭档重复
+                      {i18next.t('随机分组或按积分均衡分组，减少历史搭档重复')}
                     </p>
                   </div>
                 </div>
@@ -280,7 +284,7 @@ export function FairnessSection(): ReactElement {
                         : 'text-on-surface-variant hover:bg-surface-container-high/60'
                     )}
                   >
-                    随机
+                    {i18next.t('随机')}
                   </button>
                   <button
                     onClick={() => setFairness({ ...fairness, groupStrategy: 'balanced-score' })}
@@ -291,7 +295,7 @@ export function FairnessSection(): ReactElement {
                         : 'text-on-surface-variant hover:bg-surface-container-high/60'
                     )}
                   >
-                    均衡
+                    {i18next.t('均衡')}
                   </button>
                 </div>
               </div>
@@ -299,9 +303,11 @@ export function FairnessSection(): ReactElement {
               {fairness.groupStrategy === 'balanced-score' && (
                 <div className="flex items-center justify-between rounded-2xl bg-surface-container-high/30 p-4">
                   <div className="pl-0">
-                    <h4 className="font-medium text-sm text-on-surface">搭档回避轮次</h4>
+                    <h4 className="font-medium text-sm text-on-surface">
+                      {i18next.t('搭档回避轮次')}
+                    </h4>
                     <p className="mt-0.5 text-xs text-on-surface-variant">
-                      最近 N 轮同组出现过的组合会被降低优先级
+                      {i18next.t('最近 N 轮同组出现过的组合会被降低优先级')}
                     </p>
                   </div>
                   <input
@@ -326,16 +332,18 @@ export function FairnessSection(): ReactElement {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-on-surface">积分规则引擎</h4>
+                    <h4 className="font-medium text-on-surface">{i18next.t('积分规则引擎')}</h4>
                     <p className="mt-0.5 text-xs text-on-surface-variant">
-                      统一限制积分范围、单次变动幅度，并可阻止同任务当天重复记分
+                      {i18next.t('统一限制积分范围、单次变动幅度，并可阻止同任务当天重复记分')}
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <div>
-                    <div className="mb-1 text-xs text-on-surface-variant">积分上限</div>
+                    <div className="mb-1 text-xs text-on-surface-variant">
+                      {i18next.t('积分上限')}
+                    </div>
                     <input
                       type="number"
                       value={scoreRules.maxScorePerStudent}
@@ -349,7 +357,9 @@ export function FairnessSection(): ReactElement {
                     />
                   </div>
                   <div>
-                    <div className="mb-1 text-xs text-on-surface-variant">积分下限</div>
+                    <div className="mb-1 text-xs text-on-surface-variant">
+                      {i18next.t('积分下限')}
+                    </div>
                     <input
                       type="number"
                       value={scoreRules.minScorePerStudent}
@@ -363,7 +373,9 @@ export function FairnessSection(): ReactElement {
                     />
                   </div>
                   <div>
-                    <div className="mb-1 text-xs text-on-surface-variant">单次最大变更</div>
+                    <div className="mb-1 text-xs text-on-surface-variant">
+                      {i18next.t('单次最大变更')}
+                    </div>
                     <input
                       type="number"
                       min="1"
@@ -399,7 +411,9 @@ export function FairnessSection(): ReactElement {
 
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <div>
-                      <div className="mb-1 text-xs text-on-surface-variant">同任务日内上限</div>
+                      <div className="mb-1 text-xs text-on-surface-variant">
+                        {i18next.t('同任务日内上限')}
+                      </div>
                       <input
                         type="number"
                         min="1"
@@ -419,7 +433,7 @@ export function FairnessSection(): ReactElement {
                     </div>
                     <div>
                       <div className="mb-1 text-xs text-on-surface-variant">
-                        可重复任务（逗号分隔）
+                        {i18next.t('可重复任务（逗号分隔）')}
                       </div>
                       <input
                         value={(scoreRules.allowRepeatTasks || []).join(',')}
@@ -433,12 +447,12 @@ export function FairnessSection(): ReactElement {
                           })
                         }
                         className="ui-number w-72 rounded-full px-3 text-sm"
-                        placeholder="例如：课堂纪律,加分挑战"
+                        placeholder={i18next.t('例如：课堂纪律,加分挑战')}
                       />
                     </div>
                     <div>
                       <div className="mb-1 text-xs text-on-surface-variant">
-                        禁用任务（逗号分隔）
+                        {i18next.t('禁用任务（逗号分隔）')}
                       </div>
                       <input
                         value={(scoreRules.blockedTasks || []).join(',')}
@@ -452,7 +466,7 @@ export function FairnessSection(): ReactElement {
                           })
                         }
                         className="ui-number w-72 rounded-full px-3 text-sm"
-                        placeholder="例如：临时测试"
+                        placeholder={i18next.t('例如：临时测试')}
                       />
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   CreditCard,
   ImageIcon,
+  Languages,
   Layers,
   Monitor,
   Moon,
@@ -31,6 +32,7 @@ import { ImmersiveIslandStyleThumbnail } from '../home/immersiveIslandVariants'
 import { IMMERSIVE_ISLAND_VARIANTS } from '../home/immersiveIslandRegistry'
 
 import { COLOR_THEMES, ANIMATION_STYLES, ANIMATION_SPEEDS } from '../../lib/appearance'
+import i18next from 'i18next'
 
 const IMMERSIVE_ISLAND_STYLE_NOTES: Record<ImmersiveIslandStyle, { cue: string; detail: string }> =
   {
@@ -105,7 +107,9 @@ export function AppearanceSection({
   const isAppearance = variant === 'appearance'
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
   const {
+    language,
     theme,
+    setLanguage,
     setTheme,
     colorTheme,
     setColorTheme,
@@ -163,6 +167,8 @@ export function AppearanceSection({
     setColorThemesExpanded
   } = useSettingsStore(
     useShallow((state) => ({
+      language: state.language,
+      setLanguage: state.setLanguage,
       theme: state.theme,
       setTheme: state.setTheme,
       colorTheme: state.colorTheme,
@@ -228,7 +234,7 @@ export function AppearanceSection({
       <section className="space-y-4">
         <h3 className="flex items-center gap-2 text-xl font-semibold text-on-surface">
           <Zap className="h-5 w-5 text-primary" />
-          体验
+          {i18next.t('体验')}
         </h3>
 
         <div className="overflow-hidden rounded-[28px] bg-surface-container">
@@ -247,10 +253,8 @@ export function AppearanceSection({
                 />
               </div>
               <div>
-                <h4 className="font-medium text-on-surface">高级体验</h4>
-                <p className="mt-0.5 text-xs text-on-surface-variant">
-                  低频开关默认收起，避免日常设置页堆满细项
-                </p>
+                <h4 className="font-medium text-on-surface">{i18next.t('高级体验')}</h4>
+                <p className="mt-0.5 text-xs text-on-surface-variant"></p>
               </div>
             </div>
           </button>
@@ -259,7 +263,7 @@ export function AppearanceSection({
             <>
               <ToggleRow
                 icon={<Monitor className="h-5 w-5" />}
-                title="投屏模式"
+                title={i18next.t('投屏模式')}
                 desc="主页采用大字号高可读布局"
                 checked={projectorMode}
                 onToggle={toggleProjectorMode}
@@ -268,14 +272,16 @@ export function AppearanceSection({
                 icon={
                   soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />
                 }
-                title="启用音效"
+                title={i18next.t('启用音效')}
                 desc="抽选时播放声音反馈"
                 checked={soundEnabled}
                 onToggle={toggleSoundEnabled}
               />
               {soundEnabled && (
                 <div className="border-t border-outline-variant/20 p-5 pl-14">
-                  <div className="mb-2 text-xs text-on-surface-variant">音效强度</div>
+                  <div className="mb-2 text-xs text-on-surface-variant">
+                    {i18next.t('音效强度')}
+                  </div>
                   <div className="flex overflow-hidden rounded-full border border-outline-variant w-fit">
                     {(['low', 'medium', 'high'] as const).map((item) => (
                       <button
@@ -296,56 +302,56 @@ export function AppearanceSection({
               )}
               <ToggleRow
                 icon={<PartyPopper className="h-5 w-5" />}
-                title="五彩纸屑"
+                title={i18next.t('五彩纸屑')}
                 desc="抽选结果揭晓时显示庆祝动画"
                 checked={confettiEnabled}
                 onToggle={toggleConfettiEnabled}
               />
               <ToggleRow
                 icon={<Camera className="h-5 w-5" />}
-                title="显示头像"
+                title={i18next.t('显示头像')}
                 desc="抽选结果中显示学生头像"
                 checked={photoMode}
                 onToggle={togglePhotoMode}
               />
               <ToggleRow
                 icon={<CreditCard className="h-5 w-5" />}
-                title="显示学号"
+                title={i18next.t('显示学号')}
                 desc="在姓名旁显示学号"
                 checked={showStudentId}
                 onToggle={toggleShowStudentId}
               />
               <ToggleRow
                 icon={<Users className="h-5 w-5" />}
-                title="临时禁选"
+                title={i18next.t('临时禁选')}
                 desc="主页显示临时排除候选人的面板"
                 checked={showTemporaryExclusion}
                 onToggle={toggleShowTemporaryExclusion}
               />
               <ToggleRow
                 icon={<Shuffle className="h-5 w-5" />}
-                title="连续抽取"
+                title={i18next.t('连续抽取')}
                 desc="主页显示连抽设置和控制"
                 checked={showAutoDraw}
                 onToggle={toggleShowAutoDraw}
               />
               <ToggleRow
                 icon={<BarChart3 className="h-5 w-5" />}
-                title="抽选解释"
+                title={i18next.t('抽选解释')}
                 desc="抽选后展示权重和原因解释"
                 checked={showSelectionExplanation}
                 onToggle={toggleShowSelectionExplanation}
               />
               <ToggleRow
                 icon={<Users className="h-5 w-5" />}
-                title="性别筛选"
+                title={i18next.t('性别筛选')}
                 desc="主页显示按性别缩小抽选范围"
                 checked={showPickGenderFilter}
                 onToggle={toggleShowPickGenderFilter}
               />
               <ToggleRow
                 icon={<Target className="h-5 w-5" />}
-                title="可抽人数"
+                title={i18next.t('可抽人数')}
                 desc="显示当前筛选范围内的候选人数"
                 checked={showPickEligibleCount}
                 disabled={!showPickGenderFilter}
@@ -353,42 +359,42 @@ export function AppearanceSection({
               />
               <ToggleRow
                 icon={<Target className="h-5 w-5" />}
-                title="抽选前预览"
+                title={i18next.t('抽选前预览')}
                 desc="首页显示候选、可抽、排除统计"
                 checked={showPickPreviewPanel}
                 onToggle={toggleShowPickPreviewPanel}
               />
               <ToggleRow
                 icon={<Target className="h-5 w-5" />}
-                title="未抽中原因"
+                title={i18next.t('未抽中原因')}
                 desc="首页按学生查看未抽中原因"
                 checked={showPickMissReasonPanel}
                 onToggle={toggleShowPickMissReasonPanel}
               />
               <ToggleRow
                 icon={<CreditCard className="h-5 w-5" />}
-                title="任务积分"
+                title={i18next.t('任务积分')}
                 desc="学生页显示任务积分模块"
                 checked={showTaskScorePanel}
                 onToggle={toggleShowTaskScorePanel}
               />
               <ToggleRow
                 icon={<CreditCard className="h-5 w-5" />}
-                title="批量编辑"
+                title={i18next.t('批量编辑')}
                 desc="学生页显示批量编辑模块"
                 checked={showBatchEditPanel}
                 onToggle={toggleShowBatchEditPanel}
               />
               <ToggleRow
                 icon={<BarChart3 className="h-5 w-5" />}
-                title="积分日志"
+                title={i18next.t('积分日志')}
                 desc="学生页显示积分日志面板"
                 checked={showScoreLogPanel}
                 onToggle={toggleShowScoreLogPanel}
               />
               <ToggleRow
                 icon={<Layers className="h-5 w-5" />}
-                title="分组任务模板"
+                title={i18next.t('分组任务模板')}
                 desc="分组结果中显示任务模板分配"
                 checked={showGroupTaskTemplatePanel}
                 onToggle={toggleShowGroupTaskTemplatePanel}
@@ -404,7 +410,7 @@ export function AppearanceSection({
     <section className="space-y-4">
       <h3 className="flex items-center gap-2 text-xl font-semibold text-on-surface">
         <Palette className="h-5 w-5 text-primary" />
-        外观
+        {i18next.t('外观')}
       </h3>
 
       <div className="overflow-hidden rounded-[28px] bg-surface-container">
@@ -414,8 +420,10 @@ export function AppearanceSection({
               {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">主题模式</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">切换亮色、深色或跟随系统</p>
+              <h4 className="font-medium text-on-surface">{i18next.t('主题模式')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {i18next.t('切换亮色、深色或跟随系统')}
+              </p>
             </div>
           </div>
           <div className="flex overflow-hidden rounded-full border border-outline-variant">
@@ -446,6 +454,41 @@ export function AppearanceSection({
           </div>
         </div>
 
+        <div className="flex items-center justify-between border-t border-outline-variant/20 p-5 transition-colors hover:bg-surface-container-high/50">
+          <div className="flex items-center space-x-4">
+            <div className="rounded-full bg-primary/10 p-2 text-primary">
+              <Languages className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-medium text-on-surface">{i18next.t('界面语言')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {i18next.t('切换界面显示语言，立即生效')}
+              </p>
+            </div>
+          </div>
+          <div className="flex overflow-hidden rounded-full border border-outline-variant">
+            {(
+              [
+                { value: 'zh', label: '中文' },
+                { value: 'en', label: 'English' }
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setLanguage(opt.value)}
+                className={cn(
+                  'relative flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium transition-all duration-200',
+                  language === opt.value
+                    ? 'bg-secondary-container text-secondary-container-foreground'
+                    : 'text-on-surface-variant hover:bg-surface-container-high/60'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="border-t border-outline-variant/20 p-5 transition-colors hover:bg-surface-container-high/50">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center space-x-4">
@@ -453,9 +496,9 @@ export function AppearanceSection({
                 <Palette className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <h4 className="font-medium text-on-surface">主题颜色</h4>
+                <h4 className="font-medium text-on-surface">{i18next.t('主题颜色')}</h4>
                 <p className="mt-0.5 text-xs text-on-surface-variant">
-                  选择界面主色调，支持 28+ 配色
+                  {i18next.t('选择界面主色调，支持 28+ 配色')}
                 </p>
               </div>
             </div>
@@ -535,7 +578,7 @@ export function AppearanceSection({
                 />
               </label>
               <span className="text-center text-xs font-medium leading-tight text-on-surface-variant">
-                自定义
+                {i18next.t('自定义')}
               </span>
               {customColor && (
                 <button
@@ -555,8 +598,10 @@ export function AppearanceSection({
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">设计风格</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">选择界面的整体视觉风格</p>
+              <h4 className="font-medium text-on-surface">{i18next.t('设计风格')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {i18next.t('选择界面的整体视觉风格')}
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 pl-14 sm:grid-cols-3 xl:grid-cols-4">
@@ -584,10 +629,8 @@ export function AppearanceSection({
               <Zap className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">抽选动画</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">
-                动画保留为单一区块，避免散落成多个开关
-              </p>
+              <h4 className="font-medium text-on-surface">{i18next.t('抽选动画')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant"></p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 pl-14 md:grid-cols-4">
@@ -624,7 +667,7 @@ export function AppearanceSection({
               ))}
             </div>
             <label className="flex items-center gap-2 text-xs text-on-surface-variant">
-              时长
+              {i18next.t('时长')}
               <input
                 type="range"
                 min={0.6}
@@ -646,9 +689,9 @@ export function AppearanceSection({
               <Shuffle className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">沉浸灵动岛</h4>
+              <h4 className="font-medium text-on-surface">{i18next.t('沉浸灵动岛')}</h4>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                选择沉浸模式抽取时的顶部岛样式
+                {i18next.t('选择沉浸模式抽取时的顶部岛样式')}
               </p>
             </div>
           </div>
@@ -704,8 +747,10 @@ export function AppearanceSection({
               <ImageIcon className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-medium text-on-surface">背景图片</h4>
-              <p className="mt-0.5 text-xs text-on-surface-variant">自定义主页背景</p>
+              <h4 className="font-medium text-on-surface">{i18next.t('背景图片')}</h4>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {i18next.t('自定义主页背景')}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -717,7 +762,7 @@ export function AppearanceSection({
                 }}
                 className="mr-2 text-xs text-destructive hover:underline"
               >
-                清除
+                {i18next.t('清除')}
               </button>
             )}
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-surface-container-high">
@@ -728,7 +773,7 @@ export function AppearanceSection({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-xs text-on-surface-variant">默认</span>
+                <span className="text-xs text-on-surface-variant">{i18next.t('默认')}</span>
               )}
             </div>
           </div>
@@ -736,7 +781,7 @@ export function AppearanceSection({
 
         <ToggleRow
           icon={<Pipette className="h-5 w-5" />}
-          title="动态取色"
+          title={i18next.t('动态取色')}
           desc={backgroundImage ? '从背景图片提取主色调' : '请先设置背景图片'}
           checked={dynamicColor && !!backgroundImage}
           disabled={!backgroundImage}

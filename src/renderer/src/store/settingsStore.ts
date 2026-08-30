@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { useToastStore } from './toastStore'
 import { logger } from '../lib/logger'
 import { COLOR_THEMES } from '../lib/appearance'
+import i18next from 'i18next'
 import type { SoundIntensity } from '../types'
 
 export type ColorTheme =
@@ -66,6 +67,7 @@ export type ImmersiveIslandStyle = 'classic' | 'beam' | 'slot' | 'pulse'
 type StrategyPreset = string
 
 interface SettingsData {
+  language: 'zh' | 'en'
   theme: 'light' | 'dark' | 'system'
   colorTheme: ColorTheme
   customColor?: string
@@ -133,6 +135,7 @@ export interface DynamicColorPalette {
 
 interface SettingsState extends SettingsData {
   dynamicColorPalette: DynamicColorPalette | null
+  setLanguage: (language: 'zh' | 'en') => void
   setTheme: (theme: 'light' | 'dark' | 'system') => void
   setColorTheme: (colorTheme: ColorTheme) => void
   setDesignStyle: (designStyle: DesignStyle) => void
@@ -196,6 +199,7 @@ interface SettingsState extends SettingsData {
 }
 
 const defaults: SettingsData = {
+  language: 'zh',
   theme: 'system',
   colorTheme: 'blue',
   // 注意：saveSettings 以 defaults 的键为持久化白名单——任何 SettingsData
@@ -270,7 +274,9 @@ const saveSettings = async (state: SettingsData): Promise<void> => {
     await window.electronAPI.writeJson('settings.json', payload)
   } catch (e) {
     logger.error('SettingsStore', 'Failed to save settings', e)
-    useToastStore.getState().addToast('设置保存失败，请检查磁盘空间', 'error')
+    useToastStore
+      .getState()
+      .addToast(i18next.t('设置保存失败，请重试；若持续出现请检查磁盘空间与权限'), 'error')
   }
 }
 
@@ -350,7 +356,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
               saveSettings({ ...get(), shortcutKey: '' })
               useToastStore
                 .getState()
-                .addToast(`快捷键 ${key} 注册失败（可能已被其他应用占用），已自动清除`, 'error')
+                .addToast(i18next.t('快捷键注册失败（可能已被其他应用占用），已自动清除'), 'error')
             }
           }
         }
@@ -359,6 +365,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       }
     },
 
+    setLanguage: (language) => updateAndSave({ language }, set, get),
     setTheme: (theme) => updateAndSave({ theme }, set, get),
     setColorTheme: (colorTheme) => updateAndSave({ colorTheme }, set, get),
     setDesignStyle: (designStyle) => updateAndSave({ designStyle }, set, get),

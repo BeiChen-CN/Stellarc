@@ -11,6 +11,7 @@ import {
   PanelLeftClose
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useTranslation } from 'react-i18next'
 import type { AppView } from '../types'
 
 interface SidebarProps {
@@ -24,10 +25,11 @@ const items = [
   { id: 'history', label: '历史记录', icon: HistoryIcon },
   { id: 'statistics', label: '数据统计', icon: BarChart3 },
   { id: 'settings', label: '系统设置', icon: SettingsIcon },
-  { id: 'about', label: '关于页面', icon: Info }
+  { id: 'about', label: '关于', icon: Info }
 ] as const
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactElement {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -36,7 +38,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactEleme
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       className="bg-surface-container flex flex-col h-full z-10 overflow-hidden shrink-0"
       role="navigation"
-      aria-label="主导航"
+      aria-label={t('主导航')}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-2 min-h-[60px] flex items-center">
@@ -64,7 +66,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactEleme
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 space-y-0.5" aria-label="页面导航">
+      <nav className="flex-1 px-2 space-y-0.5" aria-label={t('页面导航')}>
         {items.map((item) => {
           const isActive = currentView === item.id
           const Icon = item.icon
@@ -73,7 +75,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactEleme
               key={item.id}
               onClick={() => onViewChange(item.id)}
               aria-current={isActive ? 'page' : undefined}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? t(item.label) : undefined}
               animate={{ paddingLeft: collapsed ? 0 : 12, paddingRight: collapsed ? 0 : 12 }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className={cn(
@@ -96,7 +98,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactEleme
                     transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     className="whitespace-nowrap overflow-hidden"
                   >
-                    {item.label}
+                    {t(item.label)}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -110,7 +112,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps): ReactEleme
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
-          title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          title={collapsed ? t('展开侧边栏') : t('收起侧边栏')}
         >
           <motion.div
             animate={{ rotate: collapsed ? 180 : 0 }}

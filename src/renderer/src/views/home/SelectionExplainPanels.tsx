@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import type { HistorySelectionMeta } from '../../engine/selection/types'
 import { REASON_LABELS, REASON_TOOLTIPS } from './reasonLabels'
+import i18next from 'i18next'
 
 /**
  * 抽选解释相关面板：抽选前预览、学生视角未抽中原因、抽选解释。
@@ -34,12 +35,11 @@ export interface PickPreview {
   excludedCount: number
   excludedBreakdown: Array<{ reason: string; count: number }>
 }
-
 export function PickPreviewPanel({ preview }: { preview: PickPreview }): ReactElement {
   return (
     <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-on-surface-variant">抽选前预览</span>
+        <span className="text-xs text-on-surface-variant">{i18next.t('抽选前预览')}</span>
         <span className="text-xs text-on-surface-variant">
           候选 {preview.totalCandidates} / 可抽 {preview.eligibleCount} / 排除{' '}
           {preview.excludedCount}
@@ -83,17 +83,19 @@ export function StudentExplainPanel({
 }): ReactElement {
   return (
     <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
-      <div className="text-xs text-on-surface-variant mb-2">未抽中原因（学生视角）</div>
+      <div className="text-xs text-on-surface-variant mb-2">
+        {i18next.t('未抽中原因（学生视角）')}
+      </div>
       <input
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         className="w-full px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-        placeholder="输入姓名或学号查看该生当前抽选状态"
+        placeholder={i18next.t('输入姓名或学号查看该生当前抽选状态')}
       />
       {explain && (
         <div className="mt-2 text-[11px] text-on-surface-variant">
           {'notFound' in explain && explain.notFound ? (
-            <span>未匹配到学生</span>
+            <span>{i18next.t('未匹配到学生')}</span>
           ) : (
             <>
               <div>
@@ -111,10 +113,12 @@ export function StudentExplainPanel({
                 ))}
               </div>
               <div className="mt-1">
-                权重 {explain.baseWeight.toFixed(2)} -&gt; {explain.finalWeight.toFixed(2)}
+                权重 {explain.baseWeight.toFixed(2)} → {explain.finalWeight.toFixed(2)}
               </div>
               <details className="mt-1.5 rounded-lg bg-surface-container-low/60 px-2 py-1.5">
-                <summary className="cursor-pointer text-[11px] text-on-surface">规则说明</summary>
+                <summary className="cursor-pointer text-[11px] text-on-surface">
+                  {i18next.t('规则说明')}
+                </summary>
                 <div className="mt-1.5 space-y-1">
                   {explain.reasons.map((reason) => (
                     <div key={`tip-${explain.student.id}-${reason}`}>
@@ -159,7 +163,7 @@ export function SelectionExplainPanel({
   return (
     <div className="mt-2 w-full max-w-2xl rounded-2xl bg-surface-container-high/70 border border-outline-variant/30 p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs text-on-surface-variant">抽选解释</div>
+        <div className="text-xs text-on-surface-variant">{i18next.t('抽选解释')}</div>
         <div className="text-[11px] text-on-surface-variant">
           本次抽取 {meta?.actualCount || winnerExplanations.length} 人 / 请求{' '}
           {meta?.requestedCount || requestedCount} 人
@@ -180,7 +184,9 @@ export function SelectionExplainPanel({
 
       {reasonOverview.length > 0 && (
         <div className="mb-2 rounded-xl bg-surface-container-low/70 border border-outline-variant/20 p-2.5">
-          <div className="text-[11px] text-on-surface-variant mb-1.5">规则命中概览</div>
+          <div className="text-[11px] text-on-surface-variant mb-1.5">
+            {i18next.t('规则命中概览')}
+          </div>
           <div className="space-y-1.5">
             {reasonOverview.map((group) => (
               <div key={`reason-group-${group.key}`}>
@@ -215,7 +221,7 @@ export function SelectionExplainPanel({
               </span>
             </div>
             <div className="mt-1 text-[11px] text-on-surface-variant">
-              权重 {item.baseWeight.toFixed(2)} -&gt; {item.finalWeight.toFixed(2)}
+              权重 {item.baseWeight.toFixed(2)} → {item.finalWeight.toFixed(2)}
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {item.reasons.map((reason) => (

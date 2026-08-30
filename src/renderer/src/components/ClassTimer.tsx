@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Timer, X, Play, Pause, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../lib/utils'
+import i18next from 'i18next'
 import { audioCtx } from '../lib/sounds'
 
 const PRESETS = [60, 120, 180, 300, 600] // seconds
@@ -96,7 +97,7 @@ export function ClassTimer() {
         )}
       >
         <Timer className="w-4 h-4" />
-        {remaining > 0 ? formatTime(remaining) : '计时'}
+        {remaining > 0 ? formatTime(remaining) : i18next.t('计时')}
       </button>
 
       {/* Timer panel */}
@@ -110,7 +111,7 @@ export function ClassTimer() {
             className="absolute top-14 left-0 w-64 bg-surface-container-high border border-outline-variant/50 rounded-2xl elevation-2 p-4 z-50"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-on-surface">课堂计时器</span>
+              <span className="text-sm font-semibold text-on-surface">{i18next.t('课堂计时器')}</span>
               <button
                 onClick={() => setOpen(false)}
                 className="p-1 rounded-full hover:bg-on-surface/10 cursor-pointer"

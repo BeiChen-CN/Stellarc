@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { useSettingsStore } from './settingsStore'
 import { useToastStore } from './toastStore'
 import { logger } from '../lib/logger'
+import i18next from 'i18next'
 import type { HistorySelectionMeta } from '../engine/selection/types'
 
 export interface HistoryRecord {
@@ -88,7 +89,9 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       await window.electronAPI.writeJson('history.json', { records: newHistory })
     } catch (e) {
       logger.error('HistoryStore', 'Failed to save history', e)
-      useToastStore.getState().addToast('历史记录保存失败，请检查磁盘空间', 'error')
+      useToastStore
+        .getState()
+        .addToast(i18next.t('历史记录保存失败，请重试；若持续出现请检查磁盘空间与权限'), 'error')
     }
   },
 
@@ -98,7 +101,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       await window.electronAPI.writeJson('history.json', { records: [] })
     } catch (e) {
       logger.error('HistoryStore', 'Failed to clear history', e)
-      useToastStore.getState().addToast('历史记录清除失败', 'error')
+      useToastStore.getState().addToast(i18next.t('历史记录清除失败'), 'error')
     }
   },
 
@@ -109,7 +112,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       await window.electronAPI.writeJson('history.json', { records: newHistory })
     } catch (e) {
       logger.error('HistoryStore', 'Failed to remove history record', e)
-      useToastStore.getState().addToast('删除记录失败', 'error')
+      useToastStore.getState().addToast(i18next.t('删除记录失败'), 'error')
     }
   }
 }))

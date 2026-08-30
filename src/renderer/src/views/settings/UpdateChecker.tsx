@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { RefreshCw, Download, RotateCcw } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useToastStore } from '../../store/toastStore'
+import i18next from 'i18next'
 
 declare const __APP_VERSION__: string
 
@@ -20,7 +21,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
-
 export function UpdateChecker() {
   const [status, setStatus] = useState<string>('idle')
   const [info, setInfo] = useState<UpdateInfo | null>(null)
@@ -32,8 +32,8 @@ export function UpdateChecker() {
       const data = (i ?? null) as UpdateInfo | null
       setInfo(data)
       if (s === 'error') addToast(`检查更新失败: ${data?.message || '未知错误'}`, 'error')
-      if (s === 'up-to-date') addToast('当前已是最新版本', 'success')
-      if (s === 'downloaded') addToast('更新已下载，重启后生效', 'success')
+      if (s === 'up-to-date') addToast(i18next.t('当前已是最新版本'), 'success')
+      if (s === 'downloaded') addToast(i18next.t('更新已下载，重启后生效'), 'success')
     })
     return cleanup
   }, [addToast])
@@ -66,7 +66,7 @@ export function UpdateChecker() {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-on-surface">软件更新</h4>
+            <h4 className="font-medium text-on-surface">{i18next.t('软件更新')}</h4>
             <p className="text-xs text-on-surface-variant mt-0.5">
               当前版本 v{__APP_VERSION__}
               {status === 'checking' && ' — 正在检查...'}
@@ -102,7 +102,7 @@ export function UpdateChecker() {
               className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity"
             >
               <Download className="w-3.5 h-3.5" />
-              下载更新
+              {i18next.t('下载更新')}
             </button>
           )}
           {status === 'downloaded' && (
@@ -111,7 +111,7 @@ export function UpdateChecker() {
               className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              重启安装
+              {i18next.t('重启安装')}
             </button>
           )}
           {(status === 'idle' || status === 'up-to-date' || status === 'error') && (
@@ -119,7 +119,7 @@ export function UpdateChecker() {
               onClick={handleCheck}
               className="px-4 py-1.5 border border-outline-variant rounded-full text-sm font-medium text-on-surface cursor-pointer hover:bg-surface-container-high transition-colors"
             >
-              检查更新
+              {i18next.t('检查更新')}
             </button>
           )}
         </div>

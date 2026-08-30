@@ -3,6 +3,7 @@ import { GraduationCap, ChevronDown, Users, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '../../lib/utils'
 import type { ClassGroup } from '../../types'
+import i18next from 'i18next'
 
 interface ClassSelectorProps {
   classes: ClassGroup[]
@@ -11,7 +12,6 @@ interface ClassSelectorProps {
   isSpinning: boolean
   onSelectClass: (id: string) => void
 }
-
 export function ClassSelector({
   classes,
   currentClassId,
@@ -49,7 +49,7 @@ export function ClassSelector({
         ) : (
           <>
             <GraduationCap className="w-4 h-4 text-on-surface-variant" />
-            <span className="text-on-surface-variant">选择班级</span>
+            <span className="text-on-surface-variant">{i18next.t('选择班级')}</span>
           </>
         )}
         <ChevronDown
@@ -110,7 +110,7 @@ export function ClassSelector({
               })}
               {classes.length === 0 && (
                 <div className="px-3 py-6 text-center text-on-surface-variant text-sm">
-                  暂无班级
+                  {i18next.t('暂无班级')}
                 </div>
               )}
             </div>

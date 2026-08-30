@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { GraduationCap, Users, Sparkles, Plus, ArrowRight, Keyboard } from 'lucide-react'
 import type { ClassGroup } from '../../types'
+import i18next from 'i18next'
 
 interface PickIdleStateProps {
   classes: ClassGroup[]
@@ -8,7 +9,6 @@ interface PickIdleStateProps {
   onNavigate: (view: 'students') => void
   onCreateClass: () => void
 }
-
 export function PickIdleState({
   classes,
   currentClass,
@@ -30,8 +30,10 @@ export function PickIdleState({
           <GraduationCap className="w-28 h-28 mx-auto" strokeWidth={1} />
         </motion.div>
         <div className="space-y-2">
-          <div className="text-on-surface text-xl font-medium">欢迎使用 Stellarc</div>
-          <div className="text-on-surface-variant text-sm">创建你的第一个班级，开始随机点名</div>
+          <div className="text-on-surface text-xl font-medium">{i18next.t('欢迎使用 Stellarc')}</div>
+          <div className="text-on-surface-variant text-sm">
+            {i18next.t('创建你的第一个班级，开始随机点名')}
+          </div>
         </div>
         <div className="flex items-center justify-center gap-3 pt-2">
           <button
@@ -39,13 +41,13 @@ export function PickIdleState({
             className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium elevation-1 hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            快速创建班级
+            {i18next.t('快速创建班级')}
           </button>
           <button
             onClick={() => onNavigate('students')}
             className="flex items-center gap-2 px-5 py-2.5 border border-outline-variant text-on-surface rounded-full text-sm font-medium hover:bg-surface-container-high transition-colors cursor-pointer"
           >
-            学生管理
+            {i18next.t('学生管理')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -67,7 +69,9 @@ export function PickIdleState({
         >
           <Users className="w-28 h-28 mx-auto" strokeWidth={1} />
         </motion.div>
-        <div className="text-on-surface-variant text-xl font-light">请在右上角选择班级</div>
+        <div className="text-on-surface-variant text-xl font-light">
+          {i18next.t('请在右上角选择班级')}
+        </div>
       </motion.div>
     )
   }
@@ -87,13 +91,15 @@ export function PickIdleState({
           <Users className="w-28 h-28 mx-auto" strokeWidth={1} />
         </motion.div>
         <div className="space-y-2">
-          <div className="text-on-surface-variant text-xl font-light">当前班级还没有学生</div>
+          <div className="text-on-surface-variant text-xl font-light">
+            {i18next.t('当前班级还没有学生')}
+          </div>
           <button
             onClick={() => onNavigate('students')}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium elevation-1 hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            添加学生
+            {i18next.t('添加学生')}
           </button>
         </div>
       </motion.div>
@@ -122,7 +128,7 @@ export function PickIdleState({
       </div>
       <div className="flex items-center justify-center gap-1.5 text-xs text-on-surface-variant/60 pt-2">
         <Keyboard className="w-3.5 h-3.5" />
-        <span>点击下方按钮开始抽选</span>
+        <span>{i18next.t('点击下方按钮开始抽选')}</span>
       </div>
     </motion.div>
   )

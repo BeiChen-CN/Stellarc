@@ -35,6 +35,7 @@ import {
   StudentExplainPanel,
   SelectionExplainPanel
 } from './home/SelectionExplainPanels'
+import i18next from 'i18next'
 
 type PickPlan = {
   eligibleStudents: Student[]
@@ -376,7 +377,7 @@ export function Home({
         }
       } catch (err) {
         logger.error('Home', 'Failed to update stats or history', err)
-        addToast('抽选结果记录失败，请重试', 'error')
+        addToast(i18next.t('抽选结果记录失败，请重试'), 'error')
       }
     },
     [
@@ -410,7 +411,9 @@ export function Home({
         addToast(
           effectivePickGenderFilter === 'all'
             ? '当前班级没有可被抽选的学生！'
-            : `当前${effectivePickGenderFilter === 'male' ? '男生' : '女生'}筛选下没有可被抽选的学生！`,
+            : i18next.t('当前{{gender}}筛选下没有可被抽选的学生', {
+                gender: effectivePickGenderFilter === 'male' ? i18next.t('男生') : i18next.t('女生')
+              }),
           'error'
         )
         return
@@ -527,7 +530,7 @@ export function Home({
 
     const activeCount = currentClass.students.filter((s) => s.status === 'active').length
     if (activeCount < 2) {
-      addToast('至少需要 2 名可用学生才能分组！', 'error')
+      addToast(i18next.t('至少需要 2 名可用学生才能分组'), 'error')
       return
     }
 
@@ -624,7 +627,10 @@ export function Home({
       })
     })
     if (affectedTotal > 0) {
-      addToast(`已完成分组任务记分，共 ${affectedTotal} 人`, 'success')
+      addToast(
+        i18next.t('已完成分组任务记分，共 {{count}} 人', { count: affectedTotal }),
+        'success'
+      )
     }
   }, [currentClass, groupAssignments, groups, applyTaskScore, addHistoryRecord, addToast])
 
@@ -701,12 +707,16 @@ export function Home({
     },
     [setCurrentClass, classes, updateManualExcludedIds, hydrateForClass]
   )
-
   const handleCreateClass = useCallback(() => {
-    showPrompt('创建班级', '请输入新班级的名称', '班级名称', (name) => {
-      addClass(name)
-      addToast(`班级「${name}」已创建`, 'success')
-    })
+    showPrompt(
+      i18next.t('创建班级'),
+      i18next.t('请输入新班级的名称'),
+      i18next.t('班级名称'),
+      (name) => {
+        addClass(name)
+        addToast(i18next.t('班级「{{name}}」已创建', { name }), 'success')
+      }
+    )
   }, [addClass, addToast, showPrompt])
 
   useEffect(() => {
@@ -967,7 +977,7 @@ export function Home({
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleDraw()}
                   disabled={isSpinning || !currentClass || currentClass.students.length === 0}
-                  aria-label={isSpinning ? '抽选中' : '开始点名'}
+                  aria-label={isSpinning ? i18next.t('抽选中') : i18next.t('开始点名')}
                   aria-busy={isSpinning}
                   className={cn(
                     'px-7 sm:px-10 py-3 bg-primary text-primary-foreground rounded-full text-lg sm:text-xl font-bold elevation-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 h-12 cursor-pointer',
@@ -987,7 +997,7 @@ export function Home({
                   ) : (
                     <>
                       <Shuffle className="w-6 h-6" />
-                      开始点名
+                      {i18next.t('开始点名')}
                     </>
                   )}
                 </motion.button>
@@ -1056,10 +1066,10 @@ export function Home({
                 data-testid="enter-immersive-mode"
                 onClick={() => setImmersiveMode(true)}
                 className="mr-2 px-2.5 py-1 rounded-full text-[11px] border border-outline-variant/40 bg-surface-container text-on-surface-variant hover:bg-surface-container-high inline-flex items-center gap-1 cursor-pointer"
-                title="沉浸模式下仅显示点名按钮和人数选项，按 Esc 退出"
+                title={i18next.t('沉浸模式下仅显示点名按钮和人数选项，按 Esc 退出')}
               >
                 <Maximize2 className="w-3 h-3" />
-                沉浸模式
+                {i18next.t('沉浸模式')}
               </button>
               {showPickGenderFilter && (
                 <>
@@ -1094,7 +1104,7 @@ export function Home({
 
               <span className="text-xs font-medium mr-1.5 text-on-surface-variant flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />
-                人数
+                {i18next.t('人数')}
               </span>
               <button
                 onClick={() => setPickCount(Math.max(1, pickCount - 1))}

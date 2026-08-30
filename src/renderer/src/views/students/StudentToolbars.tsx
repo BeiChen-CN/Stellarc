@@ -3,6 +3,7 @@ import { BadgeCheck, Clock3, PencilLine, Undo2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import type { ScoreLogEntry } from '../../types'
 import { InlineSelect, type DropdownOption } from './InlineSelect'
+import i18next from 'i18next'
 
 /** 学生页顶部工具条：批量编辑 / 任务积分 / 分组任务模板 / 积分日志 */
 
@@ -64,25 +65,25 @@ export function BatchEditBar({
           value={gender}
           onChange={(value) => setGender(value as 'keep' | 'male' | 'female')}
           options={genderOptions}
-          placeholder="性别不变"
+          placeholder={i18next.t('性别不变')}
         />
         <InlineSelect
           value={status}
           onChange={(value) => setStatus(value as 'keep' | 'active' | 'absent' | 'excluded')}
           options={statusOptions}
-          placeholder="状态不变"
+          placeholder={i18next.t('状态不变')}
         />
         <input
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           className="w-24 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-          placeholder="权重"
+          placeholder={i18next.t('权重')}
         />
         <input
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           className="w-44 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-          placeholder="标签（/分隔）"
+          placeholder={i18next.t('标签（/分隔）')}
         />
         <button
           onClick={() => setTagsMode((m) => (m === 'append' ? 'replace' : 'append'))}
@@ -94,7 +95,7 @@ export function BatchEditBar({
           onClick={apply}
           className="px-3 py-1.5 rounded-xl text-xs bg-primary text-primary-foreground cursor-pointer"
         >
-          应用批量编辑
+          {i18next.t('应用批量编辑')}
         </button>
       </div>
     </div>
@@ -128,19 +129,19 @@ export function TaskScoreBar({
   return (
     <>
       <div className="mb-3 flex items-center gap-2 rounded-2xl border border-outline-variant/30 bg-surface-container-high/70 px-3 py-2">
-        <span className="text-xs text-on-surface-variant">任务积分</span>
+        <span className="text-xs text-on-surface-variant">{i18next.t('任务积分')}</span>
         <input
           value={taskName}
           onChange={(e) => onTaskNameChange(e.target.value)}
           className="w-40 px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-          placeholder="任务名称"
+          placeholder={i18next.t('任务名称')}
         />
         <input
           type="number"
           value={taskDelta}
           onChange={(e) => onTaskDeltaChange(Number(e.target.value) || 0)}
           className="w-20 px-2 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none text-center"
-          title="分值"
+          title={i18next.t('分值')}
         />
         <div className="flex items-center gap-1">
           {[1, 2, 5, -1, -2].map((preset) => (
@@ -164,7 +165,7 @@ export function TaskScoreBar({
           onClick={() => onApply('all')}
           className="px-3 py-1.5 rounded-xl text-xs bg-secondary-container text-secondary-container-foreground cursor-pointer"
         >
-          应用到全体
+          {i18next.t('应用到全体')}
         </button>
         <div className="flex items-center gap-1 pl-2 border-l border-outline-variant/30">
           <BadgeCheck className="w-3.5 h-3.5 text-primary" />
@@ -172,7 +173,7 @@ export function TaskScoreBar({
             value={taskTagQuery}
             onChange={(e) => onTaskTagQueryChange(e.target.value)}
             className="w-24 px-2 py-1 rounded-lg border border-outline-variant/40 bg-surface-container-low text-[11px] text-on-surface outline-none"
-            placeholder="按标签"
+            placeholder={i18next.t('按标签')}
           />
           <button
             onClick={() => onApply('tag')}
@@ -211,18 +212,18 @@ export function GroupTaskTemplateBar({
   const [draft, setDraft] = useState(defaultDraft)
   return (
     <div className="mb-3 flex items-center gap-2 rounded-2xl border border-outline-variant/30 bg-surface-container-high/70 px-3 py-2">
-      <span className="text-xs text-on-surface-variant">分组任务模板</span>
+      <span className="text-xs text-on-surface-variant">{i18next.t('分组任务模板')}</span>
       <input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         className="flex-1 px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
-        placeholder="格式：任务A:+1,任务B:+2"
+        placeholder={i18next.t('格式：任务A:+1,任务B:+2')}
       />
       <button
         onClick={() => onSave(draft)}
         className="px-3 py-1.5 rounded-xl text-xs bg-primary/10 text-primary border border-primary/20 cursor-pointer"
       >
-        保存模板
+        {i18next.t('保存模板')}
       </button>
     </div>
   )
@@ -256,7 +257,7 @@ export function ScoreLogPanel({
     <div className="mb-3 rounded-2xl border border-outline-variant/30 bg-surface-container-high/50 p-3">
       <div className="flex items-center gap-2 mb-2">
         <Clock3 className="w-4 h-4 text-primary" />
-        <span className="text-xs text-on-surface-variant">积分日志面板</span>
+        <span className="text-xs text-on-surface-variant">{i18next.t('积分日志面板')}</span>
         <span className="text-[11px] text-on-surface-variant">共 {logs.length} 条</span>
       </div>
 
@@ -265,18 +266,18 @@ export function ScoreLogPanel({
           value={studentFilter}
           onChange={onStudentFilterChange}
           options={studentOptions}
-          placeholder="全部学生"
+          placeholder={i18next.t('全部学生')}
         />
         <InlineSelect
           value={sourceFilter}
           onChange={onSourceFilterChange}
           options={sourceOptions}
-          placeholder="全部来源"
+          placeholder={i18next.t('全部来源')}
         />
         <input
           value={taskFilter}
           onChange={(e) => onTaskFilterChange(e.target.value)}
-          placeholder="筛选任务名"
+          placeholder={i18next.t('筛选任务名')}
           className="px-3 py-1.5 rounded-xl border border-outline-variant/40 bg-surface-container-low text-xs text-on-surface outline-none"
         />
       </div>
@@ -314,13 +315,15 @@ export function ScoreLogPanel({
                 className="px-2 py-1 rounded-lg text-[11px] bg-destructive/10 text-destructive cursor-pointer inline-flex items-center gap-1"
               >
                 <Undo2 className="w-3 h-3" />
-                回滚
+                {i18next.t('撤销')}
               </button>
             </div>
           </div>
         ))}
         {logs.length === 0 && (
-          <div className="text-xs text-on-surface-variant text-center py-4">暂无匹配日志</div>
+          <div className="text-xs text-on-surface-variant text-center py-4">
+            {i18next.t('暂无匹配日志')}
+          </div>
         )}
       </div>
     </div>

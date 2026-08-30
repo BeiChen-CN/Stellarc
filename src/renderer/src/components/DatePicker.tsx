@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useTranslation } from 'react-i18next'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -83,6 +84,8 @@ export function DatePicker({
       setViewMonth(0)
     } else setViewMonth(viewMonth + 1)
   }
+
+  const { t } = useTranslation()
 
   const selectDay = (day: number): void => {
     const m = String(viewMonth + 1).padStart(2, '0')
@@ -196,7 +199,7 @@ export function DatePicker({
               }}
               className="mt-2 w-full text-center text-xs text-destructive hover:text-destructive/80 cursor-pointer py-1"
             >
-              清除日期
+              {t('清除日期')}
             </button>
           )}
         </div>

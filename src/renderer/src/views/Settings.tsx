@@ -7,6 +7,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { AppearanceSection } from './settings/AppearanceSection'
 import { FairnessSection } from './settings/FairnessSection'
 import { DataSection } from './settings/DataSection'
+import i18next from 'i18next'
 
 type SettingsCategory = 'appearance' | 'experience' | 'fairness' | 'data'
 
@@ -16,7 +17,6 @@ const CATEGORY_ITEMS: Array<{ id: SettingsCategory; label: string; icon: typeof 
   { id: 'fairness', label: '抽选与规则', icon: Scale },
   { id: 'data', label: '数据与系统', icon: Database }
 ]
-
 export function Settings(): ReactElement {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('appearance')
   const sf = useSpeedFactor()
@@ -36,15 +36,13 @@ export function Settings(): ReactElement {
     <div className="h-full overflow-y-auto">
       <div className="max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-5 space-y-5 sm:space-y-6 pb-12 sm:pb-16">
         <div>
-          <h2 className="text-3xl font-bold mb-2 text-on-surface">设置</h2>
-          <p className="text-on-surface-variant text-sm">
-            按场景分组设置，减少干扰项，按需进入对应配置。
-          </p>
+          <h2 className="text-3xl font-bold mb-2 text-on-surface">{i18next.t('设置')}</h2>
+          <p className="text-on-surface-variant text-sm"></p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-5 items-start">
           <aside className="bg-surface-container rounded-3xl p-3 lg:sticky lg:top-4">
-            <div className="text-xs text-on-surface-variant px-2 py-1">设置分组</div>
+            <div className="text-xs text-on-surface-variant px-2 py-1">{i18next.t('设置分组')}</div>
             <div className="space-y-1.5 mt-1">
               {CATEGORY_ITEMS.map((item) => {
                 const Icon = item.icon
