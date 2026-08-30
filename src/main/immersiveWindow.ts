@@ -30,6 +30,9 @@ interface ImmersiveWindowLayout {
    * WS_THICKFRAME，破坏 DWM 透明合成，窗口显示为半透明方块。保留可调整
    * 大小的代价仅是窗口边缘数像素的拖拽热区，视觉上不可感知 */
   resizable: true
+  /** 沉浸小窗关闭系统阴影：DWM 阴影沿窗口矩形绘制，叠加在透明区域上
+   * 会形成可见的方形轮廓；视觉阴影由渲染层 CSS 提供 */
+  hasShadow: boolean
   skipTaskbar: boolean
   minimumSize: [number, number]
 }
@@ -57,6 +60,7 @@ export interface ImmersiveWindowTarget {
   setFullScreen: (flag: boolean) => void
   setAlwaysOnTop: (flag: boolean, level?: AlwaysOnTopLevel) => void
   setResizable: (flag: boolean) => void
+  setHasShadow: (flag: boolean) => void
   setSkipTaskbar: (flag: boolean) => void
 }
 
@@ -121,6 +125,7 @@ export function calculateImmersiveWindowLayout(
       bounds: options.restoreBounds ?? fallbackBounds,
       alwaysOnTop: true,
       resizable: true,
+      hasShadow: true,
       skipTaskbar: false,
       minimumSize: options.restoreMinimumSize ?? [1024, 720]
     }
@@ -139,6 +144,7 @@ export function calculateImmersiveWindowLayout(
       ),
       alwaysOnTop: true,
       resizable: true,
+      hasShadow: false,
       skipTaskbar: true,
       minimumSize: [0, 0]
     }
@@ -160,6 +166,7 @@ export function calculateImmersiveWindowLayout(
       bounds: ballBounds,
       alwaysOnTop: true,
       resizable: true,
+      hasShadow: false,
       skipTaskbar: true,
       minimumSize: [0, 0]
     }
@@ -177,6 +184,7 @@ export function calculateImmersiveWindowLayout(
     ),
     alwaysOnTop: true,
     resizable: true,
+    hasShadow: false,
     skipTaskbar: true,
     minimumSize: [0, 0]
   }
@@ -196,6 +204,7 @@ function applyLayout(win: ImmersiveWindowTarget, layout: ImmersiveWindowLayout):
   win.setMinimumSize(layout.minimumSize[0], layout.minimumSize[1])
   win.setResizable(layout.resizable)
   win.setAlwaysOnTop(layout.alwaysOnTop, layout.alwaysOnTop ? 'floating' : undefined)
+  win.setHasShadow(layout.hasShadow)
   win.setSkipTaskbar(layout.skipTaskbar)
   win.setBounds(layout.bounds)
 }
@@ -216,6 +225,7 @@ export function createImmersiveWindowController(win: ImmersiveWindowTarget): {
     if (!snapshot) {
       win.setAlwaysOnTop(false)
       win.setResizable(true)
+      win.setHasShadow(true)
       win.setSkipTaskbar(false)
       phase = 'normal'
       ballAnchor = null
@@ -228,6 +238,7 @@ export function createImmersiveWindowController(win: ImmersiveWindowTarget): {
     win.setMinimumSize(restore.minimumSize[0], restore.minimumSize[1])
     win.setResizable(true)
     win.setAlwaysOnTop(false)
+    win.setHasShadow(true)
     win.setSkipTaskbar(false)
     win.setBounds(restore.bounds)
     if (restore.fullScreen) {

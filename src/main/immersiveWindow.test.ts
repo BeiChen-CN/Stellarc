@@ -24,6 +24,7 @@ function createFakeWindow(initial: {
     fullScreen: boolean
     alwaysOnTop: boolean
     resizable: boolean
+    hasShadow: boolean
     skipTaskbar: boolean
   }
 } {
@@ -34,6 +35,7 @@ function createFakeWindow(initial: {
     fullScreen: initial.fullScreen ?? false,
     alwaysOnTop: false,
     resizable: true,
+    hasShadow: true,
     skipTaskbar: false
   }
   const calls: string[] = []
@@ -74,6 +76,10 @@ function createFakeWindow(initial: {
     setResizable: (flag) => {
       state.resizable = flag
       calls.push(`setResizable:${flag}`)
+    },
+    setHasShadow: (flag) => {
+      state.hasShadow = flag
+      calls.push(`setHasShadow:${flag}`)
     },
     setSkipTaskbar: (flag) => {
       state.skipTaskbar = flag
@@ -119,6 +125,7 @@ describe('immersiveWindow', () => {
     const controller = createImmersiveWindowController(win)
 
     controller.setPhase('ball', workArea)
+    expect(win.state.hasShadow).toBe(false)
     controller.setPhase('menu', workArea)
     controller.setPhase('expanded', workArea)
     controller.setPhase('normal', workArea)
@@ -127,6 +134,7 @@ describe('immersiveWindow', () => {
     expect(win.state.minimumSize).toEqual([1024, 720])
     expect(win.state.alwaysOnTop).toBe(false)
     expect(win.state.resizable).toBe(true)
+    expect(win.state.hasShadow).toBe(true)
     expect(win.state.skipTaskbar).toBe(false)
     expect(win.state.maximized).toBe(true)
     expect(win.calls).toContain('unmaximize')
