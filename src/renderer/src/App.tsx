@@ -8,6 +8,7 @@ import {
   type ReactElement
 } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import i18next from 'i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './views/Home'
@@ -151,12 +152,21 @@ function MainApp(): ReactElement {
     }
   }, [theme, colorTheme, m3Mode])
 
-  // 语言切换：settingsStore.language 驱动 i18next（组件经 useTranslation 订阅自动重渲染）
+  // 语言切换：settingsStore.language 驱动 i18next
   useEffect(() => {
     void import('./i18n').then((mod) => {
       if (mod.default.language !== language) void mod.default.changeLanguage(language)
     })
   }, [language])
+
+  // 全局 t() 无 hook 响应式：语言真正切换后强制整树重渲染，
+  // 否则只有碰巧重渲染的组件更新语言、React.memo 组件卡在旧语言
+  const [, bumpLang] = useState(0)
+  useEffect(() => {
+    const handler = (): void => bumpLang((n) => n + 1)
+    i18next.on('languageChanged', handler)
+    return () => i18next.off('languageChanged', handler)
+  }, [])
 
   // Apply custom color as CSS variable override
   useEffect(() => {

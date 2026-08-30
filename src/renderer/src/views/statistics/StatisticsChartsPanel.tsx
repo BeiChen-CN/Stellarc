@@ -231,7 +231,7 @@ export function StatisticsChartsPanel({
       <div className="bg-surface-container rounded-xl p-6 flex flex-col elevation-0">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-on-surface">
           <TrendingUp className="w-5 h-5 text-primary" />
-          被抽中次数 Top 10
+          {i18next.t('被抽中次数 Top 10')}
         </h3>
         <div className="flex-1 min-h-[240px]">
           {chartData.length > 0 ? (

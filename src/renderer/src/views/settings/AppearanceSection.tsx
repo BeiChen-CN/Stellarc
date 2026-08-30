@@ -544,7 +544,7 @@ export function AppearanceSection({
                   )}
                 </div>
                 <span className="text-center text-xs font-medium leading-tight text-on-surface-variant">
-                  {item.label}
+                  {i18next.t(item.label)}
                 </span>
               </button>
             ))}
@@ -645,7 +645,7 @@ export function AppearanceSection({
                     : 'border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-high'
                 )}
               >
-                {item.label}
+                {i18next.t(item.label)}
               </button>
             ))}
           </div>
@@ -662,7 +662,7 @@ export function AppearanceSection({
                       : 'text-on-surface-variant hover:bg-surface-container-high'
                   )}
                 >
-                  {item.label}
+                  {i18next.t(item.label)}
                 </button>
               ))}
             </div>

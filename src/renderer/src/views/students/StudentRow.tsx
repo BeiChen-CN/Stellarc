@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback, type ReactElement } from 'react'
+import { useState, useRef, useCallback, type ReactElement } from 'react'
 import { splitTagInput } from '../../lib/utils'
 import { Plus, Minus, Trash2, UserX, CheckCircle } from 'lucide-react'
 import type { Student } from '../../types'
@@ -93,7 +93,7 @@ function EditableCell({
     </span>
   )
 }
-export const StudentRow = memo(function StudentRow({
+export function StudentRow({
   student,
   classId,
   selected,
@@ -239,9 +239,9 @@ export const StudentRow = memo(function StudentRow({
       </td>
     </tr>
   )
-})
+}
 
-export const StudentMobileCard = memo(function StudentMobileCard({
+export function StudentMobileCard({
   student,
   classId,
   selected,
@@ -381,4 +381,4 @@ export const StudentMobileCard = memo(function StudentMobileCard({
       </div>
     </div>
   )
-})
+}

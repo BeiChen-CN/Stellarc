@@ -235,7 +235,7 @@ export function History(): ReactElement {
             className="ui-btn ui-btn-sm text-on-surface bg-surface-container-high hover:bg-surface-container-low"
           >
             <Download className="w-4 h-4 mr-2" />
-            导出结构化 CSV
+            {i18next.t('导出结构化 CSV')}
           </button>
           <button
             onClick={handleExportClassReport}
@@ -249,7 +249,7 @@ export function History(): ReactElement {
             className="ui-btn ui-btn-sm text-primary bg-primary/10 hover:bg-primary/15"
           >
             <Download className="w-4 h-4 mr-2" />
-            导出 CSV
+            {i18next.t('导出 CSV')}
           </button>
           <button
             onClick={() =>

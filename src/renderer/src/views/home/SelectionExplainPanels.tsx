@@ -52,7 +52,7 @@ export function PickPreviewPanel({ preview }: { preview: PickPreview }): ReactEl
               key={item.reason}
               className="px-2 py-0.5 rounded-full text-[10px] bg-surface-container text-on-surface-variant"
             >
-              {REASON_LABELS[item.reason] || item.reason} {item.count}
+              {i18next.t(REASON_LABELS[item.reason] || item.reason)} {item.count}
             </span>
           ))}
         </div>
@@ -106,9 +106,9 @@ export function StudentExplainPanel({
                   <span
                     key={`${explain.student.id}-${reason}`}
                     className="px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant"
-                    title={REASON_TOOLTIPS[reason] || reason}
+                    title={i18next.t(REASON_TOOLTIPS[reason] || reason)}
                   >
-                    {REASON_LABELS[reason] || reason}
+                    {i18next.t(REASON_LABELS[reason] || reason)}
                   </span>
                 ))}
               </div>
@@ -123,9 +123,9 @@ export function StudentExplainPanel({
                   {explain.reasons.map((reason) => (
                     <div key={`tip-${explain.student.id}-${reason}`}>
                       <span className="font-medium text-on-surface">
-                        {REASON_LABELS[reason] || reason}
+                        {i18next.t(REASON_LABELS[reason] || reason)}
                       </span>
-                      <span className="ml-1">{REASON_TOOLTIPS[reason] || '暂无说明'}</span>
+                      <span className="ml-1">{i18next.t(REASON_TOOLTIPS[reason] || '暂无说明')}</span>
                     </div>
                   ))}
                 </div>
@@ -196,9 +196,9 @@ export function SelectionExplainPanel({
                     <span
                       key={`reason-overview-${group.key}-${item.reason}`}
                       className="px-2 py-0.5 rounded-full text-[10px] bg-surface-container-high text-on-surface-variant"
-                      title={REASON_TOOLTIPS[item.reason] || item.reason}
+                      title={i18next.t(REASON_TOOLTIPS[item.reason] || item.reason)}
                     >
-                      {REASON_LABELS[item.reason] || item.reason} x {item.count}
+                      {i18next.t(REASON_LABELS[item.reason] || item.reason)} x {item.count}
                     </span>
                   ))}
                 </div>
@@ -228,9 +228,9 @@ export function SelectionExplainPanel({
                 <span
                   key={`${item.id}-${reason}`}
                   className="px-1.5 py-0.5 rounded-md text-[10px] bg-surface-container-high text-on-surface-variant"
-                  title={REASON_TOOLTIPS[reason] || reason}
+                  title={i18next.t(REASON_TOOLTIPS[reason] || reason)}
                 >
-                  {REASON_LABELS[reason] || reason}
+                  {i18next.t(REASON_LABELS[reason] || reason)}
                 </span>
               ))}
             </div>

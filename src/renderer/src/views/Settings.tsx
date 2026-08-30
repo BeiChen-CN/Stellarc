@@ -58,7 +58,7 @@ export function Settings(): ReactElement {
                     )}
                   >
                     <Icon className="w-4 h-4" />
-                    {item.label}
+                    {i18next.t(item.label)}
                   </button>
                 )
               })}
