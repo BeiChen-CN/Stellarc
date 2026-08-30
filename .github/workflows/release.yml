@@ -67,6 +67,8 @@ jobs:
             dist/*.msi
             dist/*.exe.sha256
             dist/*.msi.sha256
+            dist/*.blockmap
+            dist/latest.yml
 
       - name: Upload mac installers
         if: matrix.platform == 'macos'
@@ -75,7 +77,10 @@ jobs:
           name: ${{ matrix.platform }}-bundle
           path: |
             dist/*.dmg
+            dist/*.zip
             dist/*.dmg.sha256
+            dist/*.zip.sha256
+            dist/latest-mac.yml
 
       - name: Upload linux installers
         if: matrix.platform == 'linux'
@@ -87,6 +92,7 @@ jobs:
             dist/*.deb
             dist/*.AppImage.sha256
             dist/*.deb.sha256
+            dist/latest-linux.yml
 
   release:
     runs-on: ubuntu-latest
@@ -125,7 +131,10 @@ jobs:
           files: |
             release-assets/**/*.exe
             release-assets/**/*.dmg
+            release-assets/**/*.zip
             release-assets/**/*.AppImage
             release-assets/**/*.deb
             release-assets/**/*.sha256
+            release-assets/**/*.blockmap
+            release-assets/**/latest*.yml
           body_path: RELEASE_NOTES.md
