@@ -56,5 +56,10 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
+      # electron-vite dev --rendererOnly 只启动渲染进程 dev server，
+      # 但校验 out/main/index.js 存在（跳过主进程构建时沿用先前产物）
+      - name: Build electron bundles
+        run: npx electron-vite build
+
       - name: UI tests
         run: npx playwright test
