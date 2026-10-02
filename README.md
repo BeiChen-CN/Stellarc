@@ -209,3 +209,6 @@ src/
 ## 许可证
 
 [MIT](LICENSE)
+
+## 友情链接
+Linux Do https://linux.do/
